@@ -9,11 +9,15 @@ import Foundation
 
 struct OutgoingInvoiceNewResponse: Decodable {
     let actuarial_number: String
+    let variableSymbol: String?
+    
     let issue_date_at: String?
     let due_date_at: String?
+    let uzpDateAt: String?
+    
     let currency: Currency?
-    let customer: Partner?
-    let items: [InvoiceItem]
+    let customer: Customer?
+    let items: [CreateInvoiceLine]
     
     var issueDate: Date? {
         issue_date_at?.toDate()
@@ -21,6 +25,17 @@ struct OutgoingInvoiceNewResponse: Decodable {
     
     var dueDate: Date? {
         due_date_at?.toDate()
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case actuarial_number = "actuarial_number",
+             variableSymbol = "variable_symbol",
+             issue_date_at = "issue_date_at",
+             due_date_at = "due_date_at",
+             uzpDateAt = "uzp_date_at",
+             currency,
+             customer,
+             items
     }
     
 }
