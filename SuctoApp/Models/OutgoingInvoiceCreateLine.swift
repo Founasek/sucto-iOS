@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct CreateInvoiceLine: Identifiable , Codable, Hashable {
+struct OutgoingInvoiceCreateLine: Identifiable , Codable, Hashable {
     let id = UUID()
     var vatId: Int
     var lineableType: String

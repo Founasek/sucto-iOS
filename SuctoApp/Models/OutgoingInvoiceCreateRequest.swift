@@ -26,7 +26,7 @@ struct OutgoingInvoiceCreateRequest: Codable {
     
     var printNotice: String
     var orderNumber: String
-    var lines: [CreateInvoiceLine]
+    var lines: [OutgoingInvoiceCreateLine]
     
     enum CodingKeys: String, CodingKey {
         case actuarialNumber = "actuarial_number"

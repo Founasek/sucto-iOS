@@ -28,7 +28,7 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
     
     @Published var actuarialTypeId: Int? = 1
     
-    @Published var items: [CreateInvoiceLine] = []
+    @Published var items: [OutgoingInvoiceCreateLine] = []
     
     // MARK: - Reference data
     @Published var availablePartners: [Partner] = []
@@ -179,7 +179,7 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
         }
     }
     
-    func updateLine(_ line: inout CreateInvoiceLine) {
+    func updateLine(_ line: inout OutgoingInvoiceCreateLine) {
         line.basePrice = line.unitPrice * line.quantity
         line.totalPrice = line.basePrice + line.tax
     }

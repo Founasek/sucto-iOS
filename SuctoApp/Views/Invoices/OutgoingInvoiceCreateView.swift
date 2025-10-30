@@ -166,7 +166,7 @@ struct OutgoingInvoiceCreateView: View {
                 }
                 
                 Button(action: {
-                    viewModel.items.append(CreateInvoiceLine(
+                    viewModel.items.append(OutgoingInvoiceCreateLine(
                         vatId: 108,
                         lineableType: "Actuarial",
                         name: "",

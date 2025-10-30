@@ -17,7 +17,7 @@ struct OutgoingInvoiceInitResponse: Decodable {
     
     let currency: Currency?
     let customer: Customer?
-    let items: [CreateInvoiceLine]
+    let items: [OutgoingInvoiceCreateLine]
     
     var issueDate: Date? {
         issue_date_at?.toDate()
