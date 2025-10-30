@@ -30,7 +30,7 @@ struct AccountPickerView: View {
             isPresented = true
         } label: {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Účet")
+                Text("Forma úhrady")
                     .foregroundColor(.primary)
                 
                 HStack {
@@ -48,7 +48,6 @@ struct AccountPickerView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .padding(.vertical, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())

@@ -32,6 +32,14 @@ struct APIConstants {
         return "companies/\(companyId)/partners?page=1&limit=9999"
     }
 
+    static func GetVatRegimes(countryId: Int) -> String {
+        return "countries/\(countryId)/vat_regimes"
+    }
+
+    static func GetVats(countryId: Int) -> String {
+        return "countries/\(countryId)/vats"
+    }
+
     static func getCurrencies() -> String {
         return "currencies"
     }
@@ -42,6 +50,10 @@ struct APIConstants {
     
     static func getBankAccounts(companyId: Int) -> String {
         return "companies/\(companyId)/accounts"
+    }
+
+    static func GetPaymentTypes(companyId: Int) -> String {
+        return "companies/\(companyId)/payment_types"
     }
     
     static let defaultTimeout: TimeInterval = 30

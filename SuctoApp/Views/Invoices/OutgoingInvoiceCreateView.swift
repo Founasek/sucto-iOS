@@ -30,8 +30,6 @@ struct OutgoingInvoiceCreateView: View {
                     Text(viewModel.actuarialNumber)
                 }
                 
-                
-                
                 HStack {
                     Text("Variabilní symbol:")
                         //.foregroundColor(.secondary)
@@ -43,15 +41,20 @@ struct OutgoingInvoiceCreateView: View {
                         .multilineTextAlignment(.trailing)
                         .frame(minWidth: 80, maxWidth: 220)
                 }
-
-                
-                DatePicker("Datum vystavení", selection: $viewModel.issueDate, displayedComponents: .date)
-                DatePicker("Datum splatnosti", selection: $viewModel.dueDate, displayedComponents: .date)
                 
                 PartnerPickerView(
                     selectedPartner: $viewModel.selectedPartner,
                     partners: viewModel.availablePartners
                 )
+            }
+            
+            Section(header: Text("Časové údaje")) {
+                DatePicker("Datum vystavení: ", selection: $viewModel.issueDate, displayedComponents: .date)
+                DatePicker("Datum splatnosti: ", selection: $viewModel.dueDate, displayedComponents: .date)
+                DatePicker("Datum UZP: ", selection: $viewModel.uzpDate, displayedComponents: .date)
+            }
+            
+            Section(header: Text("Platební a daňové údaje")) {
 
 
                 AccountPickerView(
@@ -59,12 +62,17 @@ struct OutgoingInvoiceCreateView: View {
                     accounts: viewModel.availableAccounts
                 )
 
-
                 CurrencyPickerView(
                     selectedCurrency: $viewModel.selectedCurrency,
                     currencies: viewModel.availableCurrencies
                 )
-                 
+                
+                PaymentTypePickerView(
+                    selectedPaymentType: $viewModel.selectedPaymentType,
+                    paymentTypes: viewModel.availablePaymentTypes)
+                VatRegimePickerView(
+                    selectedVatRegime: $viewModel.selectedVatRegime,
+                    vatRegimes: viewModel.availableVatRegimes)
             }
             
             Section(header: Text("Dalši informace")) {
@@ -78,22 +86,17 @@ struct OutgoingInvoiceCreateView: View {
                         .multilineTextAlignment(.trailing)
                         .frame(minWidth: 80, maxWidth: 220)
                 }
-                
-                VStack (alignment: .leading){
-                    Text("Poznámka:")
-                    TextField(viewModel.printNotice, text: $viewModel.printNotice, axis: .vertical)
-                        .multilineTextAlignment(.leading)
-                        .lineLimit(2...5)
-                        //.frame(minWidth: 80, maxWidth: 220)
-                }
             }
-            
-
-            
-
-            
+  
             // MARK: - Položky faktury
             Section(header: Text("Položky faktury")) {
+                
+                VStack (alignment: .leading){
+                    TextField(viewModel.printNotice, text: $viewModel.printNotice, axis: .vertical)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(1...3)
+                }
+                
                 ForEach($viewModel.items) { $item in
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -118,7 +121,7 @@ struct OutgoingInvoiceCreateView: View {
                                 .font(.subheadline)
                             Spacer()
                             TextField("0", value: $item.quantity, format: .number)
-                                //.keyboardType(.decimalPad)
+                                .keyboardType(.decimalPad)
                                 .multilineTextAlignment(.trailing)
                                 .frame(width: 80)
                         }
@@ -147,6 +150,15 @@ struct OutgoingInvoiceCreateView: View {
                                 .multilineTextAlignment(.trailing)
                                 .frame(width: 80)
                         }
+                        
+                        Picker("Sazba DPH", selection: $item.vatId) {
+                            ForEach(viewModel.availableVats) { vat in
+                                Text("\(vat.value)%").tag(vat.id)
+                            }
+                        }
+                        .pickerStyle(.menu) // <- tady je klíčové
+
+
                         
                         HStack {
                             Text("Celkem")
@@ -190,9 +202,8 @@ struct OutgoingInvoiceCreateView: View {
                     }
                     .padding(.horizontal)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    //.background(Color(.secondarySystemBackground))
                     .cornerRadius(10)
-                    .contentShape(Rectangle()) // zvětší tap oblast
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(PlainButtonStyle())
 
@@ -209,6 +220,13 @@ struct OutgoingInvoiceCreateView: View {
 
                         .font(.headline)
                         .foregroundColor(.accentColor)
+                }
+                
+                HStack (alignment: .top){
+                    Text("Patička:")
+                    TextField(viewModel.footNotice, text: $viewModel.footNotice, axis: .vertical)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(1...2)
                 }
             }
             

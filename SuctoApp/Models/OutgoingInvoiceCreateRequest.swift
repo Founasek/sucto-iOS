@@ -18,6 +18,8 @@ struct OutgoingInvoiceCreateRequest: Codable {
     var iban: String
     var swift: String
     var bankNumber: String
+    
+    var paymentTypeId: Int
     var vatRegimeId: Int
     
     var issueDateAt: String
@@ -25,7 +27,9 @@ struct OutgoingInvoiceCreateRequest: Codable {
     var uzpDateAt: String
     
     var printNotice: String
+    var footNotice: String
     var orderNumber: String
+    
     var lines: [OutgoingInvoiceCreateLine]
     
     enum CodingKeys: String, CodingKey {
@@ -40,6 +44,8 @@ struct OutgoingInvoiceCreateRequest: Codable {
         case iban = "iban"
         case swift = "swift"
         case bankNumber = "bank_number"
+        
+        case paymentTypeId = "payment_type_id"
         case vatRegimeId = "vat_regime_id"
         
         case issueDateAt = "issue_date_at"
@@ -47,6 +53,7 @@ struct OutgoingInvoiceCreateRequest: Codable {
         case uzpDateAt = "uzp_date_at"
         
         case printNotice = "print_notice"
+        case footNotice = "foot_notice"
         case orderNumber = "order_number"
         case lines
     }

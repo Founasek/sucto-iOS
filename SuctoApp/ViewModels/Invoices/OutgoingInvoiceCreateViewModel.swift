@@ -17,16 +17,23 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
     // MARK: - Faktura
     @Published var actuarialNumber = ""
     @Published var variableSymbol = ""
-    @Published var printNotice = "Fakturujeme Vám následující položky:"
-    @Published var orderNumber = ""
-    @Published var issueDate = Date()
-    @Published var dueDate = Date()
+    @Published var actuarialTypeId: Int? = 1
     
+    @Published var selectedPartner: Partner? = nil
     @Published var selectedAccount: Account? = nil
     @Published var selectedCurrency: Currency? = nil
-    @Published var selectedPartner: Partner? = nil
+    @Published var selectedPaymentType: PaymentType? = nil
+    @Published var selectedVatRegime: VatRegime? = nil
+    @Published var selectedVats: Vat? = nil
     
-    @Published var actuarialTypeId: Int? = 1
+    @Published var issueDate = Date()
+    @Published var dueDate = Date()
+    @Published var uzpDate = Date()
+    
+    
+    @Published var printNotice = "Fakturujeme Vám následující položky:"
+    @Published var footNotice = ""
+    @Published var orderNumber = ""
     
     @Published var items: [OutgoingInvoiceCreateLine] = []
     
@@ -34,6 +41,9 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
     @Published var availablePartners: [Partner] = []
     @Published var availableCurrencies: [Currency] = []
     @Published var availableAccounts: [Account] = []
+    @Published var availablePaymentTypes: [PaymentType] = []
+    @Published var availableVatRegimes: [VatRegime] = []
+    @Published var availableVats: [Vat] = []
     
     // MARK: - Stav UI
     @Published var errorMessage: String?
@@ -97,6 +107,29 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
                 token: token
             )
             
+            availablePaymentTypes = try await APIService.shared.request(
+                endpoint: APIConstants.GetPaymentTypes(companyId: companyId),
+                method: .GET,
+                token: token
+            )
+            
+            availableVatRegimes = try await APIService.shared.request(
+                        endpoint: APIConstants.GetVatRegimes(countryId: 1),
+                        method: .GET,
+                        token: token
+                    )
+            
+            let vats: [Vat] = try await APIService.shared.request(
+                endpoint: APIConstants.GetVats(countryId: 1),
+                method: .GET,
+                token: token
+            )
+
+            availableVats = vats.filter { $0.valid_to == nil }
+
+
+            
+            
         } catch {
             errorMessage = error.localizedDescription
             print("❌ Chyba při načítání dat: \(error.localizedDescription)")
@@ -112,14 +145,14 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
         
         // Kontrola povinných polí
         /*
-        guard let partnerId = selectedPartner?.id,
-              let accountId = selectedAccount?.id,
-              let currencyId = selectedCurrency?.id,
-              let actuarialTypeId = actuarialTypeId,
-              !items.isEmpty else {
-            errorMessage = "Vyplňte všechny povinné údaje a položky"
-            return
-        }
+         guard let partnerId = selectedPartner?.id,
+         let accountId = selectedAccount?.id,
+         let currencyId = selectedCurrency?.id,
+         let actuarialTypeId = actuarialTypeId,
+         !items.isEmpty else {
+         errorMessage = "Vyplňte všechny povinné údaje a položky"
+         return
+         }
          */
         
         let formatter = DateFormatter()
@@ -130,18 +163,20 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
         let requestBody = OutgoingInvoiceCreateRequest(
             actuarialNumber: actuarialNumber,
             variableSymbol: variableSymbol,
-            actuarialTypeId: actuarialTypeId ?? 0,
+            actuarialTypeId: actuarialTypeId ?? 1,
             partnerId: selectedPartner?.id ?? 0,
             accountId: selectedAccount?.id ?? 0,
             currencyId: selectedCurrency?.id ?? 0,
             iban: selectedAccount?.bankAccount?.iban ?? "",
             swift: selectedAccount?.bankAccount?.swift ?? "",
             bankNumber: selectedAccount?.bankAccount?.bankCode ?? "",
-            vatRegimeId: 1,
+            paymentTypeId: selectedPaymentType?.id ?? 0,
+            vatRegimeId: selectedVatRegime?.id ?? 0,
             issueDateAt: formatter.string(from: issueDate),
             dueDateAt: formatter.string(from: dueDate),
-            uzpDateAt: formatter.string(from: issueDate),
+            uzpDateAt: formatter.string(from: uzpDate),
             printNotice: printNotice,
+            footNotice: footNotice,
             orderNumber: orderNumber, lines: items
         )
         
@@ -161,7 +196,6 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
                 print("📦 JSON Body:")
                 print(jsonString)
             }
-            
             
             // POST na API
             let _: OutgoingInvoiceCreatedResponse = try await APIService.shared.request(
@@ -183,5 +217,5 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
         line.basePrice = line.unitPrice * line.quantity
         line.totalPrice = line.basePrice + line.tax
     }
-
+    
 }
