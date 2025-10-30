@@ -27,7 +27,7 @@ class CompaniesViewModel: ObservableObject {
 
         do {
             let result: [Company] = try await APIService.shared.request(
-                endpoint: "companies",
+                endpoint: APIConstants.getCompanies(),
                 method: .GET,
                 token: token
             )

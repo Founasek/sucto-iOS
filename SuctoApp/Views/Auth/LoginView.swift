@@ -42,19 +42,21 @@ struct LoginView: View {
             
             Spacer()
             
-            Button("Přihlásit") {
+            Button {
                 Task {
                     await viewModel.login(email: email, password: password)
                     if let token = viewModel.token {
-                        session.login(token: token)  // uloží oboje
+                        session.login(token: token)
                     }
                 }
+            } label: {
+                Text("Přihlásit")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.accent)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
             }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color.accent)
-            .foregroundColor(.white)
-            .cornerRadius(8)
             
             if let error = viewModel.errorMessage {
                 Text(error)
@@ -62,15 +64,6 @@ struct LoginView: View {
             }
         }
         .padding()
-    }
-    
-    // MARK: - Funkce pro login a navigaci
-    private func login() async {
-        await viewModel.login(email: email, password: password)
-        if let token = viewModel.token {
-            authToken = token               // uložíme token do UserDefaults
-            navManager.goToCompanies()      // navigace na seznam firem
-        }
     }
 }
 

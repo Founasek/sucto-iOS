@@ -1,7 +1,15 @@
+//
+//  PartnerPickerView.swift
+//  SuctoApp
+//
+//  Created by Jan Founě on 28.10.2025.
+//
+
+
 import SwiftUI
 
 struct PartnerPickerView: View {
-    @Binding var selectedPartnerId: Int?
+    @Binding var selectedPartner: Partner?
     let partners: [Partner]
     
     @State private var searchText = ""
@@ -19,56 +27,56 @@ struct PartnerPickerView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading) {
-            Button {
-                isPresented = true
-            } label: {
+        Button {
+            isPresented = true
+        } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Odběratel")
+                    .foregroundColor(.primary)
+                
                 HStack {
-                    if let selected = partners.first(where: { $0.id == selectedPartnerId }) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(selected.name)
+                    if let selected = selectedPartner {
+                        Text(selected.name)
+                            .font(.body)
+                            .foregroundStyle(.accent)
+                    } else {
+                        Text("Vyberte odběratele")
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $isPresented) {
+            NavigationStack {
+                List(filteredPartners) { partner in
+                    Button {
+                        selectedPartner = partner
+                        isPresented = false
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(partner.name)
                                 .font(.body)
-                            if let ic = selected.ic {
+                            if let ic = partner.ic {
                                 Text("IČ: \(ic)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
                         }
-                    } else {
-                        Text("Vyberte odběratele")
-                            .foregroundColor(.secondary)
                     }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.secondary)
                 }
-                .contentShape(Rectangle())
-            }
-            .sheet(isPresented: $isPresented) {
-                NavigationStack {
-                    List(filteredPartners) { partner in
-                        Button {
-                            selectedPartnerId = partner.id
+                .searchable(text: $searchText, prompt: "Hledat podle názvu nebo IČ")
+                .navigationTitle("Vyberte odběratele")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Zavřít") {
                             isPresented = false
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(partner.name)
-                                    .font(.body)
-                                if let ic = partner.ic {
-                                    Text("IČ: \(ic)")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                    }
-                    .searchable(text: $searchText, prompt: "Hledat podle názvu nebo IČ")
-                    .navigationTitle("Vyberte odběratele")
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button("Zavřít") {
-                                isPresented = false
-                            }
                         }
                     }
                 }

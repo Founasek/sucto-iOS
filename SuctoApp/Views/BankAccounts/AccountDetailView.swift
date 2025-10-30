@@ -10,16 +10,23 @@ import SwiftUI
 
 struct AccountDetailView: View {
     let account: Account
-
+    
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+        List {
+            // 🏷 Název účtu
+            VStack(alignment: .leading, spacing: 4) {
                 Text(account.name)
                     .font(.title2)
                     .bold()
+            }
+            VStack(alignment: .leading, spacing: 24) {
                 
-                if let bank = account.bankAccount {
-                    Group {
+
+                
+                // 💳 Bankovní údaje (pouze pro bankovní účty)
+                if !account.isCashAccount,
+                   let bank = account.bankAccount {
+                    SectionView(title: "Bankovní údaje") {
                         if let iban = bank.iban {
                             InfoRow(label: "IBAN", value: iban)
                         }
@@ -34,44 +41,63 @@ struct AccountDetailView: View {
                         }
                     }
                 }
+
                 
-                Divider().padding(.vertical)
+                // 💰 Finanční informace
+                SectionView(title: "Zůstatek a parametry") {
+                    InfoRow(
+                        label: "Počáteční zůstatek",
+                        value: FormatterHelper.formatPrice(account.openingBalance, currency: "Kč")
+                    )
+                    InfoRow(label: "Prefix", value: account.prefix)
+                }
                 
-                InfoRow(
-                    label: "Počáteční zůstatek",
-                    value: FormatterHelper.formatPrice(account.openingBalance, currency: "Kč")
-                )
-                
-                InfoRow(
-                    label: "Prefix",
-                    value: account.prefix
-                )
-                
-                InfoRow(
-                    label: "Typ účtu",
-                    value: account.accountType == 1 ? "Hotovostní" : "Bankovní"
-                )
-                
+                // ⚠️ Stav účtu
                 if account.isDeactivated {
-                    Text("Účet je deaktivován")
-                        .foregroundColor(.red)
-                        .bold()
-                        .padding(.top, 10)
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
+                        Text("Účet je deaktivován")
+                            .foregroundColor(.red)
+                            .bold()
+                    }
+                    .padding(.top, 8)
                 }
                 
                 Spacer()
             }
-            .padding()
         }
-        .navigationTitle(account.name)
+        .navigationTitle(account.isCashAccount ? "Hotovostní účet" : "Bankovní účet")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - Podkomponenty
+
+private struct SectionView<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.headline)
+                .foregroundColor(.primary)
+            
+            VStack(spacing: 8) {
+                content
+            }
+            .cornerRadius(12)
+        }
     }
 }
 
 private struct InfoRow: View {
     let label: String
     let value: String
-
+    var copyable: Bool = false
+    @State private var copied = false
+    
     var body: some View {
         HStack {
             Text(label)
@@ -80,6 +106,7 @@ private struct InfoRow: View {
             Spacer()
             Text(value)
                 .font(.body)
+                .multilineTextAlignment(.trailing)
         }
     }
 }

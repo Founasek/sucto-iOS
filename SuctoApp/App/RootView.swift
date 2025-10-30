@@ -15,13 +15,13 @@ struct RootView: View {
                             .environmentObject(navManager)
                             .environmentObject(session)
 
-                    case .outgoingInvoiceDetail(let invoice):
-                        OutgoingInvoiceDetailView(invoice: invoice)
+                    case .outgoingInvoiceDetail(let invoiceId):
+                        OutgoingInvoiceDetailView(invoiceId: invoiceId)
                             .environmentObject(navManager)
                             .environmentObject(session)
 
                     case .createOutgoingInvoice(let companyId):
-                        CreateOutgoingInvoiceView(companyId: companyId)
+                        OutgoingInvoiceCreateView(companyId: companyId)
                             .environmentObject(navManager)
                             .environmentObject(session)
 

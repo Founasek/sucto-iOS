@@ -5,10 +5,9 @@
 //  Created by Jan Founě on 13.10.2025.
 //
 
-
 import Foundation
 
-struct Currency: Codable, Hashable {
+struct Currency: Codable, Hashable, Identifiable {
     let id: Int?
     let isoCode: String?
     let name: String?

@@ -11,22 +11,33 @@ import Foundation
 struct APIConstants {
     static let baseURL = "https://www.sucto.cz/api/"
     static let loginEndpoint = "sessions/create"
+    
     static func payInvoiceEndpoint(companyId: Int, invoiceId: Int) -> String {
         return "companies/\(companyId)/actuarials_outs/\(invoiceId)/pay"
+    }
+    
+    static func GetOutgoingInvoiceDetail(companyId: Int, invoiceId: Int) -> String {
+        return "companies/\(companyId)/actuarials_outs/\(invoiceId)"
     }
     
     static func getNewOutgoingInvoice(companyId: Int) -> String {
         return "companies/\(companyId)/actuarials_outs/new"
     }
+    
     static func createOutgoingInvoice(companyId: Int) -> String {
         return "companies/\(companyId)/actuarials_outs"
     }
+    
     static func getPartners(companyId: Int) -> String {
         return "companies/\(companyId)/partners?page=1&limit=9999"
     }
 
     static func getCurrencies() -> String {
         return "currencies"
+    }
+    
+    static func getCompanies() -> String {
+        return "companies"
     }
     
     static func getBankAccounts(companyId: Int) -> String {

@@ -1,7 +1,15 @@
+//
+//  AccountPickerView.swift
+//  SuctoApp
+//
+//  Created by Jan Founě on 28.10.2025.
+//
+
+
 import SwiftUI
 
 struct AccountPickerView: View {
-    @Binding var selectedAccountId: Int?
+    @Binding var selectedAccount: Account?
     let accounts: [Account]
     
     @State private var searchText = ""
@@ -11,7 +19,9 @@ struct AccountPickerView: View {
         if searchText.isEmpty {
             return accounts
         } else {
-            return accounts.filter { $0.name.lowercased().contains(searchText.lowercased()) }
+            return accounts.filter {
+                $0.name.lowercased().contains(searchText.lowercased())
+            }
         }
     }
     
@@ -19,42 +29,59 @@ struct AccountPickerView: View {
         Button {
             isPresented = true
         } label: {
-            HStack {
-                if let selected = accounts.first(where: { $0.id == selectedAccountId }) {
-                    Text(selected.name)
-                        .font(.body)
-                } else {
-                    Text("Vyberte bankovní účet")
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Účet")
+                    .foregroundColor(.primary)
+                
+                HStack {
+                    if let selected = selectedAccount {
+                        Text(selected.name)
+                            .font(.body)
+                            .foregroundStyle(.accent)
+                    } else {
+                        Text("Vyberte účet")
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
                 }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.secondary)
             }
             .padding(.vertical, 8)
+            .contentShape(Rectangle())
         }
-        .contentShape(Rectangle())
+        .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $isPresented) {
             NavigationStack {
                 List(filteredAccounts) { account in
                     Button {
-                        selectedAccountId = account.id
+                        selectedAccount = account   // ← tady přiřazujeme celý objekt
                         isPresented = false
                     } label: {
-                        Text(account.name)
-                            .font(.body)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(account.name)
+                                .font(.body)
+                            if let bank = account.bankAccount {
+                                Text("IBAN: \(bank.iban ?? "")")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("SWIFT: \(bank.swift ?? "")")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
                     }
                 }
-                .searchable(text: $searchText, prompt: "Hledat účet podle názvu")
+                .searchable(text: $searchText, prompt: "Hledat podle názvu účtu")
                 .navigationTitle("Vyberte bankovní účet")
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Zavřít") {
-                            isPresented = false
-                        }
+                        Button("Zavřít") { isPresented = false }
                     }
                 }
             }
         }
+
     }
 }

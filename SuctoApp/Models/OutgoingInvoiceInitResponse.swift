@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct OutgoingInvoiceNewResponse: Decodable {
+struct OutgoingInvoiceInitResponse: Decodable {
     let actuarial_number: String
     let variableSymbol: String?
     

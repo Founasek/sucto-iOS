@@ -9,7 +9,7 @@
 import SwiftUI
 
 @MainActor
-class CreateOutgoingInvoiceViewModel: ObservableObject {
+class OutgoingInvoiceCreateViewModel: ObservableObject {
     
     let companyId: Int
     var session: SessionManager

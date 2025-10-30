@@ -1,3 +1,11 @@
+//
+//  Address.swift
+//  SuctoApp
+//
+//  Created by Jan Founě on 28.10.2025.
+//
+
+
 import Foundation
 
 struct Address: Codable {

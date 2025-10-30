@@ -5,7 +5,6 @@
 //  Created by Jan Founě on 07.10.2025.
 //
 
-
 import Foundation
 
 struct Account: Identifiable, Codable, Hashable {
@@ -31,5 +30,10 @@ struct Account: Identifiable, Codable, Hashable {
         case bankAccount = "bank_account"
     }
 }
+
+extension Account {
+    var isCashAccount: Bool { accountType == 1 }
+}
+
 
 

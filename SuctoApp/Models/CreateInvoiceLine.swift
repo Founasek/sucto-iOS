@@ -1,10 +1,18 @@
+//
+//  CreateInvoiceLine.swift
+//  SuctoApp
+//
+//  Created by Jan Founě on 26.10.2025.
+//
+
 import Foundation
 
-struct CreateInvoiceLine: Codable, Hashable {
+struct CreateInvoiceLine: Identifiable , Codable, Hashable {
+    let id = UUID()
     var vatId: Int
-    var lineableType: String = "Actuarial" // default hodnota
+    var lineableType: String
     var name: String
-    var quantity: Int
+    var quantity: Double
     var unitPrice: Double
     var basePrice: Double
     var tax: Double

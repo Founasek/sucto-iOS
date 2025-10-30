@@ -9,19 +9,13 @@ struct DashboardView: View {
     @StateObject var outgoingInvoicesVM: OutgoingInvoicesViewModel
     @StateObject var incomingInvoicesVM: IncomingInvoicesViewModel
     @StateObject private var accountsVM: AccountsViewModel
-    
-    // sledujeme počet kliknutí na hamburger
-    @State private var menuTapCount = 0
-    @State private var showMenu = false
-    
-    
+
     init(companyId: Int, session: SessionManager) {
         self.companyId = companyId
         _outgoingInvoicesVM = StateObject(wrappedValue: OutgoingInvoicesViewModel(companyId: companyId, session: session))
         _incomingInvoicesVM = StateObject(wrappedValue: IncomingInvoicesViewModel(companyId: companyId, session: session))
         _accountsVM = StateObject(wrappedValue: AccountsViewModel(companyId: companyId, session: session))
     }
-    
     
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -90,14 +84,12 @@ struct DashboardView: View {
                 }
             }
         }
-
-        
         .onAppear {
             Task {
-                await outgoingInvoicesVM.fetchInvoices()
-                await incomingInvoicesVM.fetchInvoices()
+                await outgoingInvoicesVM.fetchInvoices(page: 1)
+                await incomingInvoicesVM.fetchInvoices(page: 1)
+                await accountsVM.fetchAccounts()
             }
         }
-        
     }
 }

@@ -1,46 +1,51 @@
+//
+//  CurrencyPickerView.swift
+//  SuctoApp
+//
+//  Created by Jan Founě on 28.10.2025.
+//
+
+
 import SwiftUI
 
 struct CurrencyPickerView: View {
-    @Binding var selectedCurrencyId: Int?
+    @Binding var selectedCurrency: Currency?
     let currencies: [Currency]
     
     @State private var isPresented = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Nadpis nahoře
-            Text("Měna")
-                .foregroundColor(.primary)
-            
-            // Řádek s vybranou měnou a šipkou
-            Button {
-                isPresented = true
-            } label: {
+        Button {
+            isPresented = true
+        } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Měna")
+                    .foregroundColor(.primary)
+                
                 HStack {
-                    if let selected = currencies.first(where: { $0.id == selectedCurrencyId }) {
+                    if let selected = selectedCurrency {
                         Text(selected.isoCode ?? "???")
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .foregroundColor(.primary)
+                            .font(.body)
+                            .foregroundStyle(.accent)
                     } else {
                         Text("Vyberte měnu")
                             .foregroundColor(.secondary)
                     }
                     
                     Spacer()
-                    
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
                 }
-                .padding(.vertical, 8)
-                .contentShape(Rectangle())
             }
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $isPresented) {
             NavigationStack {
                 List(currencies) { currency in
                     Button {
-                        selectedCurrencyId = currency.id
+                        selectedCurrency = currency
                         isPresented = false
                     } label: {
                         Text(currency.isoCode ?? "???")

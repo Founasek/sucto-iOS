@@ -12,8 +12,8 @@ struct AccountsView: View {
     @EnvironmentObject var navManager: NavigationManager
 
     var body: some View {
-        Group {
-            if viewModel.accounts.isEmpty {
+        if viewModel.accounts.isEmpty {
+            ScrollView{
                 VStack(spacing: 10) {
                     Image(systemName: "creditcard.trianglebadge.exclamationmark")
                         .font(.system(size: 50))
@@ -22,42 +22,51 @@ struct AccountsView: View {
                         .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List(viewModel.accounts) { account in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text(account.name)
-                                .font(.headline)
-                            Spacer()
-                            Text("\(FormatterHelper.formatPrice(account.openingBalance, currency: nil)) Kč")
-                                .font(.subheadline)
-                        }
-                        if let account = account.bankAccount {
-                            Text("Účet: \(account.account ?? "")\(account.bankCode != nil ? " / \(account.bankCode!)" : "")")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                .frame(minHeight: UIScreen.main.bounds.height * 0.6)
+            }
+            .refreshable {
+                Task {
+                    await viewModel.fetchAccounts()
+                }
+                
+            }
+            .navigationTitle("Účty")
+            
+        } else {
+            List(viewModel.accounts) { account in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(account.name)
+                        .font(.headline)
 
-                    }
-                    .padding(.vertical, 4)
-                    .onTapGesture {
-                        navManager.path.append(AppRoute.accountDetail(account: account))
+                    if !account.isCashAccount, let bank = account.bankAccount {
+                        Text("Účet: \(bank.account ?? "")\(bank.bankCode != nil ? " / \(bank.bankCode!)" : "")")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                 }
-                .listStyle(.plain)
+                .padding(.vertical, 4)
+                .onTapGesture {
+                    navManager.path.append(AppRoute.accountDetail(account: account))
+                }
+            }
+            .navigationTitle("Účty")
+            .refreshable {
+                Task {
+                    await viewModel.fetchAccounts()
+                }
+                
+            }
+            .overlay {
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .foregroundColor(.red)
+                        .padding()
+                }
             }
         }
-        .navigationTitle("Účty")
-        .task {
-            await viewModel.fetchAccounts()
-        }
-        .overlay {
-            if let error = viewModel.errorMessage {
-                Text(error)
-                    .foregroundColor(.red)
-                    .padding()
-            }
-        }
+
     }
+    
 }
+
 

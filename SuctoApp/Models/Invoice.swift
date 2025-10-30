@@ -29,6 +29,9 @@ struct Invoice: Identifiable, Codable, Hashable {
     let customer: Customer?
     // U přijaté faktury
     let supplier: Supplier?
+    
+    // Položky faktury
+    let items: [InvoiceItem]?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -48,6 +51,7 @@ struct Invoice: Identifiable, Codable, Hashable {
         case footNotice = "foot_notice"
         case customer
         case supplier
+        case items
     }
 }
 

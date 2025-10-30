@@ -10,6 +10,7 @@ import SwiftUI
 @MainActor
 class OutgoingInvoicesViewModel: ObservableObject {
     @Published var invoices: [Invoice] = []
+    @Published var selectedInvoice: Invoice?
     @Published var successMessage: String?
     @Published var errorMessage: String?
     @Published var isLoadingPage = false
@@ -27,7 +28,7 @@ class OutgoingInvoicesViewModel: ObservableObject {
     func resetPagination() {
         currentPage = 1
         hasMorePages = true
-        invoices.removeAll()
+        //invoices.removeAll()
     }
 
     func fetchInvoices(page: Int? = nil) async {
@@ -70,6 +71,34 @@ class OutgoingInvoicesViewModel: ObservableObject {
 
         isLoadingPage = false
     }
+    
+    func fetchInvoiceDetail(invoiceId: Int) async {
+        guard let token = session.authToken else {
+            errorMessage = "Token není k dispozici"
+            return
+        }
+
+        isLoadingPage = true
+
+        do {
+            let invoice: Invoice = try await APIService.shared.request(
+                endpoint: APIConstants.GetOutgoingInvoiceDetail(companyId: companyId, invoiceId: invoiceId),
+                method: .GET,
+                token: token
+            )
+
+            self.selectedInvoice = invoice
+            errorMessage = nil
+        } catch APIError.unauthorized {
+            session.logout()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoadingPage = false
+    }
+
+    
 
     func payInvoice(invoiceId: Int) async {
         guard let token = session.authToken else {

@@ -10,7 +10,7 @@ import Foundation
 
 enum AppRoute: Hashable {
     case dashboard(companyId: Int)
-    case outgoingInvoiceDetail(invoice: Invoice)
+    case outgoingInvoiceDetail(invoiceId: Int)
     case incomingInvoiceDetail(invoice: Invoice)
     case accountDetail(account: Account)
     case createOutgoingInvoice(companyId: Int)

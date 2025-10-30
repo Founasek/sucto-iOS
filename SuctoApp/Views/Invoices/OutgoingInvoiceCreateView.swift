@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-struct CreateOutgoingInvoiceView: View {
+struct OutgoingInvoiceCreateView: View {
     
     @EnvironmentObject var navManager: NavigationManager
     @EnvironmentObject var session: SessionManager
