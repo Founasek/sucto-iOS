@@ -5,27 +5,26 @@
 //  Created by Jan Founě on 28.10.2025.
 //
 
-
 import SwiftUI
 
 struct PartnerPickerView: View {
     @Binding var selectedPartner: Partner?
     let partners: [Partner]
-    
+
     @State private var searchText = ""
     @State private var isPresented = false
-    
+
     private var filteredPartners: [Partner] {
         if searchText.isEmpty {
-            return partners
+            partners
         } else {
-            return partners.filter {
+            partners.filter {
                 $0.name.lowercased().contains(searchText.lowercased()) ||
-                ($0.ic ?? "").contains(searchText)
+                    ($0.ic ?? "").contains(searchText)
             }
         }
     }
-    
+
     var body: some View {
         Button {
             isPresented = true
@@ -33,7 +32,7 @@ struct PartnerPickerView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Odběratel")
                     .foregroundColor(.primary)
-                
+
                 HStack {
                     if let selected = selectedPartner {
                         Text(selected.name)
@@ -43,7 +42,7 @@ struct PartnerPickerView: View {
                         Text("Vyberte odběratele")
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)

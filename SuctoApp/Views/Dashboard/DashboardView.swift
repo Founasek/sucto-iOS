@@ -5,7 +5,7 @@ struct DashboardView: View {
     @EnvironmentObject var navManager: NavigationManager
     @EnvironmentObject var session: SessionManager
     @State private var selectedTab = 0
-    
+
     @StateObject var outgoingInvoicesVM: OutgoingInvoicesViewModel
     @StateObject var incomingInvoicesVM: IncomingInvoicesViewModel
     @StateObject private var accountsVM: AccountsViewModel
@@ -16,7 +16,7 @@ struct DashboardView: View {
         _incomingInvoicesVM = StateObject(wrappedValue: IncomingInvoicesViewModel(companyId: companyId, session: session))
         _accountsVM = StateObject(wrappedValue: AccountsViewModel(companyId: companyId, session: session))
     }
-    
+
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
@@ -29,7 +29,7 @@ struct DashboardView: View {
                 .padding()
                 .background(Color.accent)
                 Divider()
-                
+
                 switch selectedTab {
                 case 0:
                     OutgoingInvoicesView()
@@ -46,7 +46,6 @@ struct DashboardView: View {
             }
             if selectedTab == 0 {
                 Button {
-                    
                     navManager.createOutgoingInvoice(companyId: companyId)
                 } label: {
                     Image(systemName: "plus")

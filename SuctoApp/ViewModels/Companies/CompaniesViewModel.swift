@@ -5,7 +5,6 @@
 //  Created by Jan Founě on 14.09.2025.
 //
 
-
 import SwiftUI
 
 @MainActor
@@ -29,7 +28,7 @@ class CompaniesViewModel: ObservableObject {
             let result: [Company] = try await APIService.shared.request(
                 endpoint: APIConstants.getCompanies(),
                 method: .GET,
-                token: token
+                token: token,
             )
             companies = result
             errorMessage = nil

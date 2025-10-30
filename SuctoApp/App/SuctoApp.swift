@@ -1,5 +1,5 @@
 //
-//  SuctoAppApp.swift
+//  SuctoApp.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 14.09.2025.

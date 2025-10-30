@@ -1,5 +1,5 @@
 //
-//  OutgoingInvoicesViewModel.swift
+//  IncomingInvoicesViewModel.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 19.09.2025.
@@ -9,11 +9,10 @@ import SwiftUI
 
 @MainActor
 class IncomingInvoicesViewModel: ObservableObject {
-    
     @Published var invoices: [Invoice] = []
     @Published var successMessage: String?
     @Published var errorMessage: String?
-    
+
     private var currentPage = 1
     @Published var isLoadingPage = false
     @Published var hasMorePages = true
@@ -26,7 +25,7 @@ class IncomingInvoicesViewModel: ObservableObject {
         self.companyId = companyId
         self.session = session
     }
-    
+
     func resetPagination() {
         currentPage = 1
         hasMorePages = true
@@ -39,7 +38,7 @@ class IncomingInvoicesViewModel: ObservableObject {
             return
         }
 
-        guard !isLoadingPage && hasMorePages else { return }
+        guard !isLoadingPage, hasMorePages else { return }
 
         isLoadingPage = true
 
@@ -49,7 +48,7 @@ class IncomingInvoicesViewModel: ObservableObject {
             let result: [Invoice] = try await APIService.shared.request(
                 endpoint: "companies/\(companyId)/actuarials_ins?page=\(pageToLoad)",
                 method: .GET,
-                token: token
+                token: token,
             )
 
             if result.isEmpty {

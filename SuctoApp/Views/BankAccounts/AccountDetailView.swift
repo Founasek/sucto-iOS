@@ -5,12 +5,11 @@
 //  Created by Jan Founě on 07.10.2025.
 //
 
-
 import SwiftUI
 
 struct AccountDetailView: View {
     let account: Account
-    
+
     var body: some View {
         List {
             // 🏷 Název účtu
@@ -20,12 +19,10 @@ struct AccountDetailView: View {
                     .bold()
             }
             VStack(alignment: .leading, spacing: 24) {
-                
-
-                
                 // 💳 Bankovní údaje (pouze pro bankovní účty)
                 if !account.isCashAccount,
-                   let bank = account.bankAccount {
+                   let bank = account.bankAccount
+                {
                     SectionView(title: "Bankovní údaje") {
                         if let iban = bank.iban {
                             InfoRow(label: "IBAN", value: iban)
@@ -42,16 +39,15 @@ struct AccountDetailView: View {
                     }
                 }
 
-                
                 // 💰 Finanční informace
                 SectionView(title: "Zůstatek a parametry") {
                     InfoRow(
                         label: "Počáteční zůstatek",
-                        value: FormatterHelper.formatPrice(account.openingBalance, currency: "Kč")
+                        value: FormatterHelper.formatPrice(account.openingBalance, currency: "Kč"),
                     )
                     InfoRow(label: "Prefix", value: account.prefix)
                 }
-                
+
                 // ⚠️ Stav účtu
                 if account.isDeactivated {
                     HStack {
@@ -63,7 +59,7 @@ struct AccountDetailView: View {
                     }
                     .padding(.top, 8)
                 }
-                
+
                 Spacer()
             }
         }
@@ -77,13 +73,13 @@ struct AccountDetailView: View {
 private struct SectionView<Content: View>: View {
     let title: String
     @ViewBuilder let content: Content
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.headline)
                 .foregroundColor(.primary)
-            
+
             VStack(spacing: 8) {
                 content
             }
@@ -97,7 +93,7 @@ private struct InfoRow: View {
     let value: String
     var copyable: Bool = false
     @State private var copied = false
-    
+
     var body: some View {
         HStack {
             Text(label)

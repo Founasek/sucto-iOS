@@ -5,26 +5,25 @@
 //  Created by Jan Founě on 28.10.2025.
 //
 
-
 import SwiftUI
 
 struct AccountPickerView: View {
     @Binding var selectedAccount: Account?
     let accounts: [Account]
-    
+
     @State private var searchText = ""
     @State private var isPresented = false
-    
+
     private var filteredAccounts: [Account] {
         if searchText.isEmpty {
-            return accounts
+            accounts
         } else {
-            return accounts.filter {
+            accounts.filter {
                 $0.name.lowercased().contains(searchText.lowercased())
             }
         }
     }
-    
+
     var body: some View {
         Button {
             isPresented = true
@@ -32,7 +31,7 @@ struct AccountPickerView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Forma úhrady")
                     .foregroundColor(.primary)
-                
+
                 HStack {
                     if let selected = selectedAccount {
                         Text(selected.name)
@@ -42,7 +41,7 @@ struct AccountPickerView: View {
                         Text("Vyberte účet")
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
@@ -55,7 +54,7 @@ struct AccountPickerView: View {
             NavigationStack {
                 List(filteredAccounts) { account in
                     Button {
-                        selectedAccount = account   // ← tady přiřazujeme celý objekt
+                        selectedAccount = account // ← tady přiřazujeme celý objekt
                         isPresented = false
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
@@ -81,6 +80,5 @@ struct AccountPickerView: View {
                 }
             }
         }
-
     }
 }

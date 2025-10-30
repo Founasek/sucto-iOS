@@ -34,6 +34,3 @@ struct Account: Identifiable, Codable, Hashable {
 extension Account {
     var isCashAccount: Bool { accountType == 1 }
 }
-
-
-

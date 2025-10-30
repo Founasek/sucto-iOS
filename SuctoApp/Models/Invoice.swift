@@ -1,10 +1,9 @@
 //
-//  Actuarial.swift
+//  Invoice.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 17.09.2025.
 //
-
 
 import Foundation
 
@@ -29,7 +28,7 @@ struct Invoice: Identifiable, Codable, Hashable {
     let customer: Customer?
     // U přijaté faktury
     let supplier: Supplier?
-    
+
     // Položky faktury
     let items: [InvoiceItem]?
 
@@ -54,9 +53,3 @@ struct Invoice: Identifiable, Codable, Hashable {
         case items
     }
 }
-
-
-
-
-
-

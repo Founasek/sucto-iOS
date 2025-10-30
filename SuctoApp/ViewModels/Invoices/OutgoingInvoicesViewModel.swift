@@ -1,5 +1,5 @@
 //
-//  InvoicesViewModel.swift
+//  OutgoingInvoicesViewModel.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 17.09.2025.
@@ -28,7 +28,7 @@ class OutgoingInvoicesViewModel: ObservableObject {
     func resetPagination() {
         currentPage = 1
         hasMorePages = true
-        //invoices.removeAll()
+        // invoices.removeAll()
     }
 
     func fetchInvoices(page: Int? = nil) async {
@@ -37,7 +37,7 @@ class OutgoingInvoicesViewModel: ObservableObject {
             return
         }
 
-        guard !isLoadingPage && hasMorePages else { return }
+        guard !isLoadingPage, hasMorePages else { return }
 
         isLoadingPage = true
 
@@ -47,7 +47,7 @@ class OutgoingInvoicesViewModel: ObservableObject {
             let result: [Invoice] = try await APIService.shared.request(
                 endpoint: "companies/\(companyId)/actuarials_outs?page=\(pageToLoad)",
                 method: .GET,
-                token: token
+                token: token,
             )
 
             if result.isEmpty {
@@ -71,7 +71,7 @@ class OutgoingInvoicesViewModel: ObservableObject {
 
         isLoadingPage = false
     }
-    
+
     func fetchInvoiceDetail(invoiceId: Int) async {
         guard let token = session.authToken else {
             errorMessage = "Token není k dispozici"
@@ -84,10 +84,10 @@ class OutgoingInvoicesViewModel: ObservableObject {
             let invoice: Invoice = try await APIService.shared.request(
                 endpoint: APIConstants.GetOutgoingInvoiceDetail(companyId: companyId, invoiceId: invoiceId),
                 method: .GET,
-                token: token
+                token: token,
             )
 
-            self.selectedInvoice = invoice
+            selectedInvoice = invoice
             errorMessage = nil
         } catch APIError.unauthorized {
             session.logout()
@@ -97,8 +97,6 @@ class OutgoingInvoicesViewModel: ObservableObject {
 
         isLoadingPage = false
     }
-
-    
 
     func payInvoice(invoiceId: Int) async {
         guard let token = session.authToken else {
@@ -110,7 +108,7 @@ class OutgoingInvoicesViewModel: ObservableObject {
             let result: PayInvoiceResponse = try await APIService.shared.request(
                 endpoint: APIConstants.payInvoiceEndpoint(companyId: companyId, invoiceId: invoiceId),
                 method: .GET,
-                token: token
+                token: token,
             )
             successMessage = "Faktura byla úspěšně zaplacena. Doklad č. \(result.cashVoucherId)"
             errorMessage = nil
@@ -120,4 +118,3 @@ class OutgoingInvoicesViewModel: ObservableObject {
         }
     }
 }
-

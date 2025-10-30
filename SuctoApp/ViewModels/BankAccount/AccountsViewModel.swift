@@ -30,7 +30,7 @@ class AccountsViewModel: ObservableObject {
             let result: [Account] = try await APIService.shared.request(
                 endpoint: "companies/\(companyId)/accounts",
                 method: .GET,
-                token: token
+                token: token,
             )
             accounts = result
             errorMessage = nil

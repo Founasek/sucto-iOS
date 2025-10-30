@@ -5,69 +5,68 @@
 //  Created by Jan Founě on 14.09.2025.
 //
 
-
 import Foundation
 
-struct APIConstants {
+enum APIConstants {
     static let baseURL = "https://www.sucto.cz/api/"
     static let loginEndpoint = "sessions/create"
-    
+
     static func payInvoiceEndpoint(companyId: Int, invoiceId: Int) -> String {
-        return "companies/\(companyId)/actuarials_outs/\(invoiceId)/pay"
+        "companies/\(companyId)/actuarials_outs/\(invoiceId)/pay"
     }
-    
+
     static func GetOutgoingInvoiceDetail(companyId: Int, invoiceId: Int) -> String {
-        return "companies/\(companyId)/actuarials_outs/\(invoiceId)"
+        "companies/\(companyId)/actuarials_outs/\(invoiceId)"
     }
-    
+
     static func getNewOutgoingInvoice(companyId: Int) -> String {
-        return "companies/\(companyId)/actuarials_outs/new"
+        "companies/\(companyId)/actuarials_outs/new"
     }
-    
+
     static func createOutgoingInvoice(companyId: Int) -> String {
-        return "companies/\(companyId)/actuarials_outs"
+        "companies/\(companyId)/actuarials_outs"
     }
-    
+
     static func getPartners(companyId: Int) -> String {
-        return "companies/\(companyId)/partners?page=1&limit=9999"
+        "companies/\(companyId)/partners?page=1&limit=9999"
     }
 
     static func GetVatRegimes(countryId: Int) -> String {
-        return "countries/\(countryId)/vat_regimes"
+        "countries/\(countryId)/vat_regimes"
     }
 
     static func GetVats(countryId: Int) -> String {
-        return "countries/\(countryId)/vats"
+        "countries/\(countryId)/vats"
     }
 
     static func getCurrencies() -> String {
-        return "currencies"
+        "currencies"
     }
-    
+
     static func getCompanies() -> String {
-        return "companies"
+        "companies"
     }
-    
+
     static func getBankAccounts(companyId: Int) -> String {
-        return "companies/\(companyId)/accounts"
+        "companies/\(companyId)/accounts"
     }
 
     static func GetPaymentTypes(companyId: Int) -> String {
-        return "companies/\(companyId)/payment_types"
+        "companies/\(companyId)/payment_types"
     }
-    
+
     static let defaultTimeout: TimeInterval = 30
 }
 
-struct HeaderKeys {
+enum HeaderKeys {
     static let contentType = "Content-Type"
 }
 
-struct ContentTypes {
+enum ContentTypes {
     static let formUrlEncoded = "application/x-www-form-urlencoded"
 }
 
-struct ErrorMessages {
+enum ErrorMessages {
     static let noData = "Server neposlal žádná data."
     static let decodingFailed = "Nepodařilo se zpracovat odpověď serveru."
     static let unknown = "Neznámá chyba."

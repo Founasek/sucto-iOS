@@ -5,7 +5,6 @@
 //  Created by Jan Founě on 14.09.2025.
 //
 
-
 import Foundation
 
 struct LoginResponse: Decodable {

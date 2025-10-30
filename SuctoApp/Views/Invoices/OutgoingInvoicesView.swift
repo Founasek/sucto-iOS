@@ -29,14 +29,11 @@ struct OutgoingInvoicesView: View {
                 Task {
                     await viewModel.fetchInvoices(page: 1)
                 }
-                
             }
             .navigationTitle("Vydané faktury")
-
         }
 
-        else
-        {
+        else {
             List {
                 ForEach(viewModel.invoices) { invoice in
                     NavigationLink(value: invoice) {
@@ -60,7 +57,6 @@ struct OutgoingInvoicesView: View {
                         .padding(.vertical, 5)
                     }
                     .navigationLinkIndicatorVisibility(.hidden)
-
                     // 👇 Jakmile se objeví poslední položka, načte se další stránka
                     .onAppear {
                         if invoice == viewModel.invoices.last {
@@ -99,20 +95,16 @@ struct OutgoingInvoicesView: View {
                 Task {
                     await viewModel.fetchInvoices(page: 1)
                 }
-                
             }
         }
-
-
     }
 }
-
 
 /*
-.task {
-    // Načteme první stránku při prvním zobrazení
-    if viewModel.invoices.isEmpty {
-        await viewModel.fetchInvoices(page: 1)
-    }
-}
- */
+ .task {
+     // Načteme první stránku při prvním zobrazení
+     if viewModel.invoices.isEmpty {
+         await viewModel.fetchInvoices(page: 1)
+     }
+ }
+  */

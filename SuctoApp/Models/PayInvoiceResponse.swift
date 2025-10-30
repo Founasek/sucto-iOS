@@ -5,7 +5,6 @@
 //  Created by Jan Founě on 11.10.2025.
 //
 
-
 struct PayInvoiceResponse: Codable {
     let cashVoucherId: Int
 

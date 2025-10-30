@@ -5,15 +5,14 @@
 //  Created by Jan Founě on 28.10.2025.
 //
 
-
 import SwiftUI
 
 struct CurrencyPickerView: View {
     @Binding var selectedCurrency: Currency?
     let currencies: [Currency]
-    
+
     @State private var isPresented = false
-    
+
     var body: some View {
         Button {
             isPresented = true
@@ -21,7 +20,7 @@ struct CurrencyPickerView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Měna")
                     .foregroundColor(.primary)
-                
+
                 HStack {
                     if let selected = selectedCurrency {
                         Text(selected.isoCode ?? "???")
@@ -31,7 +30,7 @@ struct CurrencyPickerView: View {
                         Text("Vyberte měnu")
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)

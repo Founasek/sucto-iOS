@@ -20,7 +20,7 @@ struct Partner: Identifiable, Codable {
     let invoiceDue: Int?
     let address: Address?
     let currency: Currency?
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case name

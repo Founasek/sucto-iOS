@@ -1,5 +1,5 @@
 //
-//  OutgoingInvoiceNewResponse.swift
+//  OutgoingInvoiceInitResponse.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 13.10.2025.
@@ -8,36 +8,35 @@
 import Foundation
 
 struct OutgoingInvoiceInitResponse: Decodable {
-    let actuarial_number: String
+    let actuarialNumber: String
     let variableSymbol: String?
-    
-    let issue_date_at: String?
-    let due_date_at: String?
+
+    let issueDateAt: String?
+    let dueDateAt: String?
     let uzpDateAt: String?
-    
+
     let currency: Currency?
     let customer: Customer?
     let items: [OutgoingInvoiceCreateLine]
-    
+
     var issueDate: Date? {
-        issue_date_at?.toDate()
+        issueDateAt?.toDate()
     }
-    
+
     var dueDate: Date? {
-        due_date_at?.toDate()
+        dueDateAt?.toDate()
     }
-    
+
     enum CodingKeys: String, CodingKey {
-        case actuarial_number = "actuarial_number",
+        case actuarialNumber = "actuarial_number",
              variableSymbol = "variable_symbol",
-             issue_date_at = "issue_date_at",
-             due_date_at = "due_date_at",
+             issueDateAt = "issue_date_at",
+             dueDateAt = "due_date_at",
              uzpDateAt = "uzp_date_at",
              currency,
              customer,
              items
     }
-    
 }
 
 extension String {
@@ -48,7 +47,6 @@ extension String {
         return formatter.date(from: self)
     }
 }
-
 
 struct OutgoingInvoiceCreatedResponse: Decodable {
     let id: Int

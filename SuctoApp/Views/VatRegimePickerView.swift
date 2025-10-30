@@ -5,26 +5,25 @@
 //  Created by Jan Founě on 30.10.2025.
 //
 
-
 import SwiftUI
 
 struct VatRegimePickerView: View {
     @Binding var selectedVatRegime: VatRegime?
     let vatRegimes: [VatRegime]
-    
+
     @State private var searchText = ""
     @State private var isPresented = false
-    
+
     private var filteredVatRegimes: [VatRegime] {
         if searchText.isEmpty {
-            return vatRegimes
+            vatRegimes
         } else {
-            return vatRegimes.filter {
+            vatRegimes.filter {
                 $0.name.lowercased().contains(searchText.lowercased())
             }
         }
     }
-    
+
     var body: some View {
         Button {
             isPresented = true
@@ -32,7 +31,7 @@ struct VatRegimePickerView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Režim DPH")
                     .foregroundColor(.primary)
-                
+
                 HStack {
                     if let selected = selectedVatRegime {
                         Text(selected.name)
@@ -42,7 +41,7 @@ struct VatRegimePickerView: View {
                         Text("Vyberte režim DPH")
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)

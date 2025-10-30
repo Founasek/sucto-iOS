@@ -5,16 +5,13 @@
 //  Created by Jan Founě on 14.09.2025.
 //
 
-
 import SwiftUI
-
 
 struct CompaniesView: View {
     @StateObject var viewModel: CompaniesViewModel
     @EnvironmentObject var session: SessionManager
     @EnvironmentObject var navManager: NavigationManager
-    
-    
+
     var body: some View {
         VStack(spacing: 0) {
             List {
@@ -32,11 +29,9 @@ struct CompaniesView: View {
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
-                            
-                            
+
                             Spacer()
-                            
-                            
+
                             if let logoURL = company.logo, let url = URL(string: logoURL) {
                                 AsyncImage(url: url) { img in
                                     img.resizable()
@@ -57,8 +52,7 @@ struct CompaniesView: View {
                 }
             }
             .listStyle(.insetGrouped)
-            
-            
+
             Button(action: {
                 session.logout()
                 navManager.reset()
@@ -94,7 +88,7 @@ struct CompaniesView: View {
             is_taxable: true,
             country_id: 1,
             email: "info@ufosoft.cz",
-            logo: "logo-sucto.png"
+            logo: "logo-sucto.png",
         ),
         Company(
             id: 2,
@@ -103,19 +97,15 @@ struct CompaniesView: View {
             is_taxable: false,
             country_id: 1,
             email: "kontakt@test.cz",
-            logo: nil
-        )
+            logo: nil,
+        ),
     ]
-    
+
     let session = SessionManager()
     let viewModel = CompaniesViewModel(session: session)
     viewModel.companies = mockCompanies
-    
+
     return CompaniesView(viewModel: viewModel)
         .environmentObject(session)
         .environmentObject(NavigationManager())
 }
-
-
-
-

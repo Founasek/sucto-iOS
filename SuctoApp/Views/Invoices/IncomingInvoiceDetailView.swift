@@ -1,10 +1,9 @@
 //
-//  InvoiceDetailView.swift
+//  IncomingInvoiceDetailView.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 17.09.2025.
 //
-
 
 import SwiftUI
 
@@ -14,7 +13,6 @@ struct IncomingInvoiceDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 15) {
-                
                 // Faktura a stav
                 HStack {
                     Text("\(invoice.actuarialNumber)")
@@ -25,16 +23,16 @@ struct IncomingInvoiceDetailView: View {
                         .foregroundColor(invoice.status == "Zaplaceno" ? .green : .orange)
                         .bold()
                 }
-                
+
                 Divider()
-                
+
                 // Zákazník
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Zákazník:")
                         .font(.headline)
                     Text(invoice.supplier?.name ?? "")
                 }
-                
+
                 // Termíny
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Termíny:")
@@ -42,7 +40,7 @@ struct IncomingInvoiceDetailView: View {
                     Text("Datum vystavení: \(invoice.issueDateAt ?? "")")
                     Text("Datum splatnosti: \(invoice.dueDateAt ?? "")")
                 }
-                
+
                 // Cena
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Cena:")
@@ -51,16 +49,16 @@ struct IncomingInvoiceDetailView: View {
                         .font(.title3)
                         .bold()
                 }
-                
+
                 Divider()
-                
+
                 // Poznámka
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Poznámka k faktuře")
                         .font(.headline)
                     Text(invoice.printNotice ?? "")
                 }
-                
+
                 // Footer
                 if let foot = invoice.footNotice {
                     Divider()
@@ -69,7 +67,7 @@ struct IncomingInvoiceDetailView: View {
                         .foregroundColor(.gray)
                         .padding(.top, 5)
                 }
-                
+
                 Spacer()
             }
             .padding()

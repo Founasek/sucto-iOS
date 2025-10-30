@@ -13,7 +13,7 @@ struct AccountsView: View {
 
     var body: some View {
         if viewModel.accounts.isEmpty {
-            ScrollView{
+            ScrollView {
                 VStack(spacing: 10) {
                     Image(systemName: "creditcard.trianglebadge.exclamationmark")
                         .font(.system(size: 50))
@@ -28,10 +28,9 @@ struct AccountsView: View {
                 Task {
                     await viewModel.fetchAccounts()
                 }
-                
             }
             .navigationTitle("Účty")
-            
+
         } else {
             List(viewModel.accounts) { account in
                 VStack(alignment: .leading, spacing: 6) {
@@ -54,7 +53,6 @@ struct AccountsView: View {
                 Task {
                     await viewModel.fetchAccounts()
                 }
-                
             }
             .overlay {
                 if let error = viewModel.errorMessage {
@@ -64,9 +62,5 @@ struct AccountsView: View {
                 }
             }
         }
-
     }
-    
 }
-
-

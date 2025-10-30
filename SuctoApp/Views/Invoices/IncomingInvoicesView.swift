@@ -1,5 +1,5 @@
 //
-//  OutgoingInvoicesView.swift
+//  IncomingInvoicesView.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 19.09.2025.
@@ -29,11 +29,9 @@ struct IncomingInvoicesView: View {
                 Task {
                     await viewModel.fetchInvoices(page: 1)
                 }
-                
             }
             .navigationTitle("Přijaté faktury")
-        }
-        else {
+        } else {
             List {
                 ForEach(viewModel.invoices) { invoice in
                     NavigationLink(value: invoice) {
@@ -95,21 +93,16 @@ struct IncomingInvoicesView: View {
                 Task {
                     await viewModel.fetchInvoices(page: 1)
                 }
-                
             }
-            
-            
         }
-
     }
 }
-
 
 /*
-.task {
-    // Načteme první stránku při prvním zobrazení
-    if viewModel.invoices.isEmpty {
-        await viewModel.fetchInvoices(page: 1)
-    }
-}
- */
+ .task {
+     // Načteme první stránku při prvním zobrazení
+     if viewModel.invoices.isEmpty {
+         await viewModel.fetchInvoices(page: 1)
+     }
+ }
+  */
