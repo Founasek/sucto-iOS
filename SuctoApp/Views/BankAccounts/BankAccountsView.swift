@@ -14,15 +14,12 @@ struct BankAccountsView: View {
     var body: some View {
         if viewModel.accounts.isEmpty {
             ScrollView {
-                VStack(spacing: 10) {
-                    Image(systemName: "creditcard.trianglebadge.exclamationmark")
-                        .font(.system(size: 50))
-                        .foregroundColor(.gray)
-                    Text("Žádné účty nejsou k dispozici.")
-                        .foregroundColor(.gray)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .frame(minHeight: UIScreen.main.bounds.height * 0.6)
+                
+                EmptyStateView(
+                    systemImage: "creditcard.trianglebadge.exclamationmark",
+                    message: "Žádné účty nejsou k dispozici."
+                )
+
             }
             .refreshable {
                 Task {

@@ -25,8 +25,8 @@ struct RootView: View {
                         .environmentObject(navManager)
                         .environmentObject(session)
 
-                case let .incomingInvoiceDetail(invoice):
-                    IncomingInvoiceDetailView(invoice: invoice)
+                case let .incomingInvoiceDetail(invoiceId):
+                    IncomingInvoiceDetailView(invoiceId: invoiceId)
 
                 case let .accountDetail(account):
                     BankAccountDetailView(account: account)

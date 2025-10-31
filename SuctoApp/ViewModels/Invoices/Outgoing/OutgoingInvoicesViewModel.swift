@@ -11,13 +11,17 @@ import SwiftUI
 class OutgoingInvoicesViewModel: ObservableObject {
     @Published var invoices: [Invoice] = []
     @Published var selectedInvoice: Invoice?
+    
     @Published var successMessage: String?
     @Published var errorMessage: String?
+    
     @Published var isLoadingPage = false
     @Published var isLoadingDetail = false
+    
     @Published var hasMorePages = true
-
     private var currentPage = 1
+
+
     let companyId: Int
     var session: SessionManager
 
@@ -29,7 +33,6 @@ class OutgoingInvoicesViewModel: ObservableObject {
     func resetPagination() {
         currentPage = 1
         hasMorePages = true
-        // invoices.removeAll()
     }
 
     func fetchInvoices(page: Int? = nil) async {

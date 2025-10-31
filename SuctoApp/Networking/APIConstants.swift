@@ -19,6 +19,10 @@ enum APIConstants {
         "companies/\(companyId)/actuarials_outs/\(invoiceId)"
     }
 
+    static func GetIncomingInvoiceDetail(companyId: Int, invoiceId: Int) -> String {
+        "companies/\(companyId)/actuarials_ins/\(invoiceId)"
+    }
+
     static func getNewOutgoingInvoice(companyId: Int) -> String {
         "companies/\(companyId)/actuarials_outs/new"
     }

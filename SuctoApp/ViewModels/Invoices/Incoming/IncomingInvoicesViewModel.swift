@@ -10,16 +10,20 @@ import SwiftUI
 @MainActor
 class IncomingInvoicesViewModel: ObservableObject {
     @Published var invoices: [Invoice] = []
+    @Published var selectedInvoice: Invoice?
+
     @Published var successMessage: String?
     @Published var errorMessage: String?
 
-    private var currentPage = 1
     @Published var isLoadingPage = false
+    @Published var isLoadingDetail = false
+
     @Published var hasMorePages = true
+    private var currentPage = 1
+
 
     let companyId: Int
     private var session: SessionManager
-    private var invoiceCache: [Int: Invoice] = [:]
 
     init(companyId: Int, session: SessionManager) {
         self.companyId = companyId
@@ -71,5 +75,31 @@ class IncomingInvoicesViewModel: ObservableObject {
         }
 
         isLoadingPage = false
+    }
+    
+    func fetchInvoiceDetail(invoiceId: Int) async {
+        guard let token = session.authToken else {
+            errorMessage = "Token není k dispozici"
+            return
+        }
+
+        isLoadingDetail = true
+
+        do {
+            let invoice: Invoice = try await APIService.shared.request(
+                endpoint: APIConstants.GetIncomingInvoiceDetail(companyId: companyId, invoiceId: invoiceId),
+                method: .GET,
+                token: token,
+            )
+
+            selectedInvoice = invoice
+            errorMessage = nil
+        } catch APIError.unauthorized {
+            session.logout()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoadingDetail = false
     }
 }

@@ -14,15 +14,11 @@ struct IncomingInvoicesView: View {
     var body: some View {
         if viewModel.invoices.isEmpty {
             ScrollView {
-                VStack(spacing: 10) {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 50))
-                        .foregroundColor(.gray)
-                    Text("Žádné faktury nejsou k dispozici.")
-                        .foregroundColor(.gray)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .frame(minHeight: UIScreen.main.bounds.height * 0.6)
+                
+                EmptyStateView(
+                    systemImage: "doc.text.magnifyingglass",
+                    message: "Žádné faktury nejsou k dispozici."
+                )
             }
             .refreshable {
                 viewModel.resetPagination()
@@ -75,7 +71,7 @@ struct IncomingInvoicesView: View {
                 }
             }
             .navigationDestination(for: Invoice.self) { invoice in
-                IncomingInvoiceDetailView(invoice: invoice)
+                IncomingInvoiceDetailView(invoiceId: invoice.id)
                     .environmentObject(viewModel)
             }
             .navigationTitle("Přijaté faktury")
@@ -97,12 +93,3 @@ struct IncomingInvoicesView: View {
         }
     }
 }
-
-/*
- .task {
-     // Načteme první stránku při prvním zobrazení
-     if viewModel.invoices.isEmpty {
-         await viewModel.fetchInvoices(page: 1)
-     }
- }
-  */
