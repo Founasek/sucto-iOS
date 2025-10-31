@@ -15,15 +15,18 @@ struct PartnerPickerView: View {
     @State private var isPresented = false
 
     private var filteredPartners: [Partner] {
+        let result: [Partner]
         if searchText.isEmpty {
-            partners
+            result = partners
         } else {
-            partners.filter {
+            result = partners.filter {
                 $0.name.lowercased().contains(searchText.lowercased()) ||
-                    ($0.ic ?? "").contains(searchText)
+                ($0.ic ?? "").contains(searchText)
             }
         }
+        return result.sorted { $0.name.lowercased() < $1.name.lowercased() } // řazení podle názvu
     }
+
 
     var body: some View {
         Button {

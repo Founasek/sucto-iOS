@@ -14,6 +14,7 @@ class OutgoingInvoicesViewModel: ObservableObject {
     @Published var successMessage: String?
     @Published var errorMessage: String?
     @Published var isLoadingPage = false
+    @Published var isLoadingDetail = false
     @Published var hasMorePages = true
 
     private var currentPage = 1
@@ -78,7 +79,7 @@ class OutgoingInvoicesViewModel: ObservableObject {
             return
         }
 
-        isLoadingPage = true
+        isLoadingDetail = true
 
         do {
             let invoice: Invoice = try await APIService.shared.request(
@@ -95,7 +96,7 @@ class OutgoingInvoicesViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
 
-        isLoadingPage = false
+        isLoadingDetail = false
     }
 
     func payInvoice(invoiceId: Int) async {

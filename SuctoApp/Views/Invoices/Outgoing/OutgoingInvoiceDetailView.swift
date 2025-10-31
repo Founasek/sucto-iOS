@@ -13,7 +13,7 @@ struct OutgoingInvoiceDetailView: View {
 
     var body: some View {
         ScrollView {
-            if viewModel.isLoadingPage {
+            if viewModel.isLoadingDetail {
                 ProgressView("Načítám fakturu…")
                     .padding()
             } else if let invoice = viewModel.selectedInvoice {

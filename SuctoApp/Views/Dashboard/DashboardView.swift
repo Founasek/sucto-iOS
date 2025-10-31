@@ -38,7 +38,7 @@ struct DashboardView: View {
                     IncomingInvoicesView()
                         .environmentObject(incomingInvoicesVM)
                 case 2:
-                    AccountsView()
+                    BankAccountsView()
                         .environmentObject(accountsVM)
                 default:
                     EmptyView()

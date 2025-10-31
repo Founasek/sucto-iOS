@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct AccountDetailView: View {
+struct BankAccountDetailView: View {
     let account: Account
 
     var body: some View {
@@ -21,8 +21,7 @@ struct AccountDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 // 💳 Bankovní údaje (pouze pro bankovní účty)
                 if !account.isCashAccount,
-                   let bank = account.bankAccount
-                {
+                   let bank = account.bankAccount {
                     SectionView(title: "Bankovní údaje") {
                         if let iban = bank.iban {
                             InfoRow(label: "IBAN", value: iban)

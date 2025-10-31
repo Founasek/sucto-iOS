@@ -6,7 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		144BA42A2EB4901C002DC790 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 144BA4282EB4901C002DC790 /* .gitignore */; };
+		144BA42B2EB4901C002DC790 /* .swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 144BA4292EB4901C002DC790 /* .swiftlint.yml */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		144BA4282EB4901C002DC790 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		144BA4292EB4901C002DC790 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
 		14D897D02E77026A0069AC79 /* SuctoApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SuctoApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -32,6 +39,8 @@
 		14D897C72E77026A0069AC79 = {
 			isa = PBXGroup;
 			children = (
+				144BA4282EB4901C002DC790 /* .gitignore */,
+				144BA4292EB4901C002DC790 /* .swiftlint.yml */,
 				14D897D12E77026A0069AC79 /* Products */,
 				14D897D22E77026A0069AC79 /* SuctoApp */,
 			);
@@ -86,11 +95,12 @@
 				};
 			};
 			buildConfigurationList = 14D897CB2E77026A0069AC79 /* Build configuration list for PBXProject "SuctoApp" */;
-			developmentRegion = en;
+			developmentRegion = cs;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				cs,
 			);
 			mainGroup = 14D897C72E77026A0069AC79;
 			minimizedProjectReferenceProxies = 1;
@@ -109,6 +119,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				144BA42A2EB4901C002DC790 /* .gitignore in Resources */,
+				144BA42B2EB4901C002DC790 /* .swiftlint.yml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,6 +270,7 @@
 				DEVELOPMENT_TEAM = HF6XDVP6L4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "sÚčto";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -286,6 +299,7 @@
 				DEVELOPMENT_TEAM = HF6XDVP6L4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "sÚčto";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

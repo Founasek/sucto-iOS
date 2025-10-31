@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct AccountsView: View {
+struct BankAccountsView: View {
     @EnvironmentObject var viewModel: AccountsViewModel
     @EnvironmentObject var navManager: NavigationManager
 

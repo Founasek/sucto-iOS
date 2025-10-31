@@ -31,9 +31,7 @@ struct OutgoingInvoicesView: View {
                 }
             }
             .navigationTitle("Vydané faktury")
-        }
-
-        else {
+        } else {
             List {
                 ForEach(viewModel.invoices) { invoice in
                     NavigationLink(value: invoice) {

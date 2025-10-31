@@ -1,0 +1,45 @@
+# SwiftLint configuration for SuctoApp
+# -------------------------------------
+
+# ---------------------
+# Zakázaná pravidla (disabled)
+# ---------------------
+disabled_rules:
+  - line_length                # nechceme řešit delší řádky ve SwiftUI Views
+  - trailing_whitespace        # nepřísné při kopírování/paste
+  - todo                       # nechceme varování pro TODO poznámky
+  - function_body_length       # ViewModely mohou být delší
+  - cyclomatic_complexity      # složitější logika ve ViewModelech povolena
+  - identifier_name            # krátké názvy proměnných jako ic, r, g, b povoleny
+  - multiple_closures_with_trailing_closure # SwiftUI často používá více trailing closures
+  - trailing_comma             # trailing commas v kolekcích nejsou problém
+
+# ---------------------
+# Povolená pravidla navíc
+# ---------------------
+opt_in_rules:
+  - empty_count                # kontrola počtu prázdných kolekcí
+# ---------------------
+# Co lintovat
+# ---------------------
+included:
+  - SuctoApp                   # hlavní složka projektu
+excluded:
+  - Pods                        # ignorujeme CocoaPods
+  - Carthage
+  - SuctoApp.xcodeproj
+  - SuctoApp.xcworkspace
+
+# ---------------------
+# Výstup
+# ---------------------
+reporter: "xcode"             # výstup do Xcode Issues Navigator
+
+# ---------------------
+# Další volby
+# ---------------------
+force_cast: warning            # výskyt force castu je warning, ne error
+
+analyzer_rules:
+  - explicit_self
+

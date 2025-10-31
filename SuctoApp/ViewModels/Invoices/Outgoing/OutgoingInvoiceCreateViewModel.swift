@@ -18,12 +18,12 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
     @Published var variableSymbol = ""
     @Published var actuarialTypeId: Int? = 1
 
-    @Published var selectedPartner: Partner? = nil
-    @Published var selectedAccount: Account? = nil
-    @Published var selectedCurrency: Currency? = nil
-    @Published var selectedPaymentType: PaymentType? = nil
-    @Published var selectedVatRegime: VatRegime? = nil
-    @Published var selectedVats: Vat? = nil
+    @Published var selectedPartner: Partner?
+    @Published var selectedAccount: Account?
+    @Published var selectedCurrency: Currency?
+    @Published var selectedPaymentType: PaymentType?
+    @Published var selectedVatRegime: VatRegime?
+    @Published var selectedVats: Vat?
 
     @Published var issueDate = Date()
     @Published var dueDate = Date()

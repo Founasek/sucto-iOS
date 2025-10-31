@@ -29,7 +29,7 @@ struct RootView: View {
                     IncomingInvoiceDetailView(invoice: invoice)
 
                 case let .accountDetail(account):
-                    AccountDetailView(account: account)
+                    BankAccountDetailView(account: account)
                         .environmentObject(navManager)
                         .environmentObject(session)
                 }
