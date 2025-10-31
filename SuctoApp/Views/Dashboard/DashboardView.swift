@@ -85,9 +85,9 @@ struct DashboardView: View {
         }
         .onAppear {
             Task {
-                //await outgoingInvoicesVM.fetchInvoices(page: 1)
+                await outgoingInvoicesVM.fetchInvoices(page: 1)
                 await incomingInvoicesVM.fetchInvoices(page: 1)
-                //await accountsVM.fetchAccounts()
+                await accountsVM.fetchAccounts()
             }
         }
     }
