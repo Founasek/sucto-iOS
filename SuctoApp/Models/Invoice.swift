@@ -23,6 +23,13 @@ struct Invoice: Identifiable, Codable, Hashable {
     let currency: Currency?
     let printNotice: String?
     let footNotice: String?
+    let externalNumber: String?
+    let orderNumber: String?
+    let taxable : Bool?
+    let vat : String?
+    let pay : String?
+    
+    let account: Account?
 
     // U vydané faktury
     let customer: Customer?
@@ -51,5 +58,11 @@ struct Invoice: Identifiable, Codable, Hashable {
         case customer
         case supplier
         case items
+        case externalNumber = "external_number"
+        case orderNumber = "order_number"
+        case account
+        case taxable
+        case vat
+        case pay
     }
 }

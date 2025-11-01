@@ -10,4 +10,6 @@ import Foundation
 struct Customer: Codable, Hashable {
     let id: Int?
     let name: String?
+    let ic: String?
+    let dic: String?
 }

@@ -11,6 +11,7 @@ import SwiftUI
 class CompaniesViewModel: ObservableObject {
     @Published var companies: [Company] = []
     @Published var errorMessage: String?
+    @Published var isLoading: Bool = false   // 🆕
 
     private var session: SessionManager
 
@@ -24,6 +25,8 @@ class CompaniesViewModel: ObservableObject {
             return
         }
 
+        isLoading = true  // 🆕 začátek načítání
+        defer { isLoading = false }  // 🆕 konec načítání
         do {
             let result: [Company] = try await APIService.shared.request(
                 endpoint: APIConstants.getCompanies(),

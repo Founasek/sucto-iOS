@@ -33,11 +33,12 @@ struct BankAccountDetailView: View {
 
                 // 💰 Finanční informace
                 SectionView(title: "Zůstatek a parametry") {
+                    InfoRow(label: "Prefix", value: account.prefix)
+
                     InfoRow(
                         label: "Počáteční zůstatek",
                         value: FormatterHelper.formatPrice(account.openingBalance, currency: "Kč")
                     )
-                    InfoRow(label: "Prefix", value: account.prefix)
                 }
 
                 // ⚠️ Stav účtu
@@ -75,7 +76,6 @@ private struct SectionView<Content: View>: View {
             VStack(spacing: 8) {
                 content
             }
-            .cornerRadius(12)
         }
     }
 }

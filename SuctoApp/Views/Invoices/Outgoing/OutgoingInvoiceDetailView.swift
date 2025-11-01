@@ -28,16 +28,22 @@ struct OutgoingInvoiceDetailView: View {
 
             } else if let invoice = viewModel.selectedInvoice {
                 VStack(alignment: .leading, spacing: 16) {
-                    // MARK: - Základní informace
 
+                    // MARK: - Základní informace
                     VStack(alignment: .leading, spacing: 8) {
+                        Text("Základní informace")
+                            .font(.headline)
+                            .padding(.bottom, 4)
+                            .foregroundStyle(Color.primary)
+
                         HStack {
-                            Text("Faktura č.")
+                            Text("Faktura č.:")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             Spacer()
                             Text(invoice.actuarialNumber)
                                 .font(.headline)
+                                .foregroundStyle(Color.primary)
                         }
 
                         HStack {
@@ -50,60 +56,140 @@ struct OutgoingInvoiceDetailView: View {
                                 .foregroundColor(invoice.statusId == 8 ? .green : .orange)
                         }
 
-                        HStack {
-                            Text("Variablní symbol:")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text(invoice.variableSymbol ?? "-")
-                                .font(.headline)
+                        if let variableSymbol = invoice.variableSymbol {
+                            HStack {
+                                Text("Variabilní symbol:")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(variableSymbol)
+                                    .font(.headline)
+                                    .foregroundStyle(Color.primary)
+                            }
                         }
 
-                        Divider()
-
-                        Text("Zákazník")
-                            .font(.headline)
-                        Text(invoice.customer?.name ?? "-")
-                            .font(.subheadline)
-
-                        Divider()
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Datum vystavení: \(invoice.issueDateAt ?? " - ")")
-                            Text("Datum splatnost: \(invoice.dueDateAt ?? " - ")")
-                            Text("Datum UZP: \(invoice.uzpDateAt ?? " - ")")
+                        // 🆕 Externí číslo a číslo objednávky
+                        if let externalNumber = invoice.externalNumber {
+                            HStack {
+                                Text("Externí číslo:")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(externalNumber)
+                                    .foregroundStyle(Color.primary)
+                            }
                         }
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+
+                        if let orderNumber = invoice.orderNumber, !orderNumber.isEmpty {
+                            HStack {
+                                Text("Číslo objednávky:")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(orderNumber)
+                                    .font(.headline)
+                                    .foregroundStyle(Color.primary)
+                            }
+                        }
                     }
                     .padding()
                     .background(Color(.systemBackground))
                     .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
 
-                    // MARK: - Poznámka
-
-                    if let notice = invoice.printNotice, !notice.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Poznámka k faktuře")
-                                .font(.headline)
-                                .padding(.bottom, 4)
-                            Text(notice)
-                                .font(.subheadline)
-                                .foregroundColor(.primary)
-                                .multilineTextAlignment(.leading)
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(12)
-                    }
-
-                    // MARK: - Položky
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Položky")
+                    // MARK: - Zákazník
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Zákazník")
                             .font(.headline)
+                            .padding(.bottom, 4)
+                            .foregroundStyle(Color.primary)
+
+                        HStack {
+                            Text("Název:")
+                                .font(.subheadline)
+                            Spacer()
+                            Text(invoice.customer?.name ?? "-")
+                                .foregroundStyle(Color.primary)
+                        }
+
+                        // 🆕 Daňové údaje zákazníka
+                        HStack {
+                            Text("IČO:")
+                                .font(.subheadline)
+                            Spacer()
+                            Text(invoice.customer?.ic ?? "-")
+                                .foregroundStyle(Color.primary)
+                        }
+                        
+                        HStack {
+                            Text("DIČ:")
+                                .font(.subheadline)
+                            Spacer()
+                            Text(invoice.customer?.dic ?? "-")
+                                .foregroundStyle(Color.primary)
+                        }
+                    }
+                    .foregroundColor(.secondary)
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+
+                    // MARK: - Časové údaje
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Časové údaje")
+                            .font(.headline)
+                            .padding(.bottom, 4)
+                            .foregroundStyle(Color.primary)
+
+                        HStack {
+                            Text("Datum vystavení:")
+                                .font(.subheadline)
+                            Spacer()
+                            Text(invoice.issueDateAt ?? "-")
+                                .foregroundStyle(Color.primary)
+                        }
+
+                        HStack {
+                            Text("Datum splatnosti:")
+                                .font(.subheadline)
+                            Spacer()
+                            Text(invoice.dueDateAt ?? "-")
+                                .foregroundStyle(Color.primary)
+                        }
+
+                        HStack {
+                            Text("Datum UZP:")
+                                .font(.subheadline)
+                            Spacer()
+                            Text(invoice.uzpDateAt ?? "-")
+                                .foregroundStyle(Color.primary)
+                        }
+                    }
+                    .foregroundColor(.secondary)
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+
+                    // MARK: - Položky a poznámka
+                    VStack(alignment: .leading, spacing: 8) {
+                        // 🆕 Poznámka k faktuře
+                        if let notice = invoice.printNotice, !notice.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("Poznámka a položky")
+                                        .font(.headline)
+                                        .padding(.bottom, 4)
+                                    Spacer()
+                                    Image(systemName: "bubble.right")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.primary)
+                                }
+                                
+                                Text(notice)
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                    .multilineTextAlignment(.leading)
+                            }
+                        }
 
                         ForEach(invoice.items ?? []) { item in
                             HStack {
@@ -124,8 +210,9 @@ struct OutgoingInvoiceDetailView: View {
                                         .font(.subheadline)
                                 }
                             }
-                            Divider()
                         }
+                        .padding(.top, 16)
+                        
                     }
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -133,7 +220,6 @@ struct OutgoingInvoiceDetailView: View {
                     .cornerRadius(12)
 
                     // MARK: - Částka a akce
-
                     VStack(alignment: .leading, spacing: 12) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Částka k úhradě")
@@ -142,13 +228,16 @@ struct OutgoingInvoiceDetailView: View {
                                 .font(.title2)
                                 .fontWeight(.semibold)
 
-                            HStack(spacing: 5) {
-                                Text("bez DPH")
-                                    .font(.footnote)
-                                    .foregroundStyle(Color.gray.opacity(0.8))
-                                Text("\(FormatterHelper.formatPrice(invoice.basePrice, currency: invoice.currency?.symbol))")
-                                    .font(.footnote)
-                                    .foregroundStyle(Color.gray.opacity(0.8))
+                            // 🆕 zobrazit bez DPH jen pokud my jsme plátci
+                            if invoice.taxable == true {
+                                HStack(spacing: 5) {
+                                    Text("bez DPH")
+                                        .font(.footnote)
+                                        .foregroundStyle(Color.gray.opacity(0.8))
+                                    Text("\(FormatterHelper.formatPrice(invoice.basePrice, currency: invoice.currency?.symbol))")
+                                        .font(.footnote)
+                                        .foregroundStyle(Color.gray.opacity(0.8))
+                                }
                             }
                         }
                         .padding()
@@ -175,7 +264,7 @@ struct OutgoingInvoiceDetailView: View {
                         }
                     }
 
-                    Spacer()
+
                 }
                 .padding()
             } else {
