@@ -19,7 +19,7 @@ class LoginViewModel: ObservableObject {
             let response: LoginResponse = try await APIService.shared.request(
                 endpoint: APIConstants.loginEndpoint,
                 method: .POST,
-                body: jsonData,
+                body: jsonData
             )
             token = response.authentication_token
             errorMessage = nil

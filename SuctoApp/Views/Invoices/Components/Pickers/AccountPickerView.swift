@@ -61,10 +61,10 @@ struct AccountPickerView: View {
                             Text(account.name)
                                 .font(.body)
                             if let bank = account.bankAccount {
-                                Text("IBAN: \(bank.iban ?? "")")
+                                Text("IBAN: \(bank.iban, default: "N/A")")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                Text("SWIFT: \(bank.swift ?? "")")
+                                Text("SWIFT: \(bank.swift, default: "N/A")")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }

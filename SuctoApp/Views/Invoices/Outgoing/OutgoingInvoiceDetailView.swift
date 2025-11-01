@@ -14,8 +14,18 @@ struct OutgoingInvoiceDetailView: View {
     var body: some View {
         ScrollView {
             if viewModel.isLoadingDetail {
-                ProgressView("Načítám fakturu…")
-                    .padding()
+                LoadingStateView(message: "Načítám fakturu…")
+
+            } else if let error = viewModel.errorMessage {
+                ErrorStateView(
+                    message: error,
+                    retryAction: {
+                        Task {
+                            await viewModel.fetchInvoiceDetail(invoiceId: invoiceId)
+                        }
+                    }
+                )
+
             } else if let invoice = viewModel.selectedInvoice {
                 VStack(alignment: .leading, spacing: 16) {
                     // MARK: - Základní informace
@@ -40,6 +50,15 @@ struct OutgoingInvoiceDetailView: View {
                                 .foregroundColor(invoice.statusId == 8 ? .green : .orange)
                         }
 
+                        HStack {
+                            Text("Variablní symbol:")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(invoice.variableSymbol ?? "-")
+                                .font(.headline)
+                        }
+
                         Divider()
 
                         Text("Zákazník")
@@ -50,8 +69,9 @@ struct OutgoingInvoiceDetailView: View {
                         Divider()
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Datum vystavení: \(invoice.issueDateAt ?? "-")")
-                            Text("Splatnost: \(invoice.dueDateAt ?? "-")")
+                            Text("Datum vystavení: \(invoice.issueDateAt ?? " - ")")
+                            Text("Datum splatnost: \(invoice.dueDateAt ?? " - ")")
+                            Text("Datum UZP: \(invoice.uzpDateAt ?? " - ")")
                         }
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -139,7 +159,7 @@ struct OutgoingInvoiceDetailView: View {
                         if invoice.statusId != 8 {
                             Button {
                                 Task {
-                                    await viewModel.payInvoice(invoiceId: invoice.id)
+                                    await viewModel.markOutgoingInvoiceAsPaid(invoiceId: invoice.id)
                                 }
                             } label: {
                                 HStack {
@@ -155,27 +175,14 @@ struct OutgoingInvoiceDetailView: View {
                         }
                     }
 
-                    // MARK: - Stavové hlášky
-
-                    if let success = viewModel.successMessage {
-                        Text(success)
-                            .foregroundColor(.green)
-                            .padding(.top, 8)
-                    }
-
-                    if let error = viewModel.errorMessage {
-                        Text(error)
-                            .foregroundColor(.red)
-                            .padding(.top, 8)
-                    }
-
                     Spacer()
                 }
                 .padding()
             } else {
-                Text("Faktura není k dispozici")
-                    .foregroundColor(.secondary)
-                    .padding()
+                EmptyStateView(
+                    systemImage: "doc.text.magnifyingglass",
+                    message: "Faktury není k dispozici."
+                )
             }
         }
         .navigationTitle("Detail faktury")

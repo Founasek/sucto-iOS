@@ -23,10 +23,10 @@ class APIService {
         endpoint: String,
         method: HTTPMethod = .GET,
         token: String? = nil,
-        body: Data? = nil,
+        body: Data? = nil
     ) async throws -> T {
         guard let url = URL(string: baseURL + endpoint) else {
-            throw URLError(.badURL)
+            throw APIError.badURL
         }
 
         var request = URLRequest(url: url)
@@ -87,20 +87,10 @@ class APIService {
             @unknown default:
                 print("🔹 Unknown decoding error: \(decodingError.localizedDescription)")
             }
-            throw decodingError
+            throw APIError.decodingError
         } catch {
             print("❌ Other error: \(error.localizedDescription)")
             throw error
-        }
-    }
-}
-
-enum APIError: LocalizedError {
-    case unauthorized
-    var errorDescription: String? {
-        switch self {
-        case .unauthorized:
-            "Neplatný token. Přihlaste se prosím znovu."
         }
     }
 }

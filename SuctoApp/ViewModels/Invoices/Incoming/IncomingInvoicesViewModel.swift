@@ -21,7 +21,6 @@ class IncomingInvoicesViewModel: ObservableObject {
     @Published var hasMorePages = true
     private var currentPage = 1
 
-
     let companyId: Int
     private var session: SessionManager
 
@@ -52,7 +51,7 @@ class IncomingInvoicesViewModel: ObservableObject {
             let result: [Invoice] = try await APIService.shared.request(
                 endpoint: "companies/\(companyId)/actuarials_ins?page=\(pageToLoad)",
                 method: .GET,
-                token: token,
+                token: token
             )
 
             if result.isEmpty {
@@ -76,7 +75,7 @@ class IncomingInvoicesViewModel: ObservableObject {
 
         isLoadingPage = false
     }
-    
+
     func fetchInvoiceDetail(invoiceId: Int) async {
         guard let token = session.authToken else {
             errorMessage = "Token není k dispozici"
@@ -89,7 +88,7 @@ class IncomingInvoicesViewModel: ObservableObject {
             let invoice: Invoice = try await APIService.shared.request(
                 endpoint: APIConstants.GetIncomingInvoiceDetail(companyId: companyId, invoiceId: invoiceId),
                 method: .GET,
-                token: token,
+                token: token
             )
 
             selectedInvoice = invoice
@@ -101,5 +100,25 @@ class IncomingInvoicesViewModel: ObservableObject {
         }
 
         isLoadingDetail = false
+    }
+
+    func markIncomingInvoiceAsPaid(invoiceId: Int) async {
+        guard let token = session.authToken else {
+            errorMessage = "Token není k dispozici"
+            return
+        }
+
+        do {
+            let result: PayInvoiceResponse = try await APIService.shared.request(
+                endpoint: APIConstants.incomingInvoiceMarkAsPaid(companyId: companyId, invoiceId: invoiceId),
+                method: .GET,
+                token: token
+            )
+            successMessage = "Faktura byla úspěšně zaplacena. Doklad č. \(result.cashVoucherId)"
+            errorMessage = nil
+            print("✅ Faktura zaplacena, doklad ID: \(result.cashVoucherId)")
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }

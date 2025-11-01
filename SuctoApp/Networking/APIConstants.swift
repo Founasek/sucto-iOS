@@ -11,8 +11,12 @@ enum APIConstants {
     static let baseURL = "https://www.sucto.cz/api/"
     static let loginEndpoint = "sessions/create"
 
-    static func payInvoiceEndpoint(companyId: Int, invoiceId: Int) -> String {
+    static func outgoingInvoiceMarkAsPaid(companyId: Int, invoiceId: Int) -> String {
         "companies/\(companyId)/actuarials_outs/\(invoiceId)/pay"
+    }
+
+    static func incomingInvoiceMarkAsPaid(companyId: Int, invoiceId: Int) -> String {
+        "companies/\(companyId)/actuarials_ins/\(invoiceId)/pay"
     }
 
     static func GetOutgoingInvoiceDetail(companyId: Int, invoiceId: Int) -> String {

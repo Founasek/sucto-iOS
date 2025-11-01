@@ -88,7 +88,7 @@ struct CompaniesView: View {
             is_taxable: true,
             country_id: 1,
             email: "info@ufosoft.cz",
-            logo: "logo-sucto.png",
+            logo: "logo-sucto.png"
         ),
         Company(
             id: 2,
@@ -97,7 +97,7 @@ struct CompaniesView: View {
             is_taxable: false,
             country_id: 1,
             email: "kontakt@test.cz",
-            logo: nil,
+            logo: nil
         ),
     ]
 

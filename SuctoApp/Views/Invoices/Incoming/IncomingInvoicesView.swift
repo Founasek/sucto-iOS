@@ -14,7 +14,6 @@ struct IncomingInvoicesView: View {
     var body: some View {
         if viewModel.invoices.isEmpty {
             ScrollView {
-                
                 EmptyStateView(
                     systemImage: "doc.text.magnifyingglass",
                     message: "Žádné faktury nejsou k dispozici."
@@ -75,15 +74,6 @@ struct IncomingInvoicesView: View {
                     .environmentObject(viewModel)
             }
             .navigationTitle("Přijaté faktury")
-            .overlay {
-                if let error = viewModel.errorMessage {
-                    Text(error)
-                        .foregroundColor(.white)
-                        .padding()
-                        .background(Color.red)
-                        .cornerRadius(8)
-                }
-            }
             .refreshable {
                 viewModel.resetPagination()
                 Task {

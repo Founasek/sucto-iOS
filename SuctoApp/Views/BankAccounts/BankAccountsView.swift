@@ -1,5 +1,5 @@
 //
-//  AccountsView.swift
+//  BankAccountsView.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 07.10.2025.
@@ -14,12 +14,10 @@ struct BankAccountsView: View {
     var body: some View {
         if viewModel.accounts.isEmpty {
             ScrollView {
-                
                 EmptyStateView(
                     systemImage: "creditcard.trianglebadge.exclamationmark",
                     message: "Žádné účty nejsou k dispozici."
                 )
-
             }
             .refreshable {
                 Task {
@@ -29,21 +27,27 @@ struct BankAccountsView: View {
             .navigationTitle("Účty")
 
         } else {
-            List(viewModel.accounts) { account in
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(account.name)
-                        .font(.headline)
+            List {
+                ForEach(viewModel.accounts) { account in
+                    NavigationLink(value: account) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(account.name)
+                                .font(.headline)
 
-                    if !account.isCashAccount, let bank = account.bankAccount {
-                        Text("Účet: \(bank.account ?? "")\(bank.bankCode != nil ? " / \(bank.bankCode!)" : "")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            if !account.isCashAccount, let bank = account.bankAccount {
+                                Text("Účet: \(bank.account ?? "")\(bank.bankCode != nil ? " / \(bank.bankCode!)" : "")")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
                     }
+                    .navigationLinkIndicatorVisibility(.hidden)
                 }
-                .padding(.vertical, 4)
-                .onTapGesture {
-                    navManager.path.append(AppRoute.accountDetail(account: account))
-                }
+            }
+            .navigationDestination(for: Account.self) { account in
+                BankAccountDetailView(account: account)
+                    .environmentObject(viewModel)
             }
             .navigationTitle("Účty")
             .refreshable {

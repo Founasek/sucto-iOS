@@ -11,11 +11,11 @@ struct Invoice: Identifiable, Codable, Hashable {
     let id: Int
     let actuarialType: String
     let actuarialNumber: String
+    let issueDateAt: String?
     let uzpDateAt: String?
     let dueDateAt: String?
     let status: String
     let statusId: Int
-    let issueDateAt: String?
     let basePrice: String?
     let endPrice: String?
     let remaining: String?

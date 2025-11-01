@@ -10,88 +10,201 @@ import SwiftUI
 struct IncomingInvoiceDetailView: View {
     let invoiceId: Int
     @EnvironmentObject var viewModel: IncomingInvoicesViewModel
-    
-    
+
     var body: some View {
         ScrollView {
             if viewModel.isLoadingDetail {
-                ProgressView("Načítám fakturu…")
-                    .padding()
-            } else if let invoice = viewModel.selectedInvoice {
-                
-                
-                VStack(alignment: .leading, spacing: 15) {
-                    // Faktura a stav
-                    HStack {
-                        Text("\(invoice.actuarialNumber)")
-                            .font(.title2)
-                            .bold()
-                        Spacer()
-                        Text(invoice.status)
-                            .foregroundColor(invoice.status == "Zaplaceno" ? .green : .orange)
-                            .bold()
+                LoadingStateView(message: "Načítám fakturu…")
+
+            } else if let error = viewModel.errorMessage {
+                ErrorStateView(
+                    message: error,
+                    retryAction: {
+                        Task {
+                            await viewModel.fetchInvoiceDetail(invoiceId: invoiceId)
+                        }
                     }
-                    
-                    Divider()
-                    
-                    // Zákazník
-                    VStack(alignment: .leading, spacing: 5) {
+                )
+
+            } else if let invoice = viewModel.selectedInvoice {
+                VStack(alignment: .leading, spacing: 16) {
+                    // MARK: - Základní informace
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        // Faktura a stav
+                        HStack {
+                            Text("Faktura č.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(invoice.actuarialNumber)
+                                .font(.headline)
+                        }
+
+                        HStack {
+                            Text("Stav:")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(invoice.status)
+                                .font(.headline)
+                                .foregroundColor(invoice.statusId == 8 ? .green : .orange)
+                        }
+
+                        HStack {
+                            Text("Variablní symbol:")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(invoice.variableSymbol ?? "-")
+                                .font(.headline)
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        // Zákazník
                         Text("Zákazník:")
                             .font(.headline)
                         Text(invoice.supplier?.name ?? "")
-                    }
-                    
-                    // Termíny
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("Termíny:")
-                            .font(.headline)
-                        Text("Datum vystavení: \(invoice.issueDateAt ?? "")")
-                        Text("Datum splatnosti: \(invoice.dueDateAt ?? "")")
-                    }
-                    
-                    // Cena
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("Cena:")
-                            .font(.headline)
-                        Text("\(FormatterHelper.formatPrice(invoice.endPrice, currency: invoice.currency?.symbol))")
-                            .font(.title3)
-                            .bold()
-                    }
-                    
-                    Divider()
-                    
-                    // Poznámka
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("Poznámka k faktuře")
-                            .font(.headline)
-                        Text(invoice.printNotice ?? "")
-                    }
-                    
-                    // Footer
-                    if let foot = invoice.footNotice {
+                            .font(.subheadline)
+
                         Divider()
-                        Text(foot)
-                            .font(.footnote)
-                            .foregroundColor(.gray)
-                            .padding(.top, 5)
+
+                        // Termíny
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Datum vystavení: \(invoice.issueDateAt ?? " - ")")
+                            Text("Datum splatnosti: \(invoice.dueDateAt ?? " - ")")
+                            Text("Datum UZP: \(invoice.uzpDateAt ?? " - ")")
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                     }
-                    
-                    Spacer()
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+
+                    // MARK: - Poznámka
+
+                    if let notice = invoice.printNotice, !notice.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Poznámka k faktuře")
+                                .font(.headline)
+                                .padding(.bottom, 4)
+                            Text(notice)
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+                                .multilineTextAlignment(.leading)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(.systemBackground))
+                        .cornerRadius(12)
+                    }
+
+                    // MARK: - Položky
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Položky")
+                            .font(.headline)
+
+                        ForEach(invoice.items ?? []) { item in
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(item.name)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+
+                                    if let quantity = item.quantity, let unit = item.unitName {
+                                        Text("\(quantity) \(unit)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                Spacer()
+                                if let price = item.totalPrice, let currency = invoice.currency?.symbol {
+                                    Text("\(FormatterHelper.formatPrice(price, currency: currency))")
+                                        .font(.subheadline)
+                                }
+                            }
+                            Divider()
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+
+                    // MARK: - Částka a akce
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Částka k úhradě")
+                                .font(.headline)
+                            Text("\(FormatterHelper.formatPrice(invoice.endPrice, currency: invoice.currency?.symbol))")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+
+                            HStack(spacing: 5) {
+                                Text("bez DPH")
+                                    .font(.footnote)
+                                    .foregroundStyle(Color.gray.opacity(0.8))
+                                Text("\(FormatterHelper.formatPrice(invoice.basePrice, currency: invoice.currency?.symbol))")
+                                    .font(.footnote)
+                                    .foregroundStyle(Color.gray.opacity(0.8))
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(.systemBackground))
+                        .cornerRadius(12)
+
+                        /*
+                         if invoice.statusId != 8 {
+                             Spacer()
+                             Button {
+                                 Task {
+                                     await viewModel.markIncomingInvoiceAsPaid(invoiceId: invoice.id)
+                                 }
+                             } label: {
+                                 HStack {
+                                     Spacer()
+                                     Text("Zaplatit fakturu")
+                                         .font(.headline)
+                                         .padding()
+                                     Spacer()
+                                 }
+                             }
+                             .buttonStyle(.borderedProminent)
+                             .padding(.top, 4)
+                         }
+                          */
+                    }
                 }
                 .padding()
+
+            } else {
+                EmptyStateView(
+                    systemImage: "doc.text.magnifyingglass",
+                    message: "Faktury není k dispozici."
+                )
             }
         }
-                .navigationTitle("Detail faktury")
-                .navigationBarTitleDisplayMode(.inline)
-                .onAppear {
-                    Task {
-                        await viewModel.fetchInvoiceDetail(invoiceId: invoiceId)
-                    }
-                }
-                .refreshable {
-                    Task {
-                        await viewModel.fetchInvoiceDetail(invoiceId: invoiceId)
-                    }
-                }
+
+        .navigationTitle("Detail faktury")
+        .navigationBarTitleDisplayMode(.inline)
+        .background(Color(.systemGroupedBackground))
+        .onAppear {
+            Task {
+                await viewModel.fetchInvoiceDetail(invoiceId: invoiceId)
+            }
+        }
+        .refreshable {
+            Task {
+                await viewModel.fetchInvoiceDetail(invoiceId: invoiceId)
+            }
         }
     }
+}

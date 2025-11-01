@@ -42,7 +42,7 @@ struct OutgoingInvoiceCreateView: View {
 
                 PartnerPickerView(
                     selectedPartner: $viewModel.selectedPartner,
-                    partners: viewModel.availablePartners,
+                    partners: viewModel.availablePartners
                 )
             }
 
@@ -55,21 +55,21 @@ struct OutgoingInvoiceCreateView: View {
             Section(header: Text("Platební a daňové údaje")) {
                 AccountPickerView(
                     selectedAccount: $viewModel.selectedAccount,
-                    accounts: viewModel.availableAccounts,
+                    accounts: viewModel.availableAccounts
                 )
 
                 CurrencyPickerView(
                     selectedCurrency: $viewModel.selectedCurrency,
-                    currencies: viewModel.availableCurrencies,
+                    currencies: viewModel.availableCurrencies
                 )
 
                 PaymentTypePickerView(
                     selectedPaymentType: $viewModel.selectedPaymentType,
-                    paymentTypes: viewModel.availablePaymentTypes,
+                    paymentTypes: viewModel.availablePaymentTypes
                 )
                 VatRegimePickerView(
                     selectedVatRegime: $viewModel.selectedVatRegime,
-                    vatRegimes: viewModel.availableVatRegimes,
+                    vatRegimes: viewModel.availableVatRegimes
                 )
             }
 
@@ -130,7 +130,7 @@ struct OutgoingInvoiceCreateView: View {
                             Spacer()
                             TextField("ks / h / MD", text: Binding(
                                 get: { item.unitName ?? "" },
-                                set: { item.unitName = $0 },
+                                set: { item.unitName = $0 }
                             ))
                             .multilineTextAlignment(.trailing)
                             .frame(width: 80)
@@ -181,7 +181,7 @@ struct OutgoingInvoiceCreateView: View {
                         basePrice: 0,
                         tax: 0,
                         totalPrice: 0,
-                        unitName: nil,
+                        unitName: nil
                     ))
                 }) {
                     VStack(alignment: .leading, spacing: 6) {

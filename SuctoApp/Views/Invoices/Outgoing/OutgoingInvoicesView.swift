@@ -13,20 +13,32 @@ struct OutgoingInvoicesView: View {
 
     var body: some View {
         if viewModel.invoices.isEmpty {
-            ScrollView {
-                EmptyStateView(
-                    systemImage: "doc.text.magnifyingglass",
-                    message: "Žádné faktury nejsou k dispozici."
+            if viewModel.isLoadingPage {
+                LoadingStateView(message: "Načítám faktury…")
+            } else if let error = viewModel.errorMessage {
+                ErrorStateView(
+                    message: error,
+                    retryAction: {
+                        Task {
+                            await viewModel.fetchInvoices(page: 1)
+                        }
+                    }
                 )
 
-            }
-            .refreshable {
-                viewModel.resetPagination()
-                Task {
-                    await viewModel.fetchInvoices(page: 1)
+            } else {
+                ScrollView {
+                    EmptyStateView(
+                        systemImage: "doc.text.magnifyingglass",
+                        message: "Žádné faktury nejsou k dispozici."
+                    )
+                }
+                .refreshable {
+                    viewModel.resetPagination()
+                    Task {
+                        await viewModel.fetchInvoices(page: 1)
+                    }
                 }
             }
-            .navigationTitle("Vydané faktury")
         } else {
             List {
                 ForEach(viewModel.invoices) { invoice in
@@ -51,7 +63,6 @@ struct OutgoingInvoicesView: View {
                         .padding(.vertical, 5)
                     }
                     .navigationLinkIndicatorVisibility(.hidden)
-                    // 👇 Jakmile se objeví poslední položka, načte se další stránka
                     .onAppear {
                         if invoice == viewModel.invoices.last {
                             Task {
@@ -61,11 +72,11 @@ struct OutgoingInvoicesView: View {
                     }
                 }
 
-                // 👇 Loading indikátor dole při načítání další stránky
                 if viewModel.isLoadingPage {
                     HStack {
                         Spacer()
-                        ProgressView("Načítám další faktury...")
+                        LoadingStateView(message: "Načítám další faktury…")
+                            .frame(height: 60)
                         Spacer()
                     }
                 }
@@ -73,16 +84,6 @@ struct OutgoingInvoicesView: View {
             .navigationDestination(for: Invoice.self) { invoice in
                 OutgoingInvoiceDetailView(invoiceId: invoice.id)
                     .environmentObject(viewModel)
-            }
-            .navigationTitle("Vydané faktury")
-            .overlay {
-                if let error = viewModel.errorMessage {
-                    Text(error)
-                        .foregroundColor(.white)
-                        .padding()
-                        .background(Color.red)
-                        .cornerRadius(8)
-                }
             }
             .refreshable {
                 viewModel.resetPagination()

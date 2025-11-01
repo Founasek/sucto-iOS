@@ -1,5 +1,5 @@
 //
-//  AccountDetailView.swift
+//  BankAccountDetailView.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 07.10.2025.
@@ -21,20 +21,13 @@ struct BankAccountDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 // 💳 Bankovní údaje (pouze pro bankovní účty)
                 if !account.isCashAccount,
-                   let bank = account.bankAccount {
+                   let bankAccount = account.bankAccount {
                     SectionView(title: "Bankovní údaje") {
-                        if let iban = bank.iban {
-                            InfoRow(label: "IBAN", value: iban)
-                        }
-                        if let swift = bank.swift {
-                            InfoRow(label: "SWIFT", value: swift)
-                        }
-                        if let accNumber = bank.account {
-                            InfoRow(label: "Číslo účtu", value: "\(accNumber)/\(bank.bankCode ?? "")")
-                        }
-                        if let bankName = bank.bankName {
-                            InfoRow(label: "Banka", value: bankName)
-                        }
+                        InfoRow(label: "Číslo účtu", value: "\(bankAccount.account, default: " - ")/\(bankAccount.bankCode, default: " - ")")
+
+                        InfoRow(label: "SWIFT", value: "\(bankAccount.swift, default: " - ")")
+                        InfoRow(label: "IBAN", value: "\(bankAccount.iban, default: " - ")")
+                        InfoRow(label: "Banka", value: "\(bankAccount.bankName, default: " - ")")
                     }
                 }
 
@@ -42,7 +35,7 @@ struct BankAccountDetailView: View {
                 SectionView(title: "Zůstatek a parametry") {
                     InfoRow(
                         label: "Počáteční zůstatek",
-                        value: FormatterHelper.formatPrice(account.openingBalance, currency: "Kč"),
+                        value: FormatterHelper.formatPrice(account.openingBalance, currency: "Kč")
                     )
                     InfoRow(label: "Prefix", value: account.prefix)
                 }

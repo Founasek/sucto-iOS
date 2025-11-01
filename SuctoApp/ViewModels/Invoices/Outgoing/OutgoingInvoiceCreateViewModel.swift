@@ -73,7 +73,7 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
             let newInvoice: OutgoingInvoiceInitResponse = try await APIService.shared.request(
                 endpoint: APIConstants.getNewOutgoingInvoice(companyId: companyId),
                 method: .GET,
-                token: token,
+                token: token
             )
 
             // Naplníme ViewModel daty
@@ -92,39 +92,39 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
             availablePartners = try await APIService.shared.request(
                 endpoint: APIConstants.getPartners(companyId: companyId),
                 method: .GET,
-                token: token,
+                token: token
             )
 
             // Dostupné měny
             availableCurrencies = try await APIService.shared.request(
                 endpoint: APIConstants.getCurrencies(),
                 method: .GET,
-                token: token,
+                token: token
             )
 
             // Dostupné bankovní účty
             availableAccounts = try await APIService.shared.request(
                 endpoint: APIConstants.getBankAccounts(companyId: companyId),
                 method: .GET,
-                token: token,
+                token: token
             )
 
             availablePaymentTypes = try await APIService.shared.request(
                 endpoint: APIConstants.GetPaymentTypes(companyId: companyId),
                 method: .GET,
-                token: token,
+                token: token
             )
 
             availableVatRegimes = try await APIService.shared.request(
                 endpoint: APIConstants.GetVatRegimes(countryId: 1),
                 method: .GET,
-                token: token,
+                token: token
             )
 
             let vats: [Vat] = try await APIService.shared.request(
                 endpoint: APIConstants.GetVats(countryId: 1),
                 method: .GET,
-                token: token,
+                token: token
             )
 
             availableVats = vats.filter { $0.valid_to == nil }
@@ -176,7 +176,7 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
             uzpDateAt: formatter.string(from: uzpDate),
             printNotice: printNotice,
             footNotice: footNotice,
-            orderNumber: orderNumber, lines: items,
+            orderNumber: orderNumber, lines: items
         )
 
         do {
@@ -198,7 +198,7 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
                 endpoint: APIConstants.createOutgoingInvoice(companyId: companyId),
                 method: .POST,
                 token: token,
-                body: jsonData,
+                body: jsonData
             )
 
             creationSuccess = true

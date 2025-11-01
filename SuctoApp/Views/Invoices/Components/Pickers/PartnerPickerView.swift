@@ -21,12 +21,11 @@ struct PartnerPickerView: View {
         } else {
             result = partners.filter {
                 $0.name.lowercased().contains(searchText.lowercased()) ||
-                ($0.ic ?? "").contains(searchText)
+                    ($0.ic ?? "").contains(searchText)
             }
         }
         return result.sorted { $0.name.lowercased() < $1.name.lowercased() } // řazení podle názvu
     }
-
 
     var body: some View {
         Button {

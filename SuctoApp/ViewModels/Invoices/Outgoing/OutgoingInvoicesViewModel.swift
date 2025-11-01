@@ -11,16 +11,15 @@ import SwiftUI
 class OutgoingInvoicesViewModel: ObservableObject {
     @Published var invoices: [Invoice] = []
     @Published var selectedInvoice: Invoice?
-    
+
     @Published var successMessage: String?
     @Published var errorMessage: String?
-    
+
     @Published var isLoadingPage = false
     @Published var isLoadingDetail = false
-    
+
     @Published var hasMorePages = true
     private var currentPage = 1
-
 
     let companyId: Int
     var session: SessionManager
@@ -51,7 +50,7 @@ class OutgoingInvoicesViewModel: ObservableObject {
             let result: [Invoice] = try await APIService.shared.request(
                 endpoint: "companies/\(companyId)/actuarials_outs?page=\(pageToLoad)",
                 method: .GET,
-                token: token,
+                token: token
             )
 
             if result.isEmpty {
@@ -69,6 +68,8 @@ class OutgoingInvoicesViewModel: ObservableObject {
             print("✅ Načtena stránka \(pageToLoad), počet faktur: \(result.count)")
         } catch APIError.unauthorized {
             session.logout()
+        } catch APIError.badURL {
+            errorMessage = APIError.badURL.localizedDescription
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -88,13 +89,17 @@ class OutgoingInvoicesViewModel: ObservableObject {
             let invoice: Invoice = try await APIService.shared.request(
                 endpoint: APIConstants.GetOutgoingInvoiceDetail(companyId: companyId, invoiceId: invoiceId),
                 method: .GET,
-                token: token,
+                token: token
             )
 
             selectedInvoice = invoice
             errorMessage = nil
         } catch APIError.unauthorized {
             session.logout()
+
+        } catch APIError.network {
+            errorMessage = APIError.network.localizedDescription
+
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -102,7 +107,7 @@ class OutgoingInvoicesViewModel: ObservableObject {
         isLoadingDetail = false
     }
 
-    func payInvoice(invoiceId: Int) async {
+    func markOutgoingInvoiceAsPaid(invoiceId: Int) async {
         guard let token = session.authToken else {
             errorMessage = "Token není k dispozici"
             return
@@ -110,9 +115,9 @@ class OutgoingInvoicesViewModel: ObservableObject {
 
         do {
             let result: PayInvoiceResponse = try await APIService.shared.request(
-                endpoint: APIConstants.payInvoiceEndpoint(companyId: companyId, invoiceId: invoiceId),
+                endpoint: APIConstants.outgoingInvoiceMarkAsPaid(companyId: companyId, invoiceId: invoiceId),
                 method: .GET,
-                token: token,
+                token: token
             )
             successMessage = "Faktura byla úspěšně zaplacena. Doklad č. \(result.cashVoucherId)"
             errorMessage = nil
