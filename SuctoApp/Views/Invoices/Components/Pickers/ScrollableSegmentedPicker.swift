@@ -5,13 +5,12 @@
 //  Created by Jan Founě on 02.11.2025.
 //
 
-
 import SwiftUI
 
 struct ScrollableSegmentedPicker: View {
     @Binding var selectedTab: Int
     let tabs: [String]
-    
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {

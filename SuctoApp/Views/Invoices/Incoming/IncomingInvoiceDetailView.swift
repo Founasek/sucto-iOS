@@ -10,7 +10,7 @@ import SwiftUI
 struct IncomingInvoiceDetailView: View {
     let invoiceId: Int
     @EnvironmentObject var viewModel: IncomingInvoicesViewModel
-    
+
     var body: some View {
         ScrollView {
             if viewModel.isLoadingDetail {
@@ -28,14 +28,14 @@ struct IncomingInvoiceDetailView: View {
 
             } else if let invoice = viewModel.selectedInvoice {
                 VStack(alignment: .leading, spacing: 16) {
-
                     // MARK: - Základní informace
+
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Základní informace")
                             .font(.headline)
                             .padding(.bottom, 4)
                             .foregroundStyle(Color.primary)
-                        
+
                         HStack {
                             Text("Faktura č.")
                                 .font(.subheadline)
@@ -87,6 +87,7 @@ struct IncomingInvoiceDetailView: View {
                     .cornerRadius(12)
 
                     // MARK: - Dodavatel
+
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Dodavatel")
                             .font(.headline)
@@ -139,9 +140,6 @@ struct IncomingInvoiceDetailView: View {
                     .background(Color(.systemBackground))
                     .cornerRadius(12)
 
-
-
-
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Časové údaje")
                             .font(.headline)
@@ -155,7 +153,6 @@ struct IncomingInvoiceDetailView: View {
                             Text(invoice.issueDateAt ?? "-")
                                 .font(.subheadline)
                                 .foregroundStyle(Color.primary)
-
                         }
 
                         HStack {
@@ -165,7 +162,6 @@ struct IncomingInvoiceDetailView: View {
                             Text(invoice.dueDateAt ?? "-")
                                 .font(.subheadline)
                                 .foregroundStyle(Color.primary)
-
                         }
 
                         HStack {
@@ -183,6 +179,7 @@ struct IncomingInvoiceDetailView: View {
                     .cornerRadius(12)
 
                     // MARK: - Položky
+
                     if let notice = invoice.printNotice, !notice.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
@@ -194,19 +191,19 @@ struct IncomingInvoiceDetailView: View {
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundColor(.primary)
                             }
-                            
+
                             Text(notice)
                                 .font(.subheadline)
                                 .foregroundColor(.primary)
                                 .multilineTextAlignment(.leading)
-                            
+
                             ForEach(invoice.items ?? []) { item in
                                 HStack {
                                     VStack(alignment: .leading) {
                                         Text(item.name)
                                             .font(.subheadline)
                                             .fontWeight(.medium)
-                                        
+
                                         if let quantity = item.quantity, let unit = item.unitName {
                                             Text("\(quantity) \(unit)")
                                                 .font(.caption)
@@ -226,10 +223,9 @@ struct IncomingInvoiceDetailView: View {
                         .background(Color(.systemBackground))
                         .cornerRadius(12)
                     }
-                    
-
 
                     // MARK: - Částka
+
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("Částka k úhradě")
@@ -259,7 +255,6 @@ struct IncomingInvoiceDetailView: View {
                     .padding()
                     .background(Color(.systemBackground))
                     .cornerRadius(12)
-
                 }
                 .padding()
 

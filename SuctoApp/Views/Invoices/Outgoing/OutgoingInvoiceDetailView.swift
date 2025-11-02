@@ -28,8 +28,8 @@ struct OutgoingInvoiceDetailView: View {
 
             } else if let invoice = viewModel.selectedInvoice {
                 VStack(alignment: .leading, spacing: 16) {
-
                     // MARK: - Základní informace
+
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Základní informace")
                             .font(.headline)
@@ -99,6 +99,7 @@ struct OutgoingInvoiceDetailView: View {
                     .cornerRadius(12)
 
                     // MARK: - Zákazník
+
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Zákazník")
                             .font(.headline)
@@ -123,7 +124,7 @@ struct OutgoingInvoiceDetailView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(Color.primary)
                         }
-                        
+
                         HStack {
                             Text("DIČ:")
                                 .font(.subheadline)
@@ -139,6 +140,7 @@ struct OutgoingInvoiceDetailView: View {
                     .cornerRadius(12)
 
                     // MARK: - Časové údaje
+
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Časové údaje")
                             .font(.headline)
@@ -178,6 +180,7 @@ struct OutgoingInvoiceDetailView: View {
                     .cornerRadius(12)
 
                     // MARK: - Položky a poznámka
+
                     VStack(alignment: .leading, spacing: 8) {
                         // 🆕 Poznámka k faktuře
                         if let notice = invoice.printNotice, !notice.isEmpty {
@@ -191,7 +194,7 @@ struct OutgoingInvoiceDetailView: View {
                                         .font(.system(size: 16, weight: .bold))
                                         .foregroundColor(.primary)
                                 }
-                                
+
                                 Text(notice)
                                     .font(.subheadline)
                                     .foregroundColor(.primary)
@@ -220,7 +223,6 @@ struct OutgoingInvoiceDetailView: View {
                             }
                         }
                         .padding(.top, 16)
-                        
                     }
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -228,6 +230,7 @@ struct OutgoingInvoiceDetailView: View {
                     .cornerRadius(12)
 
                     // MARK: - Částka a akce
+
                     VStack(alignment: .leading, spacing: 12) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Částka k úhradě")
@@ -272,8 +275,6 @@ struct OutgoingInvoiceDetailView: View {
                             .padding(.top, 4)
                         }
                     }
-
-
                 }
                 .padding()
             } else {

@@ -21,7 +21,8 @@ struct BankAccountDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 // 💳 Bankovní údaje (pouze pro bankovní účty)
                 if !account.isCashAccount,
-                   let bankAccount = account.bankAccount {
+                   let bankAccount = account.bankAccount
+                {
                     SectionView(title: "Bankovní údaje") {
                         InfoRow(label: "Číslo účtu", value: "\(bankAccount.account, default: " - ")/\(bankAccount.bankCode, default: " - ")")
 

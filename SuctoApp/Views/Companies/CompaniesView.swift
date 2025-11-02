@@ -11,12 +11,11 @@ struct CompaniesView: View {
     @StateObject var viewModel: CompaniesViewModel
     @EnvironmentObject var session: SessionManager
     @EnvironmentObject var navManager: NavigationManager
-    
+
     var body: some View {
         VStack(spacing: 0) {
-            
             if viewModel.isLoading {
-                LoadingStateView(message: "Načítám firmy…")  // 🆕
+                LoadingStateView(message: "Načítám firmy…") // 🆕
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let error = viewModel.errorMessage {
                 ErrorStateView(
@@ -28,7 +27,7 @@ struct CompaniesView: View {
                     }
                 )
             } else if viewModel.companies.isEmpty {
-                ScrollView() {
+                ScrollView {
                     EmptyStateView(
                         systemImage: "building.2.crop.circle",
                         message: "Žádné firmy k dispozici."
@@ -40,8 +39,7 @@ struct CompaniesView: View {
                         await viewModel.fetchCompanies()
                     }
                 }
-                
-                
+
             } else {
                 List {
                     ForEach(viewModel.companies) { company in
@@ -58,9 +56,9 @@ struct CompaniesView: View {
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
-                                
+
                                 Spacer()
-                                
+
                                 if let logoURL = company.logo, let url = URL(string: logoURL) {
                                     AsyncImage(url: url) { img in
                                         img.resizable()
@@ -89,7 +87,7 @@ struct CompaniesView: View {
                 }
                 .listStyle(.insetGrouped)
             }
-            
+
             Button(action: {
                 session.logout()
                 navManager.reset()
@@ -105,13 +103,12 @@ struct CompaniesView: View {
         .task {
             await viewModel.fetchCompanies()
         }
-        
+
         .refreshable {
             await viewModel.fetchCompanies()
         }
     }
 }
-
 
 #Preview {
     let mockCompanies: [Company] = [
@@ -134,11 +131,11 @@ struct CompaniesView: View {
             logo: nil
         ),
     ]
-    
+
     let session = SessionManager()
     let viewModel = CompaniesViewModel(session: session)
     viewModel.companies = mockCompanies
-    
+
     return CompaniesView(viewModel: viewModel)
         .environmentObject(session)
         .environmentObject(NavigationManager())
