@@ -50,7 +50,16 @@ struct OutgoingInvoicesView: View {
                                 Spacer()
                                 Text(invoice.status)
                                     .foregroundColor(invoice.statusId == 8 ? .green : .orange)
+                                
                             }
+                            /*
+                            if let status = invoice.invoiceStatus {
+                                Text(status.title)
+                                    .foregroundColor(Color(hex: status.color))
+                            }
+*/
+                            
+                            
                             Text(invoice.customer?.name ?? "")
                                 .font(.subheadline)
                             Text(FormatterHelper.formatPrice(invoice.endPrice, currency: invoice.currency?.symbol))
@@ -85,6 +94,7 @@ struct OutgoingInvoicesView: View {
                 OutgoingInvoiceDetailView(invoiceId: invoice.id)
                     .environmentObject(viewModel)
             }
+            //.navigationTitle("Vydané faktury")
             .refreshable {
                 viewModel.resetPagination()
                 Task {

@@ -40,9 +40,10 @@ struct IncomingInvoiceDetailView: View {
                             Text("Faktura č.")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
+                                .fontWeight(.bold)
                             Spacer()
                             Text(invoice.actuarialNumber)
-                                .font(.headline)
+                                .font(.subheadline)
                                 .foregroundStyle(Color.primary)
                         }
 
@@ -52,7 +53,7 @@ struct IncomingInvoiceDetailView: View {
                                 .foregroundColor(.secondary)
                             Spacer()
                             Text(invoice.status)
-                                .font(.headline)
+                                .font(.subheadline)
                                 .foregroundColor(invoice.statusId == 8 ? .green : .orange)
                         }
 
@@ -64,6 +65,7 @@ struct IncomingInvoiceDetailView: View {
                                     .foregroundColor(.secondary)
                                 Spacer()
                                 Text(externalNumber)
+                                    .font(.subheadline)
                                     .foregroundStyle(Color.primary)
                             }
                         }
@@ -75,7 +77,7 @@ struct IncomingInvoiceDetailView: View {
                                     .foregroundColor(.secondary)
                                 Spacer()
                                 Text(orderNumber)
-                                    .font(.headline)
+                                    .font(.subheadline)
                                     .foregroundStyle(Color.primary)
                             }
                         }
@@ -96,15 +98,17 @@ struct IncomingInvoiceDetailView: View {
                                 .font(.subheadline)
                             Spacer()
                             Text(invoice.supplier?.name ?? "-")
+                                .font(.subheadline)
                                 .foregroundStyle(Color.primary)
                         }
 
                         if let ic = invoice.supplier?.ic, !ic.isEmpty {
                             HStack {
-                                Text("IČ:")
+                                Text("IČO:")
                                     .font(.subheadline)
                                 Spacer()
                                 Text(ic)
+                                    .font(.subheadline)
                                     .foregroundStyle(Color.primary)
                             }
                         }
@@ -115,6 +119,7 @@ struct IncomingInvoiceDetailView: View {
                                     .font(.subheadline)
                                 Spacer()
                                 Text(dic)
+                                    .font(.subheadline)
                                     .foregroundStyle(Color.primary)
                             }
                         }
@@ -125,6 +130,7 @@ struct IncomingInvoiceDetailView: View {
                                 .font(.subheadline)
                             Spacer()
                             Text(invoice.supplier?.isTaxable == true ? "Ano" : "Ne")
+                                .font(.subheadline)
                                 .foregroundStyle(Color.primary)
                         }
                     }
@@ -147,6 +153,7 @@ struct IncomingInvoiceDetailView: View {
                                 .font(.subheadline)
                             Spacer()
                             Text(invoice.issueDateAt ?? "-")
+                                .font(.subheadline)
                                 .foregroundStyle(Color.primary)
 
                         }
@@ -156,6 +163,7 @@ struct IncomingInvoiceDetailView: View {
                                 .font(.subheadline)
                             Spacer()
                             Text(invoice.dueDateAt ?? "-")
+                                .font(.subheadline)
                                 .foregroundStyle(Color.primary)
 
                         }
@@ -165,6 +173,7 @@ struct IncomingInvoiceDetailView: View {
                                 .font(.subheadline)
                             Spacer()
                             Text(invoice.uzpDateAt ?? "-")
+                                .font(.subheadline)
                                 .foregroundStyle(Color.primary)
                         }
                     }
@@ -234,6 +243,7 @@ struct IncomingInvoiceDetailView: View {
                         Text("\(FormatterHelper.formatPrice(invoice.endPrice, currency: invoice.currency?.symbol))")
                             .font(.title2)
                             .fontWeight(.semibold)
+                            .foregroundStyle(.accent)
 
                         if invoice.supplier?.isTaxable == true {
                             HStack(spacing: 5) {

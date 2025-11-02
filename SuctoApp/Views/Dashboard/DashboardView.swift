@@ -28,7 +28,6 @@ struct DashboardView: View {
                 .pickerStyle(SegmentedPickerStyle())
                 .padding()
                 .background(Color.accent)
-                Divider()
 
                 switch selectedTab {
                 case 0:
@@ -60,7 +59,7 @@ struct DashboardView: View {
                 .accessibilityLabel("Nová faktura")
             }
         }
-        .navigationTitle("Dashboard")
+        .navigationTitle("Vydané faktury")
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
