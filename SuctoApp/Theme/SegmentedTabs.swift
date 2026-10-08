@@ -16,6 +16,10 @@ struct SegmentedTabs: View {
     let items: [Item]
     @Binding var selection: Int
     @Namespace private var namespace
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// Při velkém písmu se popisek ukáže jen u vybrané položky, ostatní zůstanou ikonou.
+    private var compact: Bool { dynamicTypeSize >= .xLarge }
 
     var body: some View {
         HStack(spacing: 4) {
@@ -26,7 +30,7 @@ struct SegmentedTabs: View {
                     withAnimation(.snappy(duration: 0.3)) { selection = index }
                 } label: {
                     Label(item.title, systemImage: item.systemImage)
-                        .labelStyle(.titleAndIcon)
+                        .labelStyle(TabLabelStyle(showsTitle: !compact || isSelected))
                         .font(.subheadline.weight(isSelected ? .semibold : .medium))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
@@ -44,6 +48,7 @@ struct SegmentedTabs: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(item.title)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
@@ -51,5 +56,16 @@ struct SegmentedTabs: View {
         .background(Theme.surface, in: Capsule())
         .overlay(Capsule().strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5))
         .sensoryFeedback(.selection, trigger: selection)
+    }
+}
+
+private struct TabLabelStyle: LabelStyle {
+    let showsTitle: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 6) {
+            configuration.icon
+            if showsTitle { configuration.title }
+        }
     }
 }

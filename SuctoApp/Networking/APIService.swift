@@ -36,11 +36,21 @@ final class APIService: Sendable {
         token: String? = nil,
         body: Data? = nil,
     ) async throws -> T {
+        let data = try await requestData(endpoint: endpoint, method: method, token: token, body: body)
+        return try decode(T.self, from: data, label: endpoint)
+    }
+
+    /// Surová odpověď – volající ji může dekódovat a uložit do cache.
+    func requestData(
+        endpoint: String,
+        method: HTTPMethod = .GET,
+        token: String? = nil,
+        body: Data? = nil,
+    ) async throws -> Data {
         var request = try makeRequest(endpoint: endpoint, method: method, token: token)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = body
-        let data = try await execute(request, label: endpoint)
-        return try decode(T.self, from: data, label: endpoint)
+        return try await execute(request, label: endpoint)
     }
 
     // MARK: - Nahrání souboru
@@ -125,7 +135,7 @@ final class APIService: Sendable {
         return data
     }
 
-    private func decode<T: Decodable>(_: T.Type, from data: Data, label: String) throws -> T {
+    func decode<T: Decodable>(_: T.Type, from data: Data, label: String) throws -> T {
         // Některé akce (např. odeslání e-mailem) vrací 200 s prázdným tělem.
         let payload = data.isEmpty ? Data("{}".utf8) : data
         do {

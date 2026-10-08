@@ -11,6 +11,7 @@ struct CompaniesView: View {
     @StateObject var viewModel: CompaniesViewModel
     @EnvironmentObject var session: SessionManager
     @EnvironmentObject var navManager: NavigationManager
+    @EnvironmentObject var appLock: AppLock
 
     var body: some View {
         Group {
@@ -50,13 +51,24 @@ struct CompaniesView: View {
         .navigationTitle("Vaše firmy")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(role: .destructive) {
-                    session.logout()
-                    navManager.reset()
+                Menu {
+                    Toggle(isOn: Binding(
+                        get: { appLock.isEnabled },
+                        set: { newValue in Task { await appLock.setEnabled(newValue) } },
+                    )) {
+                        Label("Zámek aplikace (\(appLock.methodName))", systemImage: "lock")
+                    }
+
+                    Button(role: .destructive) {
+                        session.logout()
+                        navManager.reset()
+                    } label: {
+                        Label("Odhlásit se", systemImage: "rectangle.portrait.and.arrow.right")
+                    }
                 } label: {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                    Image(systemName: "ellipsis.circle")
                 }
-                .accessibilityLabel("Odhlásit se")
+                .accessibilityLabel("Nastavení")
             }
         }
         .task {
@@ -163,4 +175,5 @@ private struct CompanyCard: View {
     return CompaniesView(viewModel: viewModel)
         .environmentObject(session)
         .environmentObject(NavigationManager())
+        .environmentObject(AppLock())
 }

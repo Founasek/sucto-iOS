@@ -126,7 +126,8 @@ struct OverviewView: View {
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(.white.opacity(0.75))
             Text(FormatterHelper.formatWhole(viewModel.yearResult, currency: viewModel.currency))
-                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .font(.largeTitle.weight(.bold))
+                .fontDesign(.rounded)
                 .monospacedDigit()
                 .foregroundStyle(.white)
                 .minimumScaleFactor(0.6)
@@ -213,6 +214,7 @@ struct OverviewView: View {
             .animation(Motion.gentle, value: barsVisible)
             .sensoryFeedback(.selection, trigger: selectedMonth)
             .accessibilityLabel("Graf výnosů a nákladů po měsících")
+            .accessibilityHint("Hodnoty jednotlivých měsíců jsou uvedeny pod grafem.")
         }
         .appear(delay: 0.16)
     }
@@ -236,7 +238,9 @@ struct OverviewView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
     }
+}
 
+private extension OverviewView {
     private var monthsCard: some View {
         let active = viewModel.months.filter { $0.revenue != 0 || $0.cost != 0 }
         return DetailCard(title: "Po měsících", systemImage: "list.bullet") {
@@ -250,7 +254,12 @@ struct OverviewView: View {
                         .foregroundStyle(figures.result >= 0 ? Color.accentColor : Color.red)
                 }
                 .padding(.vertical, 2)
-                .accessibilityElement(children: .combine)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(
+                    "\(Self.longMonths[figures.month - 1]): \(revenueName) \(FormatterHelper.formatWhole(figures.revenue, currency: viewModel.currency)), "
+                        + "\(costName) \(FormatterHelper.formatWhole(figures.cost, currency: viewModel.currency)), "
+                        + "výsledek \(FormatterHelper.formatWhole(figures.result, currency: viewModel.currency))",
+                )
             }
         }
         .appear(delay: 0.24)
