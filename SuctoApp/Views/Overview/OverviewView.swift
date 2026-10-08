@@ -11,6 +11,7 @@ struct OverviewView: View {
     @EnvironmentObject var viewModel: OverviewViewModel
     @State private var selectedMonth: String?
     @State private var barsVisible = false
+    @State private var showNotice = false
 
     private static let shortMonths = ["led", "úno", "bře", "dub", "kvě", "čvn", "čvc", "srp", "zář", "říj", "lis", "pro"]
     private static let longMonths = ["Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"]
@@ -21,10 +22,6 @@ struct OverviewView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.l) {
-                if let notice = viewModel.notice {
-                    noticeCard(notice)
-                }
-
                 yearPicker
 
                 if viewModel.source == .invoices, !viewModel.isLoading || !viewModel.months.isEmpty {
@@ -62,6 +59,12 @@ struct OverviewView: View {
             if viewModel.months.isEmpty { await viewModel.load() }
         }
         .task { await viewModel.loadNotice() }
+        .sheet(isPresented: $showNotice) {
+            if let notice = viewModel.notice {
+                NoticeSheet(notice: notice)
+                    .onAppear { viewModel.markNoticeRead() }
+            }
+        }
         .onChange(of: viewModel.months) { revealBars() }
     }
 
@@ -110,6 +113,9 @@ struct OverviewView: View {
             Text(isAccounting ? "Hospodaření" : "Fakturace")
                 .font(.title2.weight(.bold))
             Spacer()
+            if viewModel.notice != nil {
+                noticeButton
+            }
             Menu {
                 Picker("Rok", selection: $viewModel.year) {
                     ForEach(viewModel.availableYears, id: \.self) { year in
@@ -301,30 +307,52 @@ private extension OverviewView {
 }
 
 private extension OverviewView {
-    /// Zpráva ze sÚčta s možností ji zavřít.
-    func noticeCard(_ notice: SystemNotice) -> some View {
-        HStack(alignment: .top, spacing: Theme.Spacing.m) {
-            Image(systemName: "megaphone.fill").foregroundStyle(Color.accentColor)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(notice.title).font(.subheadline.weight(.semibold))
-                if let description = notice.description, !description.isEmpty {
-                    Text(description).font(.footnote).foregroundStyle(.secondary)
+    /// Tlačítko se zprávou ze sÚčta; červená tečka značí nepřečtenou.
+    var noticeButton: some View {
+        Button {
+            showNotice = true
+        } label: {
+            Image(systemName: "megaphone")
+                .font(.subheadline.weight(.semibold))
+                .padding(9)
+                .background(Theme.surface, in: Circle())
+                .overlay(Circle().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5))
+                .overlay(alignment: .topTrailing) {
+                    if viewModel.isNoticeUnread {
+                        Circle().fill(.red).frame(width: 9, height: 9)
+                    }
                 }
-                if let date = notice.createdAt {
-                    Text(date).font(.caption2).foregroundStyle(.tertiary)
-                }
-            }
-            Spacer(minLength: 0)
-            Button {
-                viewModel.dismissNotice()
-            } label: {
-                Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Zavřít zprávu")
         }
-        .padding(Theme.Spacing.m)
-        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
-        .accessibilityElement(children: .contain)
+        .accessibilityLabel(viewModel.isNoticeUnread ? "Zpráva ze sÚčta, nepřečtená" : "Zpráva ze sÚčta")
+    }
+}
+
+/// Zpráva ze sÚčta zobrazená na vyžádání.
+private struct NoticeSheet: View {
+    let notice: SystemNotice
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                    Text(notice.title).font(.title3.weight(.semibold))
+                    if let date = notice.createdAt {
+                        Text(date).font(.footnote).foregroundStyle(.secondary)
+                    }
+                    if let description = notice.description, !description.isEmpty {
+                        Text(description).font(.body)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(Theme.Spacing.l)
+            }
+            .navigationTitle("Zpráva ze sÚčta")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Zavřít") { dismiss() } }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }

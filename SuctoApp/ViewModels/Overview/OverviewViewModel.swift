@@ -31,8 +31,9 @@ final class OverviewViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     /// `true`, pokud server za zvolený rok nevrátil žádné nenulové údaje.
     @Published private(set) var isEmpty = false
-    /// Zpráva ze sÚčta (dashboard API), dokud ji uživatel nezavře.
+    /// Poslední zpráva ze sÚčta (dashboard API); zobrazuje se na vyžádání.
     @Published private(set) var notice: SystemNotice?
+    @Published private(set) var isNoticeUnread = false
 
     let companyId: Int
     private let session: SessionManager
@@ -57,13 +58,15 @@ final class OverviewViewModel: ObservableObject {
     /// Zprávy ze sÚčta jsou jen doplněk – jejich selhání se tiše ignoruje.
     func loadNotice() async {
         guard let response: DashboardResponse = try? await session.send(APIConstants.dashboard(companyId: companyId)) else { return }
-        notice = response.notices.first { !SystemNoticeStore.isDismissed($0.id) }
+        notice = response.notices.first
+        isNoticeUnread = notice.map { !SystemNoticeStore.isDismissed($0.id) } ?? false
     }
 
-    func dismissNotice() {
+    /// Zpráva se ukazuje jen na vyžádání; po otevření se označí jako přečtená (zmizí tečka u tlačítka).
+    func markNoticeRead() {
         guard let notice else { return }
         SystemNoticeStore.dismiss(notice.id)
-        withAnimation(.snappy) { self.notice = nil }
+        isNoticeUnread = false
     }
 
     func load(retryAccounting: Bool = false) async {
