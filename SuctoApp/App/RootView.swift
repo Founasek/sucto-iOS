@@ -16,6 +16,12 @@ struct RootView: View {
 
                 case let .scans(companyId):
                     ScansView(companyId: companyId, session: session)
+
+                case let .partners(companyId):
+                    PartnersView(companyId: companyId, session: session)
+
+                case let .partnerDetail(companyId, partnerId):
+                    PartnerDetailView(companyId: companyId, partnerId: partnerId, session: session)
                 }
             }
     }

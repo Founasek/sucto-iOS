@@ -273,8 +273,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "sÚčto";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID slouží k odemknutí aplikace.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Fotoaparát slouží ke skenování přijatých faktur.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID slouží k odemknutí aplikace.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Fotky slouží k nahrání přijatých faktur ke zpracování.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -305,8 +305,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "sÚčto";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID slouží k odemknutí aplikace.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Fotoaparát slouží ke skenování přijatých faktur.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID slouží k odemknutí aplikace.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Fotky slouží k nahrání přijatých faktur ke zpracování.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

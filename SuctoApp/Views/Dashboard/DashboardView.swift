@@ -115,6 +115,12 @@ struct DashboardView: View {
                     }
 
                     Button {
+                        navManager.showPartners(companyId: companyId)
+                    } label: {
+                        Label("Partneři", systemImage: "person.2")
+                    }
+
+                    Button {
                         navManager.goToCompanies()
                     } label: {
                         Label("Změnit firmu", systemImage: "building.2")

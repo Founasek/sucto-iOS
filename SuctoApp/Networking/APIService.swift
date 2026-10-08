@@ -146,9 +146,29 @@ final class APIService: Sendable {
         }
     }
 
-    /// API při chybě vrací `{"errors": ["…"]}` – zprávu ukážeme uživateli.
+    /// API při chybě vrací `{"errors": …}` – podle místa jako pole textů, text, nebo objekt „pole → zprávy“.
     private static func serverMessage(in data: Data) -> String? {
-        struct Payload: Decodable { let errors: [String]? }
-        return (try? JSONDecoder().decode(Payload.self, from: data))?.errors?.first
+        (try? JSONDecoder().decode(ErrorPayload.self, from: data))?.message
+    }
+}
+
+private struct ErrorPayload: Decodable {
+    let message: String?
+
+    private enum CodingKeys: String, CodingKey { case errors }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let list = try? container.decode([String].self, forKey: .errors) {
+            message = list.first
+        } else if let text = try? container.decode(String.self, forKey: .errors) {
+            message = text
+        } else if let fields = try? container.decode([String: [String]].self, forKey: .errors) {
+            message = fields.sorted { $0.key < $1.key }
+                .compactMap { key, values in values.first.map { "\(key): \($0)" } }
+                .first
+        } else {
+            message = nil
+        }
     }
 }

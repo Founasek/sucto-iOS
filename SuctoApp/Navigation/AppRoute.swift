@@ -11,4 +11,6 @@ enum AppRoute: Hashable {
     case dashboard(companyId: Int)
     case createInvoice(companyId: Int, direction: InvoiceDirection, scanId: String?)
     case scans(companyId: Int)
+    case partners(companyId: Int)
+    case partnerDetail(companyId: Int, partnerId: Int)
 }

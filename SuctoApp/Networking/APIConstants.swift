@@ -86,6 +86,28 @@ enum APIConstants {
         return "companies/\(companyId)/partners?\(components.percentEncodedQuery ?? "")"
     }
 
+    static func partner(companyId: Int, partnerId: Int) -> String {
+        "companies/\(companyId)/partners/\(partnerId)"
+    }
+
+    static func createPartner(companyId: Int) -> String {
+        "companies/\(companyId)/partners"
+    }
+
+    static func createPartnerByAres(companyId: Int, ic: String) -> String {
+        "companies/\(companyId)/partners/create_by_ares/\(ic)"
+    }
+
+    static func partnerChartYears(companyId: Int, partnerId: Int) -> String {
+        "companies/\(companyId)/partners/\(partnerId)/partner_charts/available_years"
+    }
+
+    static func partnerChartSeries(companyId: Int, partnerId: Int, year: Int) -> String {
+        "companies/\(companyId)/partners/\(partnerId)/partner_charts/series?year=\(year)"
+    }
+
+    static let countries = "countries"
+
     static func vatRegimes(countryId: Int) -> String {
         "countries/\(countryId)/vat_regimes"
     }
