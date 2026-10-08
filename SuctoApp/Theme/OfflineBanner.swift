@@ -23,3 +23,22 @@ struct OfflineBanner: View {
         }
     }
 }
+
+private struct OfflineBannerModifier: ViewModifier {
+    @EnvironmentObject private var session: SessionManager
+
+    /// Inset leží uvnitř obrazovky, takže ho systém postaví nad spodní vyhledávací pole i další spodní lišty.
+    func body(content: Content) -> some View {
+        content.safeAreaInset(edge: .bottom, spacing: 0) {
+            OfflineBanner(date: session.cachedDataDate)
+                .animation(.snappy, value: session.cachedDataDate)
+        }
+    }
+}
+
+extension View {
+    /// Pruh „Offline · data z …“ nad spodním okrajem obrazovky.
+    func offlineBanner() -> some View {
+        modifier(OfflineBannerModifier())
+    }
+}

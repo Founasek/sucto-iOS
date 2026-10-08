@@ -47,6 +47,7 @@ struct CompaniesView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .offlineBanner()
         .background(Theme.background)
         .navigationTitle("Vaše firmy")
         .toolbar {
