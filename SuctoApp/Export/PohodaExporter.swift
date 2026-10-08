@@ -23,7 +23,7 @@ enum PohodaExporter {
             case let .unsupportedType(type):
                 "typ dokladu „\(type)“ (export podporuje jen faktury FA)"
             case let .unsupportedCurrency(code):
-                "měna \(code) (zatím jen CZK, API neposílá kurz)"
+                "neplatný kód měny „\(code)“"
             case let .unsupportedVATRate(rate):
                 "sazba DPH \(rate) % (podporované jsou 21, 12 a 0)"
             case .missingIssuer:
@@ -83,12 +83,14 @@ enum PohodaExporter {
 
     private static func dataPackItem(for invoice: Invoice) throws -> String {
         guard invoice.actuarialType == "FA" else { throw ExportError.unsupportedType(invoice.actuarialType) }
-        let currency = invoice.currency?.isoCode ?? "CZK"
-        guard currency == "CZK" else { throw ExportError.unsupportedCurrency(currency) }
+        let currency = (invoice.currency?.isoCode ?? "CZK").uppercased()
+        guard currency.count == 3, currency.allSatisfy({ $0.isASCII && $0.isLetter }) else {
+            throw ExportError.unsupportedCurrency(currency)
+        }
         guard let lines = invoice.items, !lines.isEmpty else { throw ExportError.missingItems }
 
         let isVATPayer = invoice.supplier?.isTaxable ?? invoice.taxable ?? false
-        let converted = try lines.map { try convert($0, isVATPayer: isVATPayer) }
+        let converted = try lines.map { try convert($0, isVATPayer: isVATPayer, currency: currency) }
 
         var xml = "  <dat:dataPackItem id=\"FA-\(escape(invoice.actuarialNumber))\" version=\"2.0\">\n"
         xml += "    <inv:invoice version=\"2.0\">\n"
@@ -96,7 +98,7 @@ enum PohodaExporter {
         xml += "      <inv:invoiceDetail>\n"
         xml += converted.map(\.xml).joined()
         xml += "      </inv:invoiceDetail>\n"
-        xml += summary(of: converted, isVATPayer: isVATPayer)
+        xml += summary(of: converted, isVATPayer: isVATPayer, currency: currency)
         xml += "    </inv:invoice>\n"
         xml += "  </dat:dataPackItem>\n"
         return xml
@@ -167,7 +169,7 @@ enum PohodaExporter {
         let total: Decimal
     }
 
-    private static func convert(_ line: InvoiceItem, isVATPayer: Bool) throws -> ConvertedLine {
+    private static func convert(_ line: InvoiceItem, isVATPayer: Bool, currency: String) throws -> ConvertedLine {
         let quantity = try decimal(line.quantity ?? "1")
         let unitPrice = try decimal(line.unitPrice ?? "0")
         let base = try decimal(line.basePrice ?? line.unitPrice ?? "0")
@@ -187,23 +189,37 @@ enum PohodaExporter {
         if let discount = try? decimal(line.discountPercentage ?? "0"), discount > 0 {
             xml += "          <inv:discountPercentage>\(discount)</inv:discountPercentage>\n"
         }
-        xml += "          <inv:homeCurrency>\n"
+        // Částky v cizí měně jdou do foreignCurrency; kurz neposíláme, přepočet udělá Pohoda.
+        let container = currency == "CZK" ? "inv:homeCurrency" : "inv:foreignCurrency"
+        xml += "          <\(container)>\n"
         xml += "            <typ:unitPrice>\(unitPrice)</typ:unitPrice>\n"
         xml += "            <typ:price>\(base)</typ:price>\n"
         xml += "            <typ:priceVAT>\(vat)</typ:priceVAT>\n"
-        xml += "            <typ:priceSum>\(total)</typ:priceSum>\n"
-        xml += "          </inv:homeCurrency>\n"
+        if currency == "CZK" { xml += "            <typ:priceSum>\(total)</typ:priceSum>\n" }
+        xml += "          </\(container)>\n"
         xml += "        </inv:invoiceItem>\n"
         return ConvertedLine(xml: xml, rate: rate, base: base, vat: vat, total: total)
     }
 
-    private static func summary(of lines: [ConvertedLine], isVATPayer: Bool) -> String {
+    private static func summary(of lines: [ConvertedLine], isVATPayer: Bool, currency: String) -> String {
         func sum(_ rate: Rate, _ value: (ConvertedLine) -> Decimal) -> Decimal {
             lines.filter { $0.rate == rate }.reduce(0) { $0 + value($1) }
         }
 
         var xml = "      <inv:invoiceSummary>\n"
         xml += "        <inv:roundingDocument>none</inv:roundingDocument>\n"
+
+        if currency != "CZK" {
+            // Cizí měna: celková cena a kód měny, kurz a rozpad DPH dopočítá Pohoda.
+            let total = lines.reduce(0) { $0 + $1.total }
+            xml += "        <inv:foreignCurrency>\n"
+            xml += "          <typ:currency><typ:ids>\(currency)</typ:ids></typ:currency>\n"
+            xml += "          <typ:priceSum>\(total)</typ:priceSum>\n"
+            xml += "        </inv:foreignCurrency>\n"
+            xml += "      </inv:invoiceSummary>\n"
+            return xml
+        }
+
         xml += "        <inv:homeCurrency>\n"
         // Bez DPH se uvádí základ i u neplátců; ostatní skupiny jen u plátce.
         xml += "          <typ:priceNone>\(sum(.none) { $0.base })</typ:priceNone>\n"
