@@ -27,6 +27,10 @@ final class NavigationManager: ObservableObject {
         path.append(AppRoute.scans(companyId: companyId))
     }
 
+    func showPartners(companyId: Int) {
+        path.append(AppRoute.partners(companyId: companyId))
+    }
+
     func reset() {
         path = NavigationPath()
     }
