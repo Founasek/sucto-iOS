@@ -130,9 +130,8 @@ private struct PartnerRow: View {
         HStack(spacing: Theme.Spacing.l) {
             ZStack {
                 Theme.brandGradient
-                Text(partner.initial)
+                Image(systemName: partner.avatarSymbol)
                     .font(.headline)
-                    .fontDesign(.rounded)
                     .foregroundStyle(.white)
             }
             .frame(width: 44, height: 44)
