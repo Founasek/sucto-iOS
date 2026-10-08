@@ -6,7 +6,9 @@
 import Foundation
 
 /// Směr faktury – určuje endpointy a popisky ve sdíleném formuláři.
-enum InvoiceDirection: Hashable {
+enum InvoiceDirection: Hashable, Identifiable {
+    var id: Self { self }
+
     case outgoing
     case incoming
 

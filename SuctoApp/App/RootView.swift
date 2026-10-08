@@ -11,8 +11,11 @@ struct RootView: View {
                 case let .dashboard(companyId):
                     DashboardView(companyId: companyId, session: session)
 
-                case let .createInvoice(companyId, direction):
-                    InvoiceCreateView(companyId: companyId, direction: direction, session: session)
+                case let .createInvoice(companyId, direction, scanId):
+                    InvoiceCreateView(companyId: companyId, direction: direction, scanId: scanId, session: session)
+
+                case let .scans(companyId):
+                    ScansView(companyId: companyId, session: session)
                 }
             }
     }

@@ -19,9 +19,12 @@ struct PohodaExportSheet: View {
     @State private var from = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: Date())) ?? Date()
     @State private var to = Date()
 
-    init(companyId: Int, session: SessionManager, mode: Mode) {
+    private let direction: InvoiceDirection
+
+    init(companyId: Int, session: SessionManager, direction: InvoiceDirection = .outgoing, mode: Mode) {
         self.mode = mode
-        _viewModel = StateObject(wrappedValue: PohodaExportViewModel(companyId: companyId, session: session))
+        self.direction = direction
+        _viewModel = StateObject(wrappedValue: PohodaExportViewModel(companyId: companyId, direction: direction, session: session))
     }
 
     var body: some View {
@@ -66,7 +69,7 @@ struct PohodaExportSheet: View {
             } header: {
                 Text("Období")
             } footer: {
-                Text("Vyexportují se vydané faktury (kromě konceptů a stornovaných) vystavené v tomto období.")
+                Text("Vyexportují se \(direction == .outgoing ? "vydané" : "přijaté") faktury (kromě konceptů a stornovaných) vystavené v tomto období.")
             }
 
             Section {
@@ -134,7 +137,7 @@ struct PohodaExportSheet: View {
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
             } footer: {
-                Text("V Pohodě: Soubor → Datová komunikace → XML import. IČ firmy v Pohodě musí odpovídat IČ vystavitele.")
+                Text("V Pohodě: Soubor → Datová komunikace → XML import. IČ firmy v Pohodě musí odpovídat IČ vaší firmy.")
             }
         }
 

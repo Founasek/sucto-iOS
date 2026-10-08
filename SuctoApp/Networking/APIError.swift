@@ -9,9 +9,10 @@ import Foundation
 
 enum APIError: LocalizedError {
     case unauthorized
+    case forbidden(message: String?)
     case network
     case decodingError
-    case badRequest
+    case badRequest(message: String?)
     case badURL
     case server(statusCode: Int)
 
@@ -19,16 +20,18 @@ enum APIError: LocalizedError {
         switch self {
         case .unauthorized:
             "Neplatný token. Přihlaste se prosím znovu."
+        case let .forbidden(message):
+            message ?? "K této části nemáte oprávnění."
         case .network:
             "Chyba připojení k serveru."
         case .decodingError:
             "Nepodařilo se zpracovat odpověď serveru."
-        case .badRequest:
-            "Nesprávné parametry."
+        case let .badRequest(message):
+            message ?? "Nesprávné parametry."
         case .badURL:
             "Chyba v URL adrese."
         case let .server(statusCode):
-            "Server vrátil chybu (\(statusCode))."
+            statusCode == 413 ? "Soubor je příliš velký." : "Server vrátil chybu (\(statusCode))."
         }
     }
 }

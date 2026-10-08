@@ -53,6 +53,15 @@ struct InvoiceItem: Identifiable, Codable, Hashable {
 }
 
 extension KeyedDecodingContainer {
+    /// Čte číslo i tehdy, když ho API pošle jako text („1.0“); jinak `nil`.
+    func lossyDouble(_ key: Key) -> Double? {
+        if let double = try? decodeIfPresent(Double.self, forKey: key) { return double }
+        if let string = try? decodeIfPresent(String.self, forKey: key) {
+            return Double(string.replacingOccurrences(of: ",", with: "."))
+        }
+        return nil
+    }
+
     /// Čte hodnotu jako text, i když ji API pošle jako číslo; chybějící či jiný typ vrátí `nil` místo chyby.
     func lossyString(_ key: Key) -> String? {
         if let string = try? decodeIfPresent(String.self, forKey: key) { return string }

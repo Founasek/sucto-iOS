@@ -43,6 +43,30 @@ enum APIConstants {
 
     static let actuarialTypes = "actuarial_types"
 
+    static func scans(companyId: Int, page: Int = 1, limit: Int = 30) -> String {
+        "companies/\(companyId)/scans?page=\(page)&limit=\(limit)"
+    }
+
+    static func createScan(companyId: Int) -> String {
+        "companies/\(companyId)/scans"
+    }
+
+    /// `version`: thumb, hd nebo fullhd.
+    static func scanData(companyId: Int, scanId: String, version: String = "thumb") -> String {
+        "companies/\(companyId)/scans/\(scanId)/data?version=\(version)"
+    }
+
+    static func newIncomingInvoiceFromScan(companyId: Int, scanId: String) -> String {
+        "companies/\(companyId)/actuarials_ins/new?scan_id=\(scanId)"
+    }
+
+    /// Účetní deník: skupiny Náklady / Výnosy / Hospodářský výsledek za rok (a případně měsíc).
+    static func accountingDiaries(companyId: Int, year: Int, month: Int? = nil) -> String {
+        var path = "companies/\(companyId)/accounting_diaries?q%5Byear_eq%5D=\(year)"
+        if let month { path += "&q%5Bmonth_eq%5D=\(month)" }
+        return path
+    }
+
     static func createOutgoingInvoice(companyId: Int) -> String {
         "companies/\(companyId)/actuarials_outs"
     }

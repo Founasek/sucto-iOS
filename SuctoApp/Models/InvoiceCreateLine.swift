@@ -32,3 +32,20 @@ struct InvoiceCreateLine: Identifiable, Codable, Hashable {
         case unitName = "unit_name"
     }
 }
+
+extension InvoiceCreateLine {
+    /// Tolerantní čtení: řádek z naskenovaného dokladu má řadu hodnot prázdných (`null`).
+    /// `vat_id == 0` znamená „doplní se první dostupná sazba“.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        vatId = (try? container.decodeIfPresent(Int.self, forKey: .vatId)) ?? 0
+        lineableType = container.lossyString(.lineableType) ?? "Actuarial"
+        name = container.lossyString(.name) ?? ""
+        quantity = container.lossyDouble(.quantity) ?? 1
+        unitPrice = container.lossyDouble(.unitPrice) ?? 0
+        basePrice = container.lossyDouble(.basePrice) ?? 0
+        tax = container.lossyDouble(.tax) ?? 0
+        totalPrice = container.lossyDouble(.totalPrice) ?? 0
+        unitName = container.lossyString(.unitName)
+    }
+}

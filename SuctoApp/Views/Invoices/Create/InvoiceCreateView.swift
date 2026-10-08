@@ -12,8 +12,8 @@ struct InvoiceCreateView: View {
     @StateObject var viewModel: InvoiceCreateViewModel
     @FocusState private var keyboardFocused: Bool
 
-    init(companyId: Int, direction: InvoiceDirection, session: SessionManager) {
-        _viewModel = StateObject(wrappedValue: InvoiceCreateViewModel(companyId: companyId, direction: direction, session: session))
+    init(companyId: Int, direction: InvoiceDirection, scanId: String? = nil, session: SessionManager) {
+        _viewModel = StateObject(wrappedValue: InvoiceCreateViewModel(companyId: companyId, direction: direction, scanId: scanId, session: session))
     }
 
     private var currencyCode: String {
@@ -22,6 +22,9 @@ struct InvoiceCreateView: View {
 
     var body: some View {
         Form {
+            if let supplier = viewModel.scanSupplier {
+                ScanBanner(supplier: supplier, notMatched: viewModel.scanSupplierNotMatched)
+            }
             basicSection
             datesSection
             paymentSection
@@ -35,6 +38,15 @@ struct InvoiceCreateView: View {
                         .font(.subheadline)
                         .foregroundStyle(.red)
                 }
+            }
+        }
+        .overlay {
+            if viewModel.loadFailed {
+                ErrorStateView(message: viewModel.errorMessage ?? "Údaje se nepodařilo načíst.") {
+                    Task { await viewModel.loadInitialData() }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Theme.background)
             }
         }
         .scrollDismissesKeyboard(.interactively)
@@ -265,6 +277,33 @@ struct InvoiceCreateView: View {
             TextField("Text v patičce faktury", text: $viewModel.footNotice, axis: .vertical)
                 .lineLimit(1 ... 3)
                 .focused($keyboardFocused)
+        }
+    }
+}
+
+/// Upozornění nad formulářem vytvářeným ze skenu: co se z dokladu přečetlo.
+private struct ScanBanner: View {
+    let supplier: InitSupplier
+    let notMatched: Bool
+
+    var body: some View {
+        Section {
+            Label {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Předvyplněno z naskenovaného dokladu")
+                        .font(.subheadline.weight(.semibold))
+                    Text([supplier.name, supplier.ic.map { "IČ \($0)" }].compactMap(\.self).joined(separator: " · "))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text(notMatched
+                        ? "Dodavatele jsme v adresáři partnerů nenašli – vyberte ho ručně. Údaje zkontrolujte."
+                        : "Údaje před vytvořením zkontrolujte.")
+                        .font(.footnote)
+                        .foregroundStyle(notMatched ? Color.orange : Color.secondary)
+                }
+            } icon: {
+                Image(systemName: "doc.viewfinder").foregroundStyle(Color.accentColor)
+            }
         }
     }
 }
