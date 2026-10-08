@@ -12,6 +12,7 @@ struct InvoiceListView: View {
     let errorMessage: String?
     let emptyMessage: String
     @Binding var filter: InvoiceFilter
+    @Binding var advanced: InvoiceAdvancedFilter
     let isFiltering: Bool
     let clearFilters: () -> Void
     let counterparty: (Invoice) -> String?
@@ -20,12 +21,17 @@ struct InvoiceListView: View {
     /// Jmenný prostor pro zoom přechod do detailu (zdroj = karta faktury).
     let namespace: Namespace.ID
 
+    @State private var showFilterSheet = false
+
     var body: some View {
         VStack(spacing: 0) {
             filterBar
             list
         }
         .background(Theme.background)
+        .sheet(isPresented: $showFilterSheet) {
+            InvoiceFilterSheet(filter: $advanced)
+        }
     }
 
     private var list: some View {
@@ -125,8 +131,32 @@ struct InvoiceListView: View {
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
+
+            advancedButton
         }
         .padding(.horizontal, Theme.Spacing.l)
+    }
+
+    /// Otevře podrobné filtry (stav, data, částka); odznak ukazuje, kolik jich je zapnutých.
+    private var advancedButton: some View {
+        let count = advanced.activeCount
+        return Button {
+            showFilterSheet = true
+        } label: {
+            Label(count > 0 ? "Filtry (\(count))" : "Filtry", systemImage: "line.3.horizontal.decrease.circle")
+                .font(.subheadline.weight(.medium))
+                .lineLimit(1)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .foregroundStyle(count > 0 ? Color.white : Color.primary)
+                .background(
+                    count > 0 ? AnyShapeStyle(Theme.brandGradient) : AnyShapeStyle(Theme.surface),
+                    in: Capsule(),
+                )
+                .overlay(Capsule().strokeBorder(Color.primary.opacity(count > 0 ? 0 : 0.08), lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Otevře podrobné filtry")
     }
 
     /// Rychlý přehled nad seznamem – ukáže se jen když je co zdůraznit.

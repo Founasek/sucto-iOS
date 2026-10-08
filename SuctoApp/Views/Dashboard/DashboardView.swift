@@ -22,6 +22,7 @@ struct DashboardView: View {
     @State private var pohodaExportDirection: InvoiceDirection?
     @State private var scanSource: ScanSource?
     @State private var slideEdge: Edge = .trailing
+    @Environment(\.scenePhase) private var scenePhase
 
     @StateObject private var overviewVM: OverviewViewModel
     @StateObject private var scanUploader: ScanUploadViewModel
@@ -87,6 +88,10 @@ struct DashboardView: View {
             }
         }
         .offlineBanner()
+        .task { await refreshDueSnapshot() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await refreshDueSnapshot() } }
+        }
         .background(Theme.background)
         .animation(Motion.standard, value: selectedTab)
         .navigationTitle(session.selectedCompany?.name ?? "Přehled")
@@ -230,6 +235,12 @@ struct DashboardView: View {
                 .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
         }
         .accessibilityLabel("Nahrát doklad ke zpracování")
+    }
+
+    /// Obnoví data pro widget a upozornění na splatnost (běží na pozadí, chyby se ignorují).
+    private func refreshDueSnapshot() async {
+        guard let company = session.selectedCompany, company.id == companyId else { return }
+        await DueSnapshotService(session: session).refresh(company: company)
     }
 
     private func uploadScan(_ file: MultipartFile) {

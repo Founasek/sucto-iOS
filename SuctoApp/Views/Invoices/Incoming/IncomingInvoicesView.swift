@@ -18,6 +18,7 @@ struct IncomingInvoicesView: View {
             errorMessage: viewModel.errorMessage,
             emptyMessage: "Zatím tu nejsou žádné přijaté faktury.",
             filter: $viewModel.filter,
+            advanced: $viewModel.advanced,
             isFiltering: viewModel.isFiltering,
             clearFilters: { viewModel.clearFilters() },
             counterparty: { $0.supplier?.name },

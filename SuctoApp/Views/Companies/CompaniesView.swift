@@ -12,6 +12,8 @@ struct CompaniesView: View {
     @EnvironmentObject var session: SessionManager
     @EnvironmentObject var navManager: NavigationManager
     @EnvironmentObject var appLock: AppLock
+    @ObservedObject private var dueNotifier = DueNotifier.shared
+    @State private var showNotificationsDenied = false
 
     var body: some View {
         Group {
@@ -60,6 +62,15 @@ struct CompaniesView: View {
                         Label("Zámek aplikace (\(appLock.methodName))", systemImage: "lock")
                     }
 
+                    Toggle(isOn: Binding(
+                        get: { dueNotifier.isEnabled },
+                        set: { newValue in
+                            Task { if await !dueNotifier.setEnabled(newValue) { showNotificationsDenied = true } }
+                        },
+                    )) {
+                        Label("Upozornění na splatnost", systemImage: "bell")
+                    }
+
                     Button(role: .destructive) {
                         session.logout()
                         navManager.reset()
@@ -71,6 +82,14 @@ struct CompaniesView: View {
                 }
                 .accessibilityLabel("Nastavení")
             }
+        }
+        .alert("Upozornění jsou zakázaná", isPresented: $showNotificationsDenied) {
+            Button("Otevřít Nastavení") {
+                if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+            }
+            Button("Zrušit", role: .cancel) {}
+        } message: {
+            Text("Povolte oznámení pro sÚčto v Nastavení iOS.")
         }
         .task {
             await viewModel.fetchCompanies()

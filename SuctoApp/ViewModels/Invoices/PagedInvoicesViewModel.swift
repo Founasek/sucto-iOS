@@ -22,7 +22,20 @@ class PagedInvoicesViewModel: ObservableObject {
 
     @Published var searchText = ""
     @Published var filter: InvoiceFilter = .all {
-        didSet { if filter != oldValue { Task { await refresh() } } }
+        didSet {
+            guard filter != oldValue else { return }
+            // Rychlé filtry „Zaplacené“ a „Koncepty“ nastavují stav – nesmí se bít se stavem ze sheetu.
+            if filter == .paid || filter == .concept, advanced.status != nil { advanced.status = nil }
+            Task { await refresh() }
+        }
+    }
+
+    @Published var advanced = InvoiceAdvancedFilter() {
+        didSet {
+            guard advanced != oldValue else { return }
+            if advanced.status != nil, filter == .paid || filter == .concept { filter = .all }
+            Task { await refresh() }
+        }
     }
 
     let companyId: Int
@@ -48,7 +61,7 @@ class PagedInvoicesViewModel: ObservableObject {
     }
 
     var query: InvoiceQuery {
-        InvoiceQuery(search: searchText, filter: filter)
+        InvoiceQuery(search: searchText, filter: filter, advanced: advanced)
     }
 
     var isFiltering: Bool { query.isActive }
@@ -56,6 +69,7 @@ class PagedInvoicesViewModel: ObservableObject {
     func clearFilters() {
         searchText = ""
         filter = .all
+        advanced = InvoiceAdvancedFilter()
     }
 
     /// Voláno při psaní do hledání – dotaz se pošle až po krátké pauze.
