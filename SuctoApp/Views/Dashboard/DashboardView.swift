@@ -86,6 +86,7 @@ struct DashboardView: View {
                     .transition(.scale(scale: 0.8).combined(with: .opacity))
             }
         }
+        .offlineBanner()
         .background(Theme.background)
         .animation(Motion.standard, value: selectedTab)
         .navigationTitle(session.selectedCompany?.name ?? "Přehled")

@@ -57,10 +57,14 @@ struct OverviewView: View {
         .task {
             if viewModel.months.isEmpty { await viewModel.load() }
         }
-        .onChange(of: viewModel.months) {
-            barsVisible = false
-            withAnimation(Motion.gentle.delay(0.1)) { barsVisible = true }
-        }
+        .onChange(of: viewModel.months) { revealBars() }
+    }
+
+    /// Sloupce graf „vyroste“ z nuly. Voláno i při návratu na záložku – data se tehdy nemění,
+    /// takže by `onChange` nezafungoval a sloupce by zůstaly nulové (graf by vypadal prázdný).
+    private func revealBars() {
+        barsVisible = false
+        withAnimation(Motion.gentle.delay(0.1)) { barsVisible = true }
     }
 
     // MARK: - Části
@@ -215,6 +219,7 @@ struct OverviewView: View {
             .sensoryFeedback(.selection, trigger: selectedMonth)
             .accessibilityLabel("Graf výnosů a nákladů po měsících")
             .accessibilityHint("Hodnoty jednotlivých měsíců jsou uvedeny pod grafem.")
+            .onAppear { revealBars() }
         }
         .appear(delay: 0.16)
     }

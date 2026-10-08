@@ -32,9 +32,6 @@ struct SuctoApp: App {
                     }
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                OfflineBanner(date: session.cachedDataDate)
-            }
             // Na úrovni NavigationStack, aby je dostaly i obrazovky otevřené přes navigationDestination
             // (ty prostředí z kořenového view nedědí).
             .environmentObject(session)
