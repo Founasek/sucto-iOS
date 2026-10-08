@@ -93,7 +93,12 @@ struct PartnerRecord: Identifiable, Decodable, Equatable {
         currencyId = (try? container.decodeIfPresent(Int.self, forKey: .currencyId)) ?? currency?.id
     }
 
-    var initial: String { String(name.prefix(1)).uppercased() }
+    /// Firma (má IČ nebo DIČ), jinak fyzická osoba – podle toho se volí ikona avatara.
+    var isCompany: Bool {
+        !(ic ?? "").isEmpty || !(dic ?? "").isEmpty
+    }
+
+    var avatarSymbol: String { isCompany ? "building.2.fill" : "person.fill" }
 
     /// Dny splatnosti jako číslo (server může poslat číslo i text).
     var invoiceDueDays: Int? { invoiceDue.flatMap { Double($0) }.map { Int($0) } }

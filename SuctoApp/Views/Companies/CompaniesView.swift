@@ -143,11 +143,11 @@ private struct CompanyCard: View {
                 AsyncImage(url: url) { image in
                     image.resizable().scaledToFit().padding(6)
                 } placeholder: {
-                    initials
+                    placeholder
                 }
                 .background(Color.white)
             } else {
-                initials
+                placeholder
             }
         }
         .frame(width: 52, height: 52)
@@ -155,12 +155,11 @@ private struct CompanyCard: View {
         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5))
     }
 
-    private var initials: some View {
+    private var placeholder: some View {
         ZStack {
             Theme.brandGradient
-            Text(String(company.name.prefix(1)).uppercased())
-                .font(.title3.weight(.bold))
-                .fontDesign(.rounded)
+            Image(systemName: "building.2.fill")
+                .font(.title3)
                 .foregroundStyle(.white)
         }
     }
