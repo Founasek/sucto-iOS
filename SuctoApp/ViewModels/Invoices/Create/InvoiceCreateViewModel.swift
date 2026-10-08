@@ -11,6 +11,8 @@ import SwiftUI
 final class InvoiceCreateViewModel: ObservableObject {
     let companyId: Int
     let direction: InvoiceDirection
+    /// Je-li zadané, formulář se předvyplní z naskenovaného dokladu.
+    let scanId: String?
     private let session: SessionManager
 
     // MARK: - Faktura
@@ -49,12 +51,19 @@ final class InvoiceCreateViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var creationSuccess = false
     @Published var isSubmitting = false
+    /// Výchozí data (číslo, sazby, doklad ze skenu…) se nepodařilo načíst – formulář nemá smysl ukazovat.
+    @Published private(set) var loadFailed = false
+    /// Dodavatel přečtený ze skenu (pro upozornění nad formulářem).
+    @Published var scanSupplier: InitSupplier?
+    /// `true`, pokud se dodavatel ze skenu nepodařilo spárovat s partnerem.
+    @Published var scanSupplierNotMatched = false
 
     // MARK: - Init
 
-    init(companyId: Int, direction: InvoiceDirection, session: SessionManager) {
+    init(companyId: Int, direction: InvoiceDirection, scanId: String? = nil, session: SessionManager) {
         self.companyId = companyId
         self.direction = direction
+        self.scanId = scanId
         self.session = session
         if direction == .incoming { printNotice = "" }
     }
@@ -62,11 +71,12 @@ final class InvoiceCreateViewModel: ObservableObject {
     // MARK: - Načtení výchozích dat
 
     func loadInitialData() async {
+        loadFailed = false
         do {
             // Výchozí údaje pro novou fakturu
-            let newInvoice: InvoiceInitResponse = try await session.send(
-                direction.newEndpoint(companyId: companyId),
-            )
+            let initEndpoint = scanId.map { APIConstants.newIncomingInvoiceFromScan(companyId: companyId, scanId: $0) }
+                ?? direction.newEndpoint(companyId: companyId)
+            let newInvoice: InvoiceInitResponse = try await session.send(initEndpoint)
 
             actuarialNumber = newInvoice.actuarialNumber ?? ""
             issueDate = newInvoice.issueDate ?? Date()
@@ -97,11 +107,42 @@ final class InvoiceCreateViewModel: ObservableObject {
             availableVatRegimes = try await vatRegimes
             availableVats = try await vats.filter { $0.validTo == nil }
             if let invoiceType = await types?.first { actuarialTypeId = invoiceType.id }
+
+            // Řádky bez sazby (např. ze skenu) dostanou první dostupnou sazbu DPH.
+            let defaultVat = availableVats.first?.id ?? 0
+            items = items.map { line in
+                var line = line
+                if line.vatId == 0 { line.vatId = defaultVat }
+                return line
+            }
+
+            if scanId != nil { await applyScan(newInvoice) }
             errorMessage = nil
         } catch is CancellationError {
             return
         } catch {
             errorMessage = error.localizedDescription
+            loadFailed = true
+        }
+    }
+
+    /// Předvyplní údaje z dokladu: číslo faktury, měnu a dodavatele (hledá se podle IČ).
+    private func applyScan(_ scan: InvoiceInitResponse) async {
+        if let external = scan.externalNumber, !external.isEmpty { actuarialNumber = external }
+        if let currencyId = scan.currency?.id {
+            selectedCurrency = availableCurrencies.first { $0.id == currencyId }
+        }
+        guard let supplier = scan.supplier, supplier.name != nil || supplier.ic != nil else { return }
+        scanSupplier = supplier
+
+        if let ic = supplier.ic, !ic.isEmpty {
+            await searchPartners(ic)
+            selectedPartner = availablePartners.first { $0.ic == ic }
+            applyPartnerDefaults()
+            scanSupplierNotMatched = selectedPartner == nil
+            if selectedPartner == nil { await searchPartners("") }
+        } else {
+            scanSupplierNotMatched = true
         }
     }
 
@@ -190,6 +231,7 @@ final class InvoiceCreateViewModel: ObservableObject {
             )
             creationSuccess = true
             errorMessage = nil
+            if let scanId { ScanLinkStore.markUsed(scanId) }
         } catch is CancellationError {
             return
         } catch {

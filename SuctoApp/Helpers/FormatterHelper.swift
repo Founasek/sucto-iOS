@@ -28,3 +28,21 @@ enum FormatterHelper {
         return formattedValue
     }
 }
+
+extension FormatterHelper {
+    private static let wholeFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 0
+        formatter.groupingSeparator = " "
+        formatter.locale = Locale(identifier: "cs_CZ")
+        return formatter
+    }()
+
+    /// Celá čísla bez haléřů – pro přehledy a grafy.
+    static func formatWhole(_ value: Double, currency: String?) -> String {
+        let text = wholeFormatter.string(from: NSNumber(value: value)) ?? "\(Int(value))"
+        guard let currency, !currency.isEmpty else { return text }
+        return "\(text) \(currency)"
+    }
+}

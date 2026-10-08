@@ -10,6 +10,7 @@ import SwiftUI
 struct IncomingInvoiceDetailView: View {
     let invoiceId: Int
     @EnvironmentObject var viewModel: IncomingInvoicesViewModel
+    @State private var showExportSheet = false
 
     var body: some View {
         ScrollView {
@@ -31,6 +32,30 @@ struct IncomingInvoiceDetailView: View {
         .navigationTitle("Detail faktury")
         .navigationBarTitleDisplayMode(.inline)
         .background(Theme.background)
+        .toolbar {
+            if viewModel.selectedInvoice != nil {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button {
+                            showExportSheet = true
+                        } label: {
+                            Label("Exportovat do Pohody", systemImage: "square.and.arrow.up")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .accessibilityLabel("Akce faktury")
+                }
+            }
+        }
+        .sheet(isPresented: $showExportSheet) {
+            PohodaExportSheet(
+                companyId: viewModel.companyId,
+                session: viewModel.session,
+                direction: .incoming,
+                mode: .invoice(id: invoiceId, number: viewModel.selectedInvoice?.actuarialNumber ?? ""),
+            )
+        }
         .task {
             await viewModel.fetchInvoiceDetail(invoiceId: invoiceId)
         }

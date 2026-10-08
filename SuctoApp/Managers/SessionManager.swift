@@ -49,6 +49,34 @@ final class SessionManager: ObservableObject {
         }
     }
 
+    /// Nahraje soubor (`multipart/form-data`).
+    func upload<T: Decodable>(_ endpoint: String, file: MultipartFile) async throws -> T {
+        try await authorized { token in
+            try await APIService.shared.upload(endpoint: endpoint, token: token, file: file)
+        }
+    }
+
+    /// Stáhne binární data (např. náhled skenu).
+    func download(_ endpoint: String) async throws -> Data {
+        try await authorized { token in
+            try await APIService.shared.download(endpoint: endpoint, token: token)
+        }
+    }
+
+    /// Provede akci s tokenem; při 401 odhlásí uživatele.
+    private func authorized<T>(_ action: (String) async throws -> T) async throws -> T {
+        guard let token = authToken else {
+            logout()
+            throw APIError.unauthorized
+        }
+        do {
+            return try await action(token)
+        } catch APIError.unauthorized {
+            logout()
+            throw APIError.unauthorized
+        }
+    }
+
     /// Dřívější verze ukládaly token do UserDefaults (@AppStorage) – přesune ho do Keychainu.
     private static func migrateLegacyToken() -> String? {
         let defaults = UserDefaults.standard

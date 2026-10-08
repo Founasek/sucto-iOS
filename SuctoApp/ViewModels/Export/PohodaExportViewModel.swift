@@ -26,14 +26,37 @@ final class PohodaExportViewModel: ObservableObject {
     @Published private(set) var phase: Phase = .idle
 
     let companyId: Int
+    let direction: InvoiceDirection
     private let session: SessionManager
 
     private let maximumPages = 100
     private let concurrentDetails = 4
 
-    init(companyId: Int, session: SessionManager) {
+    init(companyId: Int, direction: InvoiceDirection, session: SessionManager) {
         self.companyId = companyId
+        self.direction = direction
         self.session = session
+    }
+
+    private var pohodaDirection: PohodaExporter.Direction {
+        direction == .outgoing ? .issued : .received
+    }
+
+    private var companyICO: String? { session.selectedCompany?.ic }
+
+    private func detailEndpoint(id: Int) -> String {
+        switch direction {
+        case .outgoing: APIConstants.outgoingInvoiceDetail(companyId: companyId, invoiceId: id)
+        case .incoming: APIConstants.incomingInvoiceDetail(companyId: companyId, invoiceId: id)
+        }
+    }
+
+    private var listBase: String {
+        "companies/\(companyId)/\(direction == .outgoing ? "actuarials_outs" : "actuarials_ins")"
+    }
+
+    private var filePrefix: String {
+        direction == .outgoing ? "vydane" : "prijate"
     }
 
     var isRunning: Bool {
@@ -46,10 +69,9 @@ final class PohodaExportViewModel: ObservableObject {
     func exportInvoice(id: Int) async {
         phase = .loading(message: "Připravuji export…", progress: nil)
         do {
-            let invoice: Invoice = try await session.send(
-                APIConstants.outgoingInvoiceDetail(companyId: companyId, invoiceId: id),
-            )
-            try finish(invoices: [invoice], skipped: 0, fileName: "Pohoda_FA_\(invoice.actuarialNumber)")
+            let invoice: Invoice = try await session.send(detailEndpoint(id: id))
+            let safeNumber = invoice.actuarialNumber.replacingOccurrences(of: "/", with: "-")
+            try finish(invoices: [invoice], skipped: 0, fileName: "Pohoda_\(filePrefix)_\(safeNumber)")
         } catch is CancellationError {
             return
         } catch {
@@ -78,7 +100,7 @@ final class PohodaExportViewModel: ObservableObject {
             var downloadFailures: [PohodaExporter.Failure] = []
             let details = try await loadDetails(of: exportable, failures: &downloadFailures)
 
-            let name = "Pohoda_vydane_faktury_\(Self.fileDate(from))_\(Self.fileDate(to))"
+            let name = "Pohoda_\(filePrefix)_faktury_\(Self.fileDate(from))_\(Self.fileDate(to))"
             try finish(invoices: details, skipped: skipped, fileName: name, extraFailures: downloadFailures)
         } catch is CancellationError {
             return
@@ -99,7 +121,7 @@ final class PohodaExportViewModel: ObservableObject {
                 URLQueryItem(name: "q[issue_date_at_gteq]", value: Self.apiDate(from)),
                 URLQueryItem(name: "q[issue_date_at_lteq]", value: Self.apiDate(to)),
             ]
-            let path = "companies/\(companyId)/actuarials_outs?\(components.percentEncodedQuery ?? "")"
+            let path = "\(listBase)?\(components.percentEncodedQuery ?? "")"
             let result: [Invoice] = try await session.send(path)
 
             let fresh = result.filter { seen.insert($0.id).inserted }
@@ -123,9 +145,7 @@ final class PohodaExportViewModel: ObservableObject {
             func addNext() -> Bool {
                 guard let next = iterator.next() else { return false }
                 group.addTask { @MainActor in
-                    let detail: Invoice? = try? await self.session.send(
-                        APIConstants.outgoingInvoiceDetail(companyId: self.companyId, invoiceId: next.id),
-                    )
+                    let detail: Invoice? = try? await self.session.send(self.detailEndpoint(id: next.id))
                     return (next, detail)
                 }
                 return true
@@ -155,7 +175,7 @@ final class PohodaExportViewModel: ObservableObject {
         fileName: String,
         extraFailures: [PohodaExporter.Failure] = [],
     ) throws {
-        let result = try PohodaExporter.makeXML(for: invoices)
+        let result = try PohodaExporter.makeXML(for: invoices, direction: pohodaDirection, companyICO: companyICO)
         let failures = extraFailures + result.failures
 
         var file: URL?
