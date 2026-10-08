@@ -26,7 +26,7 @@ struct InvoiceFilterSheet: View {
             guard let from, let to else { return true }
             return from <= to
         }
-        return valid(draft.issueFrom, draft.issueTo) && valid(draft.dueFrom, draft.dueTo)
+        return valid(draft.issueFrom, draft.issueTo) && valid(draft.dueFrom, draft.dueTo) && valid(draft.uzpFrom, draft.uzpTo)
     }
 
     var body: some View {
@@ -41,9 +41,23 @@ struct InvoiceFilterSheet: View {
                     }
                 }
 
+                Section("Typ dokladu") {
+                    Picker("Typ", selection: $draft.kind) {
+                        Text("Všechny").tag(ActuarialKind?.none)
+                        ForEach(ActuarialKind.allCases, id: \.self) { kind in
+                            Text(kind.title).tag(ActuarialKind?.some(kind))
+                        }
+                    }
+                }
+
                 Section("Datum vystavení") {
                     OptionalDateRow(title: "Od", date: $draft.issueFrom)
                     OptionalDateRow(title: "Do", date: $draft.issueTo)
+                }
+
+                Section("Datum zdanitelného plnění") {
+                    OptionalDateRow(title: "Od", date: $draft.uzpFrom)
+                    OptionalDateRow(title: "Do", date: $draft.uzpTo)
                 }
 
                 Section("Splatnost") {

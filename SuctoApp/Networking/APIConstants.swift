@@ -106,6 +106,10 @@ enum APIConstants {
         "companies/\(companyId)/partners/\(partnerId)/partner_charts/series?year=\(year)"
     }
 
+    static func dashboard(companyId: Int) -> String {
+        "companies/\(companyId)/dashboard"
+    }
+
     static let countries = "countries"
 
     static func vatRegimes(countryId: Int) -> String {

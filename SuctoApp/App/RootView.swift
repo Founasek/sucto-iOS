@@ -22,6 +22,17 @@ struct RootView: View {
 
                 case let .partnerDetail(companyId, partnerId):
                     PartnerDetailView(companyId: companyId, partnerId: partnerId, session: session)
+
+                case let .cashVouchers(companyId):
+                    CashVouchersView(companyId: companyId, session: session)
+
+                case let .cashVoucherDetail(companyId, directionRaw, voucherId):
+                    CashVoucherDetailView(
+                        companyId: companyId,
+                        direction: CashDirection(rawValue: directionRaw) ?? .income,
+                        voucherId: voucherId,
+                        session: session,
+                    )
                 }
             }
     }

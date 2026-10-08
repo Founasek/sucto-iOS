@@ -23,6 +23,10 @@ final class OutgoingInvoicesViewModel: PagedInvoicesViewModel {
         query.path("companies/\(companyId)/actuarials_outs", page: page)
     }
 
+    override func linesEndpoint(invoiceId: Int) -> String {
+        "companies/\(companyId)/actuarials_outs/\(invoiceId)/lines"
+    }
+
     func fetchInvoiceDetail(invoiceId: Int) async {
         // Nezobrazuj detail dříve prohlížené faktury, než se načte ta aktuální.
         if selectedInvoice?.id != invoiceId { selectedInvoice = nil }

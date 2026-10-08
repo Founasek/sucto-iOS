@@ -60,6 +60,43 @@ class PagedInvoicesViewModel: ObservableObject {
         fatalError("Potomek musí přepsat listEndpoint")
     }
 
+    /// Endpoint řádků faktury (`.../lines`) – dodává potomek.
+    func linesEndpoint(invoiceId _: Int) -> String {
+        fatalError("Potomek musí přepsat linesEndpoint")
+    }
+
+    /// Přidá (`lineId == nil`) nebo upraví řádek faktury. Vrací text chyby, nebo `nil` při úspěchu.
+    func saveLine(invoiceId: Int, lineId: Int?, request: InvoiceLineRequest) async -> String? {
+        do {
+            let body = try JSONEncoder().encode(request)
+            let base = linesEndpoint(invoiceId: invoiceId)
+            let _: InvoiceItem = try await session.send(
+                lineId.map { "\(base)/\($0)" } ?? base,
+                method: lineId == nil ? .POST : .PATCH,
+                body: body,
+            )
+            return nil
+        } catch is CancellationError {
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
+    func deleteLine(invoiceId: Int, lineId: Int) async -> String? {
+        do {
+            let _: EmptyResponse = try await session.send(
+                "\(linesEndpoint(invoiceId: invoiceId))/\(lineId)",
+                method: .DELETE,
+            )
+            return nil
+        } catch is CancellationError {
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
     var query: InvoiceQuery {
         InvoiceQuery(search: searchText, filter: filter, advanced: advanced)
     }

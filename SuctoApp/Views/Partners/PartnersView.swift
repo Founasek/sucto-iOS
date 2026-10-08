@@ -10,6 +10,7 @@ struct PartnersView: View {
     let companyId: Int
     @StateObject private var viewModel: PartnersViewModel
     @EnvironmentObject private var session: SessionManager
+    @EnvironmentObject private var permissions: PermissionsStore
     @State private var showCreate = false
     @State private var showAresPrompt = false
     @State private var aresIC = ""
@@ -57,18 +58,20 @@ struct PartnersView: View {
             if let event = note.object as? PartnerEvent { viewModel.apply(event) }
         }
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button { showCreate = true } label: { Label("Nový partner", systemImage: "person.badge.plus") }
-                    Button { showAresPrompt = true } label: { Label("Přidat podle IČO (ARES)", systemImage: "magnifyingglass") }
-                } label: {
-                    if viewModel.isCreatingFromAres {
-                        ProgressView()
-                    } else {
-                        Image(systemName: "plus.circle.fill")
+            if permissions.can(.create, .partner, companyId: companyId) {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button { showCreate = true } label: { Label("Nový partner", systemImage: "person.badge.plus") }
+                        Button { showAresPrompt = true } label: { Label("Přidat podle IČO (ARES)", systemImage: "magnifyingglass") }
+                    } label: {
+                        if viewModel.isCreatingFromAres {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "plus.circle.fill")
+                        }
                     }
+                    .accessibilityLabel("Přidat partnera")
                 }
-                .accessibilityLabel("Přidat partnera")
             }
         }
         .sheet(isPresented: $showCreate) {
@@ -112,7 +115,7 @@ struct PartnersView: View {
             EmptyStateView(
                 systemImage: "person.2",
                 message: "Zatím tu nejsou žádní partneři.",
-                actionTitle: "Přidat partnera",
+                actionTitle: permissions.can(.create, .partner, companyId: companyId) ? "Přidat partnera" : nil,
                 action: { showCreate = true },
             )
         }

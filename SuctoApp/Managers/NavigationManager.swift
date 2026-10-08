@@ -31,6 +31,10 @@ final class NavigationManager: ObservableObject {
         path.append(AppRoute.partners(companyId: companyId))
     }
 
+    func showCashVouchers(companyId: Int) {
+        path.append(AppRoute.cashVouchers(companyId: companyId))
+    }
+
     func reset() {
         path = NavigationPath()
     }

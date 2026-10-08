@@ -12,6 +12,14 @@ struct OutgoingInvoiceDetailView: View {
     @EnvironmentObject var viewModel: OutgoingInvoicesViewModel
     @State private var showSendSheet = false
     @State private var showExportSheet = false
+    @EnvironmentObject private var permissions: PermissionsStore
+    @State private var lineSheet: LineSheet?
+
+    /// Co se právě edituje: nová položka, nebo existující.
+    private struct LineSheet: Identifiable {
+        let item: InvoiceItem?
+        var id: Int { item?.id ?? -1 }
+    }
 
     var body: some View {
         ScrollView {
@@ -79,6 +87,25 @@ struct OutgoingInvoiceDetailView: View {
                 await viewModel.sendByEmail(invoiceId: invoiceId, email: email, comment: comment)
             }
         }
+        .sheet(item: $lineSheet) { sheet in
+            InvoiceLineEditSheet(
+                item: sheet.item,
+                currency: viewModel.selectedInvoice?.currency?.symbol,
+                session: viewModel.session,
+                onSave: { request in
+                    let error = await viewModel.saveLine(invoiceId: invoiceId, lineId: sheet.item?.id, request: request)
+                    if error == nil { await reloadAfterLineChange() }
+                    return error
+                },
+                onDelete: sheet.item.map { item in
+                    {
+                        let error = await viewModel.deleteLine(invoiceId: invoiceId, lineId: item.id)
+                        if error == nil { await reloadAfterLineChange() }
+                        return error
+                    }
+                },
+            )
+        }
         .task {
             await viewModel.fetchInvoiceDetail(invoiceId: invoiceId)
         }
@@ -119,7 +146,7 @@ struct OutgoingInvoiceDetailView: View {
             }
 
             InvoiceDatesCard(invoice: invoice)
-            InvoiceItemsCard(invoice: invoice)
+            InvoiceItemsCard(invoice: invoice, editing: itemEditing(for: invoice))
         }
         .padding(Theme.Spacing.l)
     }
@@ -137,5 +164,21 @@ struct OutgoingInvoiceDetailView: View {
             .padding(.vertical, Theme.Spacing.m)
             .background(.bar)
         }
+    }
+
+    /// Úprava položek je jen pro uživatele s právem `update` a u faktur, které nejsou stornované.
+    private func itemEditing(for invoice: Invoice) -> InvoiceItemEditing? {
+        guard permissions.can(.update, InvoiceDirection.outgoing.permissionResource, companyId: viewModel.companyId),
+              invoice.invoiceStatus != .storno
+        else { return nil }
+        return InvoiceItemEditing(
+            onAdd: { lineSheet = LineSheet(item: nil) },
+            onEdit: { item in lineSheet = LineSheet(item: item) },
+        )
+    }
+
+    private func reloadAfterLineChange() async {
+        await viewModel.fetchInvoiceDetail(invoiceId: invoiceId)
+        await viewModel.refresh()
     }
 }

@@ -31,6 +31,8 @@ final class OverviewViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     /// `true`, pokud server za zvolený rok nevrátil žádné nenulové údaje.
     @Published private(set) var isEmpty = false
+    /// Zpráva ze sÚčta (dashboard API), dokud ji uživatel nezavře.
+    @Published private(set) var notice: SystemNotice?
 
     let companyId: Int
     private let session: SessionManager
@@ -50,6 +52,18 @@ final class OverviewViewModel: ObservableObject {
     var availableYears: [Int] {
         let current = Calendar.current.component(.year, from: Date())
         return Array((current - 5 ... current).reversed())
+    }
+
+    /// Zprávy ze sÚčta jsou jen doplněk – jejich selhání se tiše ignoruje.
+    func loadNotice() async {
+        guard let response: DashboardResponse = try? await session.send(APIConstants.dashboard(companyId: companyId)) else { return }
+        notice = response.notices.first { !SystemNoticeStore.isDismissed($0.id) }
+    }
+
+    func dismissNotice() {
+        guard let notice else { return }
+        SystemNoticeStore.dismiss(notice.id)
+        withAnimation(.snappy) { self.notice = nil }
     }
 
     func load(retryAccounting: Bool = false) async {
