@@ -12,6 +12,7 @@ struct SuctoApp: App {
     @StateObject private var session = SessionManager()
     @StateObject private var navManager = NavigationManager()
     @StateObject private var appLock = AppLock()
+    @StateObject private var permissions = PermissionsStore()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -29,6 +30,7 @@ struct SuctoApp: App {
                         appLock.markUnlocked()
                     } else {
                         navManager.reset()
+                        permissions.reset()
                     }
                 }
             }
@@ -37,6 +39,7 @@ struct SuctoApp: App {
             .environmentObject(session)
             .environmentObject(navManager)
             .environmentObject(appLock)
+            .environmentObject(permissions)
             .accessibilityHidden(isCovered)
             .overlay {
                 if session.isLoggedIn {

@@ -37,6 +37,9 @@ struct InvoiceAdvancedFilter: Equatable {
     var issueTo: Date?
     var dueFrom: Date?
     var dueTo: Date?
+    var uzpFrom: Date?
+    var uzpTo: Date?
+    var kind: ActuarialKind?
     /// Částka s DPH (`end_price`).
     var minPrice: Double?
     var maxPrice: Double?
@@ -46,6 +49,8 @@ struct InvoiceAdvancedFilter: Equatable {
         [status != nil,
          issueFrom != nil || issueTo != nil,
          dueFrom != nil || dueTo != nil,
+         uzpFrom != nil || uzpTo != nil,
+         kind != nil,
          minPrice != nil || maxPrice != nil].filter(\.self).count
     }
 
@@ -89,6 +94,10 @@ struct InvoiceQuery {
             items.append(URLQueryItem(name: "q[status_eq]", value: "\(status.rawValue)"))
         }
 
+        if let kind = advanced.kind {
+            items.append(URLQueryItem(name: "q[actuarial_type_id_eq]", value: "\(kind.rawValue)"))
+        }
+
         var dueTo = advanced.dueTo
         switch filter {
         case .all:
@@ -107,6 +116,7 @@ struct InvoiceQuery {
         let dates: [(String, Date?)] = [
             ("q[issue_date_at_gteq]", advanced.issueFrom), ("q[issue_date_at_lteq]", advanced.issueTo),
             ("q[due_date_at_gteq]", advanced.dueFrom), ("q[due_date_at_lteq]", dueTo),
+            ("q[uzp_date_at_gteq]", advanced.uzpFrom), ("q[uzp_date_at_lteq]", advanced.uzpTo),
         ]
         for (key, date) in dates {
             if let date { items.append(URLQueryItem(name: key, value: Self.dateFormatter.string(from: date))) }

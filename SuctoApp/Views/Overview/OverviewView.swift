@@ -21,6 +21,10 @@ struct OverviewView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.l) {
+                if let notice = viewModel.notice {
+                    noticeCard(notice)
+                }
+
                 yearPicker
 
                 if viewModel.source == .invoices, !viewModel.isLoading || !viewModel.months.isEmpty {
@@ -57,6 +61,7 @@ struct OverviewView: View {
         .task {
             if viewModel.months.isEmpty { await viewModel.load() }
         }
+        .task { await viewModel.loadNotice() }
         .onChange(of: viewModel.months) { revealBars() }
     }
 
@@ -292,5 +297,34 @@ private extension OverviewView {
         case 1000...: return "\(sign)\(Int(magnitude / 1000)) tis."
         default: return "\(Int(value))"
         }
+    }
+}
+
+private extension OverviewView {
+    /// Zpráva ze sÚčta s možností ji zavřít.
+    func noticeCard(_ notice: SystemNotice) -> some View {
+        HStack(alignment: .top, spacing: Theme.Spacing.m) {
+            Image(systemName: "megaphone.fill").foregroundStyle(Color.accentColor)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(notice.title).font(.subheadline.weight(.semibold))
+                if let description = notice.description, !description.isEmpty {
+                    Text(description).font(.footnote).foregroundStyle(.secondary)
+                }
+                if let date = notice.createdAt {
+                    Text(date).font(.caption2).foregroundStyle(.tertiary)
+                }
+            }
+            Spacer(minLength: 0)
+            Button {
+                viewModel.dismissNotice()
+            } label: {
+                Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Zavřít zprávu")
+        }
+        .padding(Theme.Spacing.m)
+        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
+        .accessibilityElement(children: .contain)
     }
 }

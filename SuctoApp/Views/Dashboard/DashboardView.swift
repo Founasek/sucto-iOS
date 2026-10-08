@@ -18,6 +18,7 @@ struct DashboardView: View {
     let companyId: Int
     @EnvironmentObject var navManager: NavigationManager
     @EnvironmentObject var session: SessionManager
+    @EnvironmentObject var permissions: PermissionsStore
     @State private var selectedTab = DashboardTab.overview.rawValue
     @State private var pohodaExportDirection: InvoiceDirection?
     @State private var scanSource: ScanSource?
@@ -88,6 +89,7 @@ struct DashboardView: View {
             }
         }
         .offlineBanner()
+        .task { await permissions.load(companyId: companyId, session: session) }
         .task { await refreshDueSnapshot() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await refreshDueSnapshot() } }
@@ -117,6 +119,12 @@ struct DashboardView: View {
                         } label: {
                             Label("Skeny faktur", systemImage: "doc.viewfinder")
                         }
+                    }
+
+                    Button {
+                        navManager.showCashVouchers(companyId: companyId)
+                    } label: {
+                        Label("Pokladna", systemImage: "banknote")
                     }
 
                     Button {
@@ -180,12 +188,15 @@ struct DashboardView: View {
     }
 
     /// Směr faktury, kterou lze na aktuální záložce vytvořit (na záložce Účty tlačítko není).
+    /// Tlačítko se neukáže, když uživatel podle `api_permissions` faktury daného směru vytvářet nesmí.
     private var createDirection: InvoiceDirection? {
-        switch tab {
+        let direction: InvoiceDirection? = switch tab {
         case .outgoing: .outgoing
         case .incoming: .incoming
         default: nil
         }
+        guard let direction, permissions.can(.create, direction.permissionResource, companyId: companyId) else { return nil }
+        return direction
     }
 
     private var tab: DashboardTab { DashboardTab(rawValue: selectedTab) ?? .overview }

@@ -10,6 +10,7 @@ import SwiftUI
 struct PartnerDetailView: View {
     @StateObject private var viewModel: PartnerDetailViewModel
     @EnvironmentObject private var session: SessionManager
+    @EnvironmentObject private var permissions: PermissionsStore
     @Environment(\.dismiss) private var dismiss
     @State private var showEdit = false
     @State private var confirmDelete = false
@@ -33,11 +34,15 @@ struct PartnerDetailView: View {
         .navigationTitle("Partner")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if viewModel.partner != nil {
+            if viewModel.partner != nil, canEdit || canDelete {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
-                        Button { showEdit = true } label: { Label("Upravit", systemImage: "pencil") }
-                        Button(role: .destructive) { confirmDelete = true } label: { Label("Smazat", systemImage: "trash") }
+                        if canEdit {
+                            Button { showEdit = true } label: { Label("Upravit", systemImage: "pencil") }
+                        }
+                        if canDelete {
+                            Button(role: .destructive) { confirmDelete = true } label: { Label("Smazat", systemImage: "trash") }
+                        }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
@@ -71,6 +76,9 @@ struct PartnerDetailView: View {
         }
         .disabled(viewModel.isDeleting)
     }
+
+    private var canEdit: Bool { permissions.can(.update, .partner, companyId: viewModel.companyId) }
+    private var canDelete: Bool { permissions.can(.destroy, .partner, companyId: viewModel.companyId) }
 
     private func content(_ partner: PartnerRecord) -> some View {
         ScrollView {

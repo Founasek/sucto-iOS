@@ -70,13 +70,20 @@ struct InvoiceDatesCard: View {
     }
 }
 
+/// Akce nad položkami faktury (jen když na ně má uživatel právo).
+struct InvoiceItemEditing {
+    let onAdd: () -> Void
+    let onEdit: (InvoiceItem) -> Void
+}
+
 struct InvoiceItemsCard: View {
     let invoice: Invoice
+    var editing: InvoiceItemEditing?
 
     var body: some View {
         let notice = invoice.printNotice ?? ""
         let items = invoice.items ?? []
-        if !notice.isEmpty || !items.isEmpty {
+        if !notice.isEmpty || !items.isEmpty || editing != nil {
             DetailCard(title: "Poznámka a položky", systemImage: "bubble.right") {
                 if !notice.isEmpty {
                     Text(notice)
@@ -84,27 +91,52 @@ struct InvoiceItemsCard: View {
                         .multilineTextAlignment(.leading)
                 }
                 ForEach(items) { item in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(item.name)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            if let quantity = item.quantity, let unit = item.unitName {
-                                Text("\(quantity) \(unit)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        Spacer()
-                        if let price = item.totalPrice {
-                            Text(FormatterHelper.formatPrice(price, currency: invoice.currency?.symbol))
-                                .font(.subheadline)
-                        }
+                    if let editing {
+                        Button { editing.onEdit(item) } label: { itemRow(item) }
+                            .buttonStyle(.plain)
+                            .accessibilityHint("Upraví položku")
+                    } else {
+                        itemRow(item)
+                    }
+                }
+                if let editing {
+                    Button { editing.onAdd() } label: {
+                        Label("Přidat položku", systemImage: "plus.circle.fill")
+                            .font(.subheadline.weight(.semibold))
                     }
                     .padding(.top, 8)
                 }
             }
         }
+    }
+}
+
+private extension InvoiceItemsCard {
+    func itemRow(_ item: InvoiceItem) -> some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text(item.name)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                if let quantity = item.quantity, let unit = item.unitName {
+                    Text("\(quantity) \(unit)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            if let price = item.totalPrice {
+                Text(FormatterHelper.formatPrice(price, currency: invoice.currency?.symbol))
+                    .font(.subheadline)
+            }
+            if editing != nil {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.top, 8)
+        .contentShape(Rectangle())
     }
 }
 

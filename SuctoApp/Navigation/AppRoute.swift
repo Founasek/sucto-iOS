@@ -13,4 +13,6 @@ enum AppRoute: Hashable {
     case scans(companyId: Int)
     case partners(companyId: Int)
     case partnerDetail(companyId: Int, partnerId: Int)
+    case cashVouchers(companyId: Int)
+    case cashVoucherDetail(companyId: Int, directionRaw: String, voucherId: Int)
 }
