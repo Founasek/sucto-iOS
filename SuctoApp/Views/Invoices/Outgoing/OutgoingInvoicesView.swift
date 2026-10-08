@@ -18,6 +18,7 @@ struct OutgoingInvoicesView: View {
             errorMessage: viewModel.errorMessage,
             emptyMessage: "Zatím tu nejsou žádné vydané faktury.\nVytvoříte je tlačítkem Nová faktura.",
             filter: $viewModel.filter,
+            advanced: $viewModel.advanced,
             isFiltering: viewModel.isFiltering,
             clearFilters: { viewModel.clearFilters() },
             counterparty: { $0.customer?.name },

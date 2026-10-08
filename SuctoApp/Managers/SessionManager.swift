@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WidgetKit
 
 @MainActor
 final class SessionManager: ObservableObject {
@@ -30,6 +31,9 @@ final class SessionManager: ObservableObject {
     func logout() {
         KeychainStore.delete(Self.tokenKey)
         ResponseCache.shared.clear()
+        DueSnapshotStore.clear()
+        DueNotifier.shared.cancelAll()
+        WidgetCenter.shared.reloadAllTimelines()
         authToken = nil
         selectedCompany = nil
         cachedDataDate = nil
