@@ -29,9 +29,15 @@ final class ResponseCache: Sendable {
         removeExpired()
     }
 
-    /// Cachují se jen čtení bez hledání (hledané výrazy by cache zbytečně zahltily) a bez předvyplněných formulářů.
+    /// Cachují se jen čtení bez hledání (hledané výrazy by cache zbytečně zahltily), bez předvyplněných formulářů
+    /// a bez akcí. Úhrada faktury je v API `GET .../pay` (vytvoří pokladní doklad) – z cache by při výpadku
+    /// připojení vrátila falešný úspěch.
     static func isCacheable(endpoint: String, method: HTTPMethod) -> Bool {
-        method == .GET && !endpoint.contains("_cont") && !endpoint.contains("/new")
+        let path = endpoint.split(separator: "?").first.map(String.init) ?? endpoint
+        return method == .GET
+            && !endpoint.contains("_cont")
+            && !path.hasSuffix("/new")
+            && !path.hasSuffix("/pay")
     }
 
     func store(_ data: Data, for endpoint: String) {
