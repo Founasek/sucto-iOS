@@ -5,7 +5,6 @@
 //  Created by Jan Founě on 14.09.2025.
 //
 
-// SuctoApp.swift
 import SwiftUI
 
 @main
@@ -19,20 +18,20 @@ struct SuctoApp: App {
                 Group {
                     if session.isLoggedIn {
                         RootView()
-                            .environmentObject(session)
-                            .environmentObject(navManager)
                     } else {
                         LoginView()
-                            .environmentObject(session)
                     }
                 }
                 .onChange(of: session.isLoggedIn) { _, newValue in
                     if !newValue {
-                        print("🔁 User logged out → resetting navigation")
                         navManager.reset()
                     }
                 }
             }
+            // Na úrovni NavigationStack, aby je dostaly i obrazovky otevřené přes navigationDestination
+            // (ty prostředí z kořenového view nedědí).
+            .environmentObject(session)
+            .environmentObject(navManager)
         }
     }
 }

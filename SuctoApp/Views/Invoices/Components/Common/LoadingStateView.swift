@@ -11,24 +11,21 @@ struct LoadingStateView: View {
     let message: String
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Theme.Spacing.l) {
             ProgressView()
-                .scaleEffect(1.5)
+                .controlSize(.large)
                 .tint(.accentColor)
-
             Text(message)
-                .foregroundColor(.secondary)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .frame(minHeight: UIScreen.main.bounds.height * 0.6)
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 420)
+        .accessibilityElement(children: .combine)
     }
 }
 
 #Preview("Načítání") {
     LoadingStateView(message: "Načítám faktury…")
 }
-
-/*
- LoadingStateView(message: "Načítám faktury…")
- */

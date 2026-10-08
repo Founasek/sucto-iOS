@@ -40,11 +40,16 @@ struct OutgoingInvoiceInitResponse: Decodable {
 }
 
 extension String {
-    func toDate() -> Date? {
+    private static let czechDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd. MM. yyyy"
         formatter.locale = Locale(identifier: "cs_CZ")
-        return formatter.date(from: self)
+        return formatter
+    }()
+
+    /// Datum z odpovědi API ve tvaru „dd. MM. yyyy“.
+    func toDate() -> Date? {
+        Self.czechDateFormatter.date(from: self)
     }
 }
 

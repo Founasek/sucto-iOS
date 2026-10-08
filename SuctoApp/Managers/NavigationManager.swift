@@ -8,7 +8,7 @@
 import SwiftUI
 
 @MainActor
-class NavigationManager: ObservableObject {
+final class NavigationManager: ObservableObject {
     @Published var path = NavigationPath()
 
     func goToCompanies() {
@@ -21,10 +21,6 @@ class NavigationManager: ObservableObject {
 
     func createOutgoingInvoice(companyId: Int) {
         path.append(AppRoute.createOutgoingInvoice(companyId: companyId))
-    }
-
-    func goBack() {
-        if !path.isEmpty { path.removeLast() }
     }
 
     func reset() {

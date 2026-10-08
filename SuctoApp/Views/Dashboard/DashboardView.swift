@@ -5,10 +5,17 @@ struct DashboardView: View {
     @EnvironmentObject var navManager: NavigationManager
     @EnvironmentObject var session: SessionManager
     @State private var selectedTab = 0
+    @State private var slideEdge: Edge = .trailing
 
     @StateObject var outgoingInvoicesVM: OutgoingInvoicesViewModel
     @StateObject var incomingInvoicesVM: IncomingInvoicesViewModel
     @StateObject private var accountsVM: AccountsViewModel
+
+    private let tabs: [SegmentedTabs.Item] = [
+        .init(title: "Vydané", systemImage: "arrow.up.right.circle"),
+        .init(title: "Přijaté", systemImage: "arrow.down.left.circle"),
+        .init(title: "Účty", systemImage: "creditcard"),
+    ]
 
     init(companyId: Int, session: SessionManager) {
         self.companyId = companyId
@@ -20,46 +27,47 @@ struct DashboardView: View {
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
-                Picker("Tabs", selection: $selectedTab) {
-                    Text("Vydané faktury").tag(0)
-                    Text("Přijaté faktury").tag(1)
-                    Text("Účty").tag(2)
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding()
-                .background(Color.accent)
+                SegmentedTabs(items: tabs, selection: Binding(
+                    get: { selectedTab },
+                    set: { newValue in
+                        // Směr přechodu se nastaví dřív než samotná změna záložky.
+                        slideEdge = newValue > selectedTab ? .trailing : .leading
+                        selectedTab = newValue
+                    },
+                ))
+                .padding(.horizontal, Theme.Spacing.l)
+                .padding(.vertical, Theme.Spacing.s)
 
-                switch selectedTab {
-                case 0:
-                    OutgoingInvoicesView()
-                        .environmentObject(outgoingInvoicesVM)
-                case 1:
-                    IncomingInvoicesView()
-                        .environmentObject(incomingInvoicesVM)
-                case 2:
-                    BankAccountsView()
-                        .environmentObject(accountsVM)
-                default:
-                    EmptyView()
+                Group {
+                    switch selectedTab {
+                    case 0:
+                        OutgoingInvoicesView()
+                            .environmentObject(outgoingInvoicesVM)
+                    case 1:
+                        IncomingInvoicesView()
+                            .environmentObject(incomingInvoicesVM)
+                    default:
+                        BankAccountsView()
+                            .environmentObject(accountsVM)
+                    }
                 }
+                .id(selectedTab)
+                .transition(.asymmetric(
+                    insertion: .move(edge: slideEdge).combined(with: .opacity),
+                    removal: .move(edge: slideEdge == .trailing ? .leading : .trailing).combined(with: .opacity),
+                ))
             }
+            .clipped()
+
             if selectedTab == 0 {
-                Button {
-                    navManager.createOutgoingInvoice(companyId: companyId)
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding()
-                        .background(Color.accentColor)
-                        .clipShape(Circle())
-                        .shadow(radius: 4)
-                }
-                .padding()
-                .accessibilityLabel("Nová faktura")
+                newInvoiceButton
+                    .transition(.scale(scale: 0.8).combined(with: .opacity))
             }
         }
-        .navigationTitle("Vydané faktury")
+        .background(Theme.background)
+        .animation(Motion.standard, value: selectedTab)
+        .navigationTitle(session.selectedCompany?.name ?? "Přehled")
+        .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -77,17 +85,34 @@ struct DashboardView: View {
                         Label("Odhlásit se", systemImage: "rectangle.portrait.and.arrow.right")
                     }
                 } label: {
-                    Image(systemName: "line.3.horizontal")
+                    Image(systemName: "ellipsis.circle")
                         .imageScale(.large)
                 }
+                .accessibilityLabel("Menu")
             }
         }
-        .onAppear {
-            Task {
-                await outgoingInvoicesVM.fetchInvoices(page: 1)
-                await incomingInvoicesVM.fetchInvoices(page: 1)
-                await accountsVM.fetchAccounts()
-            }
+        .task {
+            async let outgoing: Void = outgoingInvoicesVM.refresh()
+            async let incoming: Void = incomingInvoicesVM.refresh()
+            async let accounts: Void = accountsVM.fetchAccounts()
+            _ = await (outgoing, incoming, accounts)
         }
+    }
+
+    private var newInvoiceButton: some View {
+        Button {
+            navManager.createOutgoingInvoice(companyId: companyId)
+        } label: {
+            Label("Nová faktura", systemImage: "plus")
+                .font(.headline)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+                .background(Theme.brandGradient, in: Capsule())
+                .shadow(color: Theme.brand.opacity(0.45), radius: 14, y: 6)
+        }
+        .buttonStyle(.plain)
+        .padding(Theme.Spacing.l)
+        .accessibilityLabel("Nová faktura")
     }
 }

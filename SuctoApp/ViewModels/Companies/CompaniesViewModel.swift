@@ -8,41 +8,33 @@
 import SwiftUI
 
 @MainActor
-class CompaniesViewModel: ObservableObject {
+final class CompaniesViewModel: ObservableObject {
     @Published var companies: [Company] = []
     @Published var errorMessage: String?
-    @Published var isLoading: Bool = false   // 🆕
+    @Published var isLoading = false
 
-    private var session: SessionManager
+    private let session: SessionManager
 
     init(session: SessionManager) {
         self.session = session
     }
 
     func fetchCompanies() async {
-        guard let token = session.authToken else {
-            errorMessage = "Token není k dispozici"
-            return
-        }
+        // Při pull-to-refresh nechceme zahodit už zobrazený seznam.
+        isLoading = companies.isEmpty
+        defer { isLoading = false }
 
-        isLoading = true  // 🆕 začátek načítání
-        defer { isLoading = false }  // 🆕 konec načítání
         do {
-            let result: [Company] = try await APIService.shared.request(
-                endpoint: APIConstants.getCompanies(),
-                method: .GET,
-                token: token
-            )
-            companies = result
+            companies = try await session.send(APIConstants.companies)
             errorMessage = nil
-        } catch APIError.unauthorized {
-            session.logout()
+        } catch is CancellationError {
+            return
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
     func selectCompany(_ company: Company) {
-        session.selectedCompanyId = company.id
+        session.selectedCompany = company
     }
 }

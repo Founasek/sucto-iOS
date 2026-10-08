@@ -8,6 +8,7 @@
 import Foundation
 
 struct OutgoingInvoiceCreateLine: Identifiable, Codable, Hashable {
+    /// Pouze lokální identifikátor pro SwiftUI (neposílá se na server).
     let id = UUID()
     var vatId: Int
     var lineableType: String

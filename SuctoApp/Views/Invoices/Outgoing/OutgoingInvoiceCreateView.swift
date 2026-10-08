@@ -8,243 +8,250 @@
 import SwiftUI
 
 struct OutgoingInvoiceCreateView: View {
-    @EnvironmentObject var navManager: NavigationManager
-    @EnvironmentObject var session: SessionManager
     @Environment(\.dismiss) var dismiss
     @StateObject var viewModel: OutgoingInvoiceCreateViewModel
+    @FocusState private var keyboardFocused: Bool
 
-    init(companyId: Int) {
-        _viewModel = StateObject(wrappedValue: OutgoingInvoiceCreateViewModel(companyId: companyId, session: SessionManager()))
+    init(companyId: Int, session: SessionManager) {
+        _viewModel = StateObject(wrappedValue: OutgoingInvoiceCreateViewModel(companyId: companyId, session: session))
+    }
+
+    private var currencyCode: String {
+        viewModel.selectedCurrency?.isoCode ?? "CZK"
     }
 
     var body: some View {
         Form {
-            // MARK: - Základní informace
-
-            Section(header: Text("Základní informace")) {
-                HStack {
-                    Text("Číslo faktury: ")
-                    Spacer()
-                    Text(viewModel.actuarialNumber)
-                }
-
-                HStack {
-                    Text("Variabilní symbol:")
-                    // .foregroundColor(.secondary)
-
-                    Spacer()
-
-                    TextField("", text: $viewModel.variableSymbol)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(minWidth: 80, maxWidth: 220)
-                }
-
-                PartnerPickerView(
-                    selectedPartner: $viewModel.selectedPartner,
-                    partners: viewModel.availablePartners
-                )
-            }
-
-            Section(header: Text("Časové údaje")) {
-                DatePicker("Datum vystavení: ", selection: $viewModel.issueDate, displayedComponents: .date)
-                DatePicker("Datum splatnosti: ", selection: $viewModel.dueDate, displayedComponents: .date)
-                DatePicker("Datum UZP: ", selection: $viewModel.uzpDate, displayedComponents: .date)
-            }
-
-            Section(header: Text("Platební a daňové údaje")) {
-                AccountPickerView(
-                    selectedAccount: $viewModel.selectedAccount,
-                    accounts: viewModel.availableAccounts
-                )
-
-                CurrencyPickerView(
-                    selectedCurrency: $viewModel.selectedCurrency,
-                    currencies: viewModel.availableCurrencies
-                )
-
-                PaymentTypePickerView(
-                    selectedPaymentType: $viewModel.selectedPaymentType,
-                    paymentTypes: viewModel.availablePaymentTypes
-                )
-                VatRegimePickerView(
-                    selectedVatRegime: $viewModel.selectedVatRegime,
-                    vatRegimes: viewModel.availableVatRegimes
-                )
-            }
-
-            Section(header: Text("Dalši informace")) {
-                HStack {
-                    Text("Číslo objednávky:")
-
-                    Spacer()
-
-                    TextField("", text: $viewModel.orderNumber)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(minWidth: 80, maxWidth: 220)
-                }
-            }
-
-            // MARK: - Položky faktury
-
-            Section(header: Text("Položky faktury")) {
-                VStack(alignment: .leading) {
-                    TextField(viewModel.printNotice, text: $viewModel.printNotice, axis: .vertical)
-                        .multilineTextAlignment(.leading)
-                        .lineLimit(1 ... 3)
-                }
-
-                ForEach($viewModel.items) { $item in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            TextField("Název položky", text: $item.name)
-                                .textInputAutocapitalization(.words)
-                                .disableAutocorrection(true)
-
-                            Spacer()
-
-                            Button {
-                                viewModel.items.removeAll { $0.id == item.id }
-                            } label: {
-                                Image(systemName: "trash")
-                                    .foregroundColor(.red.opacity(0.8))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.vertical)
-
-                        HStack {
-                            Text("Množství")
-                                .font(.subheadline)
-                            Spacer()
-                            TextField("0", value: $item.quantity, format: .number)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                        }
-
-                        HStack {
-                            Text("Jednotka")
-                                .font(.subheadline)
-                            Spacer()
-                            TextField("ks / h / MD", text: Binding(
-                                get: { item.unitName ?? "" },
-                                set: { item.unitName = $0 }
-                            ))
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        }
-
-                        HStack {
-                            Text("Cena / j.")
-                                .font(.subheadline)
-                            Spacer()
-                            TextField("0", value: $item.unitPrice, format: .number)
-                                .keyboardType(.numberPad)
-                                .submitLabel(.done)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                        }
-
-                        Picker("Sazba DPH", selection: $item.vatId) {
-                            ForEach(viewModel.availableVats) { vat in
-                                Text("\(vat.value)%").tag(vat.id)
-                            }
-                        }
-                        .pickerStyle(.menu) // <- tady je klíčové
-
-                        HStack {
-                            Text("Celkem")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                            Spacer()
-                            let total = item.quantity * item.unitPrice
-                            Text(total, format: .currency(code: viewModel.selectedCurrency?.isoCode ?? "CZK"))
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.accentColor)
-                        }
-
-                        Divider()
-                    }
-                    .padding(.vertical, 4)
-                }
-
-                Button(action: {
-                    viewModel.items.append(OutgoingInvoiceCreateLine(
-                        vatId: 108,
-                        lineableType: "Actuarial",
-                        name: "",
-                        quantity: 0,
-                        unitPrice: 0,
-                        basePrice: 0,
-                        tax: 0,
-                        totalPrice: 0,
-                        unitName: nil
-                    ))
-                }) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Label("Klikněte pro přidání nové položky", systemImage: "plus.circle.fill")
-                                .foregroundStyle(.accent)
-                            Spacer()
-                        }
-                        .padding(.vertical, 8)
-                    }
-                    .padding(.horizontal)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .cornerRadius(10)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-
-            // MARK: - Celková částka
-
-            Section {
-                HStack {
-                    Text("Celková částka")
-                        .font(.headline)
-                    Spacer()
-                    Text("\(viewModel.items.reduce(0) { $0 + ($1.quantity * $1.unitPrice) }, specifier: "%.2f") \(viewModel.selectedCurrency?.isoCode ?? "")")
-                        .font(.headline)
-                        .foregroundColor(.accentColor)
-                }
-
-                HStack(alignment: .top) {
-                    Text("Patička:")
-                    TextField(viewModel.footNotice, text: $viewModel.footNotice, axis: .vertical)
-                        .multilineTextAlignment(.leading)
-                        .lineLimit(1 ... 2)
-                }
-            }
-
-            // MARK: - Chyby
+            basicSection
+            datesSection
+            paymentSection
+            itemsSection
+            totalsSection
+            notesSection
 
             if let error = viewModel.errorMessage {
-                Text(error)
-                    .foregroundColor(.red)
-            }
-        }
-        .navigationTitle("Nová vydaná faktura")
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Vytvořit") {
-                    Task {
-                        await viewModel.createInvoice()
-                        if viewModel.creationSuccess {
-                            dismiss()
-                        }
-                    }
+                Section {
+                    Label(error, systemImage: "exclamationmark.circle.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.red)
                 }
             }
         }
+        .scrollDismissesKeyboard(.interactively)
+        .navigationTitle("Nová faktura")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button {
+                    Task {
+                        await viewModel.createInvoice()
+                        if viewModel.creationSuccess { dismiss() }
+                    }
+                } label: {
+                    if viewModel.isSubmitting {
+                        ProgressView()
+                    } else {
+                        Text("Vytvořit").fontWeight(.semibold)
+                    }
+                }
+                .disabled(viewModel.isSubmitting)
+            }
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Hotovo") { keyboardFocused = false }
+            }
+        }
+        .sensoryFeedback(.success, trigger: viewModel.creationSuccess)
+        .sensoryFeedback(.error, trigger: viewModel.errorMessage) { _, new in new != nil }
         .task {
             await viewModel.loadInitialData()
         }
-        .onTapGesture {
-            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    // MARK: - Sekce
+
+    private var basicSection: some View {
+        Section {
+            LabeledContent("Číslo faktury") {
+                Text(viewModel.actuarialNumber.isEmpty ? "—" : viewModel.actuarialNumber)
+                    .fontWeight(.semibold)
+                    .monospacedDigit()
+            }
+
+            LabeledContent("Variabilní symbol") {
+                TextField("", text: $viewModel.variableSymbol)
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.trailing)
+                    .focused($keyboardFocused)
+            }
+
+            PartnerPickerView(
+                selectedPartner: $viewModel.selectedPartner,
+                partners: viewModel.availablePartners,
+                onSearch: { await viewModel.searchPartners($0) },
+            )
+        } header: {
+            Text("Základní informace")
+        }
+    }
+
+    private var datesSection: some View {
+        Section("Časové údaje") {
+            DatePicker("Datum vystavení", selection: $viewModel.issueDate, displayedComponents: .date)
+            DatePicker("Datum splatnosti", selection: $viewModel.dueDate, displayedComponents: .date)
+            DatePicker("Datum UZP", selection: $viewModel.uzpDate, displayedComponents: .date)
+        }
+    }
+
+    private var paymentSection: some View {
+        Section("Platební a daňové údaje") {
+            AccountPickerView(
+                selectedAccount: $viewModel.selectedAccount,
+                accounts: viewModel.availableAccounts,
+            )
+
+            CurrencyPickerView(
+                selectedCurrency: $viewModel.selectedCurrency,
+                currencies: viewModel.availableCurrencies,
+            )
+
+            PaymentTypePickerView(
+                selectedPaymentType: $viewModel.selectedPaymentType,
+                paymentTypes: viewModel.availablePaymentTypes,
+            )
+
+            if viewModel.isCompanyTaxable {
+                VatRegimePickerView(
+                    selectedVatRegime: $viewModel.selectedVatRegime,
+                    vatRegimes: viewModel.availableVatRegimes,
+                )
+            }
+
+            LabeledContent("Číslo objednávky") {
+                TextField("", text: $viewModel.orderNumber)
+                    .multilineTextAlignment(.trailing)
+                    .focused($keyboardFocused)
+            }
+        }
+    }
+
+    private var itemsSection: some View {
+        Group {
+            Section {
+                TextField("Úvodní text", text: $viewModel.printNotice, axis: .vertical)
+                    .lineLimit(1 ... 3)
+                    .focused($keyboardFocused)
+            } header: {
+                Text("Úvodní text faktury")
+            }
+
+            ForEach($viewModel.items) { $item in
+                Section {
+                    itemFields($item)
+                } header: {
+                    HStack {
+                        Text("Položka")
+                        Spacer()
+                        Button(role: .destructive) {
+                            withAnimation(.snappy) {
+                                viewModel.items.removeAll { $0.id == item.id }
+                            }
+                        } label: {
+                            Label("Smazat", systemImage: "trash")
+                                .font(.footnote)
+                                .labelStyle(.iconOnly)
+                        }
+                        .accessibilityLabel("Smazat položku")
+                    }
+                }
+            }
+
+            Section {
+                Button {
+                    withAnimation(.snappy) {
+                        viewModel.items.append(viewModel.makeEmptyLine())
+                    }
+                } label: {
+                    Label("Přidat položku", systemImage: "plus.circle.fill")
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func itemFields(_ item: Binding<OutgoingInvoiceCreateLine>) -> some View {
+        TextField("Název položky", text: item.name)
+            .textInputAutocapitalization(.sentences)
+            .focused($keyboardFocused)
+
+        LabeledContent("Množství") {
+            TextField("0", value: item.quantity, format: .number)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .focused($keyboardFocused)
+        }
+
+        LabeledContent("Jednotka") {
+            TextField("ks / h / MD", text: Binding(
+                get: { item.wrappedValue.unitName ?? "" },
+                set: { item.wrappedValue.unitName = $0 },
+            ))
+            .multilineTextAlignment(.trailing)
+            .focused($keyboardFocused)
+        }
+
+        LabeledContent("Cena za jednotku") {
+            TextField("0", value: item.unitPrice, format: .number)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .focused($keyboardFocused)
+        }
+
+        Picker("Sazba DPH", selection: item.vatId) {
+            ForEach(viewModel.availableVats) { vat in
+                Text("\(vat.value) %").tag(vat.id)
+            }
+        }
+
+        LabeledContent("Celkem bez DPH") {
+            Text(item.wrappedValue.quantity * item.wrappedValue.unitPrice, format: .currency(code: currencyCode))
+                .moneyStyle(.subheadline)
+                .foregroundStyle(Color.accentColor)
+                .contentTransition(.numericText())
+        }
+    }
+
+    private var totalsSection: some View {
+        let totals = viewModel.totals
+        return Section {
+            if viewModel.isCompanyTaxable {
+                LabeledContent("Základ") {
+                    Text(totals.base, format: .currency(code: currencyCode)).monospacedDigit()
+                }
+                LabeledContent("DPH") {
+                    Text(totals.tax, format: .currency(code: currencyCode)).monospacedDigit()
+                }
+            }
+            LabeledContent {
+                Text(viewModel.isCompanyTaxable ? totals.total : totals.base, format: .currency(code: currencyCode))
+                    .moneyStyle(.title3)
+                    .foregroundStyle(Color.accentColor)
+                    .contentTransition(.numericText())
+            } label: {
+                Text("Celkem").font(.headline)
+            }
+        } header: {
+            Text("Souhrn")
+        }
+        .animation(.snappy, value: totals.total)
+    }
+
+    private var notesSection: some View {
+        Section("Patička") {
+            TextField("Text v patičce faktury", text: $viewModel.footNotice, axis: .vertical)
+                .lineLimit(1 ... 3)
+                .focused($keyboardFocused)
         }
     }
 }

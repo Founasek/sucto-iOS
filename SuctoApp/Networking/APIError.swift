@@ -5,7 +5,7 @@
 //  Created by Jan Founě on 01.11.2025.
 //
 
-import SwiftUI
+import Foundation
 
 enum APIError: LocalizedError {
     case unauthorized
@@ -13,19 +13,22 @@ enum APIError: LocalizedError {
     case decodingError
     case badRequest
     case badURL
+    case server(statusCode: Int)
 
     var errorDescription: String? {
         switch self {
         case .unauthorized:
-            return "Neplatný token. Přihlaste se prosím znovu."
+            "Neplatný token. Přihlaste se prosím znovu."
         case .network:
-            return "Chyba připojení k serveru."
+            "Chyba připojení k serveru."
         case .decodingError:
-            return "Nepodařilo se zpracovat odpověď serveru."
+            "Nepodařilo se zpracovat odpověď serveru."
         case .badRequest:
-            return "Nesprávné parametry."
+            "Nesprávné parametry."
         case .badURL:
-            return "Chyba v URL adrese."
+            "Chyba v URL adrese."
+        case let .server(statusCode):
+            "Server vrátil chybu (\(statusCode))."
         }
     }
 }

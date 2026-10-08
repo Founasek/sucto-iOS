@@ -9,25 +9,31 @@ import Foundation
 
 enum APIConstants {
     static let baseURL = "https://www.sucto.cz/api/"
+    static let defaultTimeout: TimeInterval = 30
+
     static let loginEndpoint = "sessions/create"
+
+    static func outgoingInvoices(companyId: Int, page: Int) -> String {
+        "companies/\(companyId)/actuarials_outs?page=\(page)"
+    }
+
+    static func incomingInvoices(companyId: Int, page: Int) -> String {
+        "companies/\(companyId)/actuarials_ins?page=\(page)"
+    }
 
     static func outgoingInvoiceMarkAsPaid(companyId: Int, invoiceId: Int) -> String {
         "companies/\(companyId)/actuarials_outs/\(invoiceId)/pay"
     }
 
-    static func incomingInvoiceMarkAsPaid(companyId: Int, invoiceId: Int) -> String {
-        "companies/\(companyId)/actuarials_ins/\(invoiceId)/pay"
-    }
-
-    static func GetOutgoingInvoiceDetail(companyId: Int, invoiceId: Int) -> String {
+    static func outgoingInvoiceDetail(companyId: Int, invoiceId: Int) -> String {
         "companies/\(companyId)/actuarials_outs/\(invoiceId)"
     }
 
-    static func GetIncomingInvoiceDetail(companyId: Int, invoiceId: Int) -> String {
+    static func incomingInvoiceDetail(companyId: Int, invoiceId: Int) -> String {
         "companies/\(companyId)/actuarials_ins/\(invoiceId)"
     }
 
-    static func getNewOutgoingInvoice(companyId: Int) -> String {
+    static func newOutgoingInvoice(companyId: Int) -> String {
         "companies/\(companyId)/actuarials_outs/new"
     }
 
@@ -35,47 +41,37 @@ enum APIConstants {
         "companies/\(companyId)/actuarials_outs"
     }
 
-    static func getPartners(companyId: Int) -> String {
-        "companies/\(companyId)/partners?page=1&limit=9999"
+    /// Seznam partnerů; `query` hledá podle názvu, IČ, DIČ i adresy (dle API dokumentace).
+    static func partners(companyId: Int, query: String = "", page: Int = 1, limit: Int = 50) -> String {
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "page", value: "\(page)"),
+            URLQueryItem(name: "limit", value: "\(limit)"),
+        ]
+        if !query.isEmpty {
+            components.queryItems?.append(
+                URLQueryItem(name: "q[name_or_ic_or_dic_or_address_street_or_address_city_cont]", value: query),
+            )
+        }
+        return "companies/\(companyId)/partners?\(components.percentEncodedQuery ?? "")"
     }
 
-    static func GetVatRegimes(countryId: Int) -> String {
+    static func vatRegimes(countryId: Int) -> String {
         "countries/\(countryId)/vat_regimes"
     }
 
-    static func GetVats(countryId: Int) -> String {
+    static func vats(countryId: Int) -> String {
         "countries/\(countryId)/vats"
     }
 
-    static func getCurrencies() -> String {
-        "currencies"
-    }
+    static let currencies = "currencies"
+    static let companies = "companies"
 
-    static func getCompanies() -> String {
-        "companies"
-    }
-
-    static func getBankAccounts(companyId: Int) -> String {
+    static func bankAccounts(companyId: Int) -> String {
         "companies/\(companyId)/accounts"
     }
 
-    static func GetPaymentTypes(companyId: Int) -> String {
+    static func paymentTypes(companyId: Int) -> String {
         "companies/\(companyId)/payment_types"
     }
-
-    static let defaultTimeout: TimeInterval = 30
-}
-
-enum HeaderKeys {
-    static let contentType = "Content-Type"
-}
-
-enum ContentTypes {
-    static let formUrlEncoded = "application/x-www-form-urlencoded"
-}
-
-enum ErrorMessages {
-    static let noData = "Server neposlal žádná data."
-    static let decodingFailed = "Nepodařilo se zpracovat odpověď serveru."
-    static let unknown = "Neznámá chyba."
 }

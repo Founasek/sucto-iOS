@@ -14,18 +14,8 @@ struct PartnerPickerView: View {
     @State private var searchText = ""
     @State private var isPresented = false
 
-    private var filteredPartners: [Partner] {
-        let result: [Partner]
-        if searchText.isEmpty {
-            result = partners
-        } else {
-            result = partners.filter {
-                $0.name.lowercased().contains(searchText.lowercased()) ||
-                    ($0.ic ?? "").contains(searchText)
-            }
-        }
-        return result.sorted { $0.name.lowercased() < $1.name.lowercased() } // řazení podle názvu
-    }
+    /// Vyhledání na serveru; vrací aktualizovaný seznam do `partners`.
+    let onSearch: (String) async -> Void
 
     var body: some View {
         Button {
@@ -55,7 +45,7 @@ struct PartnerPickerView: View {
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $isPresented) {
             NavigationStack {
-                List(filteredPartners) { partner in
+                List(partners) { partner in
                     Button {
                         selectedPartner = partner
                         isPresented = false
@@ -72,6 +62,12 @@ struct PartnerPickerView: View {
                     }
                 }
                 .searchable(text: $searchText, prompt: "Hledat podle názvu nebo IČ")
+                .task(id: searchText) {
+                    // Debounce: server voláme až po krátké pauze v psaní.
+                    try? await Task.sleep(for: .milliseconds(300))
+                    guard !Task.isCancelled else { return }
+                    await onSearch(searchText)
+                }
                 .navigationTitle("Vyberte odběratele")
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {

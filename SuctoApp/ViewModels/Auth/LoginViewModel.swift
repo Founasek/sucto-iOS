@@ -8,23 +8,31 @@
 import SwiftUI
 
 @MainActor
-class LoginViewModel: ObservableObject {
-    @Published var token: String?
+final class LoginViewModel: ObservableObject {
     @Published var errorMessage: String?
+    @Published var isLoading = false
 
-    func login(email: String, password: String) async {
-        let body = ["email": email, "password": password]
+    private struct Credentials: Encodable {
+        let email: String
+        let password: String
+    }
+
+    /// Vrací token při úspěšném přihlášení.
+    func login(email: String, password: String) async -> String? {
+        isLoading = true
+        defer { isLoading = false }
         do {
-            let jsonData = try JSONSerialization.data(withJSONObject: body)
+            let body = try JSONEncoder().encode(Credentials(email: email, password: password))
             let response: LoginResponse = try await APIService.shared.request(
                 endpoint: APIConstants.loginEndpoint,
                 method: .POST,
-                body: jsonData
+                body: body,
             )
-            token = response.authentication_token
             errorMessage = nil
+            return response.authenticationToken
         } catch {
             errorMessage = error.localizedDescription
+            return nil
         }
     }
 }

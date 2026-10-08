@@ -1,5 +1,5 @@
 //
-//  Color_extenstion.swift
+//  Color+Hex.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 19.09.2025.

@@ -7,12 +7,18 @@
 
 import Foundation
 
-struct Company: Identifiable, Decodable {
+struct Company: Identifiable, Decodable, Hashable {
     let id: Int
     let name: String
     let ic: String
-    let is_taxable: Bool
-    let country_id: Int
+    let isTaxable: Bool
+    let countryId: Int
     let email: String
     let logo: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, ic, email, logo
+        case isTaxable = "is_taxable"
+        case countryId = "country_id"
+    }
 }

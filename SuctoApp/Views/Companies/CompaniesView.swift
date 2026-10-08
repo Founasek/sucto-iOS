@@ -13,99 +13,123 @@ struct CompaniesView: View {
     @EnvironmentObject var navManager: NavigationManager
 
     var body: some View {
-        VStack(spacing: 0) {
+        Group {
             if viewModel.isLoading {
-                LoadingStateView(message: "Načítám firmy…") // 🆕
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                LoadingStateView(message: "Načítám firmy…")
             } else if let error = viewModel.errorMessage {
-                ErrorStateView(
-                    message: error,
-                    retryAction: {
-                        Task {
-                            await viewModel.fetchCompanies()
-                        }
-                    }
-                )
+                ErrorStateView(message: error) {
+                    Task { await viewModel.fetchCompanies() }
+                }
             } else if viewModel.companies.isEmpty {
                 ScrollView {
                     EmptyStateView(
-                        systemImage: "building.2.crop.circle",
-                        message: "Žádné firmy k dispozici."
+                        systemImage: "building.2",
+                        message: "K tomuto účtu nejsou přiřazené žádné firmy.",
                     )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .refreshable {
-                    Task {
-                        await viewModel.fetchCompanies()
-                    }
-                }
-
             } else {
-                List {
-                    ForEach(viewModel.companies) { company in
-                        Button {
-                            viewModel.selectCompany(company)
-                            navManager.goToDashboard(companyId: company.id)
-                        } label: {
-                            HStack(spacing: 16) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(company.name)
-                                        .font(.headline)
-                                        .foregroundColor(.primary)
-                                    Text("IČ: \(company.ic)")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-
-                                Spacer()
-
-                                if let logoURL = company.logo, let url = URL(string: logoURL) {
-                                    AsyncImage(url: url) { img in
-                                        img.resizable()
-                                            .scaledToFit()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(width: 50, height: 50)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    } placeholder: {
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color.gray.opacity(0.3))
-                                            .frame(width: 50, height: 50)
-                                    }
-                                } else {
-                                    Image(systemName: "building.2.crop.circle")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 50, height: 50)
-                                        .foregroundColor(.gray.opacity(0.6))
-                                }
+                ScrollView {
+                    LazyVStack(spacing: Theme.Spacing.m) {
+                        ForEach(Array(viewModel.companies.enumerated()), id: \.element.id) { index, company in
+                            Button {
+                                viewModel.selectCompany(company)
+                                navManager.goToDashboard(companyId: company.id)
+                            } label: {
+                                CompanyCard(company: company)
                             }
-                            .padding(.vertical, 8)
+                            .buttonStyle(PressableCardStyle())
+                            .staggeredAppear(index: index)
                         }
-                        .listRowBackground(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(8)
                     }
+                    .padding(Theme.Spacing.l)
                 }
-                .listStyle(.insetGrouped)
-            }
-
-            Button(action: {
-                session.logout()
-                navManager.reset()
-            }) {
-                Text("Odhlásit se")
-                    .font(.headline)
-                    .foregroundColor(.red)
-                    .frame(maxWidth: .infinity)
-                    .padding()
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.background)
         .navigationTitle("Vaše firmy")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(role: .destructive) {
+                    session.logout()
+                    navManager.reset()
+                } label: {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                }
+                .accessibilityLabel("Odhlásit se")
+            }
+        }
         .task {
             await viewModel.fetchCompanies()
         }
-
         .refreshable {
             await viewModel.fetchCompanies()
+        }
+    }
+}
+
+/// Karta firmy s logem (nebo iniciálami) a IČ.
+private struct CompanyCard: View {
+    let company: Company
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.l) {
+            avatar
+
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                Text(company.name)
+                    .font(.headline)
+                    .multilineTextAlignment(.leading)
+                HStack(spacing: Theme.Spacing.s) {
+                    Text("IČ \(company.ic)")
+                    if company.isTaxable {
+                        Text("Plátce DPH")
+                            .font(.caption2.weight(.semibold))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2)
+                            .background(Theme.brand.opacity(0.18), in: Capsule())
+                            .foregroundStyle(Color.accentColor)
+                    }
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .card()
+        .accessibilityElement(children: .combine)
+    }
+
+    private var avatar: some View {
+        Group {
+            if let logoURL = company.logo, let url = URL(string: logoURL) {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFit().padding(6)
+                } placeholder: {
+                    initials
+                }
+                .background(Color.white)
+            } else {
+                initials
+            }
+        }
+        .frame(width: 52, height: 52)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5))
+    }
+
+    private var initials: some View {
+        ZStack {
+            Theme.brandGradient
+            Text(String(company.name.prefix(1)).uppercased())
+                .font(.title3.weight(.bold))
+                .fontDesign(.rounded)
+                .foregroundStyle(.white)
         }
     }
 }
@@ -116,19 +140,19 @@ struct CompaniesView: View {
             id: 1,
             name: "UFOSOFT s.r.o.",
             ic: "12345678",
-            is_taxable: true,
-            country_id: 1,
+            isTaxable: true,
+            countryId: 1,
             email: "info@ufosoft.cz",
-            logo: "logo-sucto.png"
+            logo: "logo-sucto.png",
         ),
         Company(
             id: 2,
             name: "Testovací firma a.s.",
             ic: "87654321",
-            is_taxable: false,
-            country_id: 1,
+            isTaxable: false,
+            countryId: 1,
             email: "kontakt@test.cz",
-            logo: nil
+            logo: nil,
         ),
     ]
 

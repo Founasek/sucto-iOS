@@ -18,8 +18,10 @@ struct OutgoingInvoiceCreateRequest: Codable {
     var swift: String
     var bankNumber: String
 
-    var paymentTypeId: Int
-    var vatRegimeId: Int
+    /// Nepovinné dle API dokumentace.
+    var paymentTypeId: Int?
+    /// Posílá se jen u plátců DPH.
+    var vatRegimeId: Int?
 
     var issueDateAt: String
     var dueDateAt: String

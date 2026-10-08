@@ -15,3 +15,6 @@ Carthage/Build/
 
 # Misc
 .DS_Store
+
+# Sdílená schémata Xcode – mohou obsahovat přihlašovací údaje v proměnných prostředí
+*.xcodeproj/xcshareddata/

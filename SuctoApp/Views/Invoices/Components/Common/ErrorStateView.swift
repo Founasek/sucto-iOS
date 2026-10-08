@@ -12,55 +12,44 @@ struct ErrorStateView: View {
     var retryAction: (() -> Void)?
 
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 50))
-                .foregroundColor(.orange)
+        VStack(spacing: Theme.Spacing.l) {
+            ZStack {
+                Circle()
+                    .fill(Color.orange.opacity(0.14))
+                    .frame(width: 96, height: 96)
+                Image(systemName: "wifi.exclamationmark")
+                    .font(.system(size: 38))
+                    .foregroundStyle(.orange)
+                    .symbolRenderingMode(.hierarchical)
+            }
 
-            Text("Nastala chyba")
-                .font(.headline)
-                .foregroundColor(.primary)
+            VStack(spacing: Theme.Spacing.xs) {
+                Text("Něco se nepovedlo")
+                    .font(.title3.weight(.semibold))
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, Theme.Spacing.xl)
 
-            Text(message)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-
-            if let retryAction = retryAction {
+            if let retryAction {
                 Button(action: retryAction) {
                     Label("Zkusit znovu", systemImage: "arrow.clockwise")
-                        .font(.headline)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.blue)
-                .padding(.top, 6)
+                .controlSize(.large)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .frame(minHeight: UIScreen.main.bounds.height * 0.6)
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 420)
+        .accessibilityElement(children: .contain)
     }
-}
-
-#Preview("Základní chyba") {
-    ErrorStateView(message: "Nepodařilo se načíst data ze serveru.")
 }
 
 #Preview("Chyba s tlačítkem") {
     ErrorStateView(
         message: "Nepodařilo se načíst fakturu. Zkontrolujte připojení a zkuste to znovu.",
-        retryAction: {
-            print("Retry stisknuto")
-        }
+        retryAction: {},
     )
 }
-
-/*
- ErrorStateView(
-     message: "Nepodařilo se načíst data ze serveru.",
-     retryAction: { Task { await viewModel.loadInitialData() } }
- )
-
- */

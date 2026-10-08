@@ -8,9 +8,9 @@
 import SwiftUI
 
 @MainActor
-class OutgoingInvoiceCreateViewModel: ObservableObject {
+final class OutgoingInvoiceCreateViewModel: ObservableObject {
     let companyId: Int
-    var session: SessionManager
+    private let session: SessionManager
 
     // MARK: - Faktura
 
@@ -23,7 +23,6 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
     @Published var selectedCurrency: Currency?
     @Published var selectedPaymentType: PaymentType?
     @Published var selectedVatRegime: VatRegime?
-    @Published var selectedVats: Vat?
 
     @Published var issueDate = Date()
     @Published var dueDate = Date()
@@ -48,6 +47,7 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
 
     @Published var errorMessage: String?
     @Published var creationSuccess = false
+    @Published var isSubmitting = false
 
     // MARK: - Init
 
@@ -59,158 +59,168 @@ class OutgoingInvoiceCreateViewModel: ObservableObject {
     // MARK: - Načtení výchozích dat
 
     func loadInitialData() async {
-        guard let token = session.authToken else {
-            errorMessage = "Token není k dispozici"
-            print("❌ Token není k dispozici")
-            return
-        }
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-
         do {
-            // Načteme výchozí údaje pro novou fakturu
-            let newInvoice: OutgoingInvoiceInitResponse = try await APIService.shared.request(
-                endpoint: APIConstants.getNewOutgoingInvoice(companyId: companyId),
-                method: .GET,
-                token: token
+            // Výchozí údaje pro novou fakturu
+            let newInvoice: OutgoingInvoiceInitResponse = try await session.send(
+                APIConstants.newOutgoingInvoice(companyId: companyId),
             )
 
-            // Naplníme ViewModel daty
             actuarialNumber = newInvoice.actuarialNumber
             issueDate = newInvoice.issueDate ?? Date()
             dueDate = newInvoice.dueDate ?? Date()
-            // currencyId = newInvoice.currency?.id ?? 1
-            // partnerId = newInvoice.customer?.id
+            uzpDate = newInvoice.uzpDateAt?.toDate() ?? issueDate
             items = newInvoice.items
 
-            // Získání číselné části faktury pro variabilní symbol
-            let numericPart = actuarialNumber.filter(\.isNumber)
-            variableSymbol = String(numericPart)
+            // Variabilní symbol = číselná část čísla faktury
+            variableSymbol = actuarialNumber.filter(\.isNumber)
 
-            // Dostupní partneři
-            availablePartners = try await APIService.shared.request(
-                endpoint: APIConstants.getPartners(companyId: companyId),
-                method: .GET,
-                token: token
-            )
+            // Sazby a režimy DPH závisí na zemi vybrané firmy (výchozí ČR).
+            let countryId = session.selectedCompany?.countryId ?? 1
 
-            // Dostupné měny
-            availableCurrencies = try await APIService.shared.request(
-                endpoint: APIConstants.getCurrencies(),
-                method: .GET,
-                token: token
-            )
+            async let currencies: [Currency] = session.send(APIConstants.currencies)
+            async let accounts: [Account] = session.send(APIConstants.bankAccounts(companyId: companyId))
+            async let paymentTypes: [PaymentType] = session.send(APIConstants.paymentTypes(companyId: companyId))
+            async let vatRegimes: [VatRegime] = session.send(APIConstants.vatRegimes(countryId: countryId))
+            async let vats: [Vat] = session.send(APIConstants.vats(countryId: countryId))
 
-            // Dostupné bankovní účty
-            availableAccounts = try await APIService.shared.request(
-                endpoint: APIConstants.getBankAccounts(companyId: companyId),
-                method: .GET,
-                token: token
-            )
-
-            availablePaymentTypes = try await APIService.shared.request(
-                endpoint: APIConstants.GetPaymentTypes(companyId: companyId),
-                method: .GET,
-                token: token
-            )
-
-            availableVatRegimes = try await APIService.shared.request(
-                endpoint: APIConstants.GetVatRegimes(countryId: 1),
-                method: .GET,
-                token: token
-            )
-
-            let vats: [Vat] = try await APIService.shared.request(
-                endpoint: APIConstants.GetVats(countryId: 1),
-                method: .GET,
-                token: token
-            )
-
-            availableVats = vats.filter { $0.valid_to == nil }
-
+            await searchPartners("")
+            availableCurrencies = try await currencies
+            availableAccounts = try await accounts
+            availablePaymentTypes = try await paymentTypes
+            availableVatRegimes = try await vatRegimes
+            availableVats = try await vats.filter { $0.validTo == nil }
+            errorMessage = nil
+        } catch is CancellationError {
+            return
         } catch {
             errorMessage = error.localizedDescription
-            print("❌ Chyba při načítání dat: \(error.localizedDescription)")
+        }
+    }
+
+    /// DPH režim se podle API posílá jen u plátců DPH.
+    var isCompanyTaxable: Bool { session.selectedCompany?.isTaxable ?? true }
+
+    /// Vyhledá odběratele na serveru (název, IČ, DIČ, adresa). Prázdný dotaz vrátí prvních 50.
+    func searchPartners(_ query: String) async {
+        do {
+            availablePartners = try await session.send(
+                APIConstants.partners(companyId: companyId, query: query.trimmingCharacters(in: .whitespaces)),
+            )
+        } catch is CancellationError {
+            return
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
     // MARK: - Vytvoření faktury
 
     func createInvoice() async {
-        guard let token = session.authToken else {
-            errorMessage = "Token není k dispozici"
+        guard !isSubmitting else { return }
+
+        guard let partner = selectedPartner, let partnerId = partner.id,
+              let account = selectedAccount, let accountId = account.id,
+              let currencyId = selectedCurrency?.id,
+              !isCompanyTaxable || selectedVatRegime != nil
+        else {
+            errorMessage = isCompanyTaxable
+                ? "Vyplňte odběratele, účet, měnu a DPH režim."
+                : "Vyplňte odběratele, účet a měnu."
+            return
+        }
+        guard !items.isEmpty, items.allSatisfy({ !$0.name.trimmingCharacters(in: .whitespaces).isEmpty }) else {
+            errorMessage = "Přidejte alespoň jednu pojmenovanou položku."
             return
         }
 
-        // Kontrola povinných polí
-        /*
-         guard let partnerId = selectedPartner?.id,
-         let accountId = selectedAccount?.id,
-         let currencyId = selectedCurrency?.id,
-         let actuarialTypeId = actuarialTypeId,
-         !items.isEmpty else {
-         errorMessage = "Vyplňte všechny povinné údaje a položky"
-         return
-         }
-         */
+        isSubmitting = true
+        defer { isSubmitting = false }
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-
-        // 🧱 Sestavení request objektu
         let requestBody = OutgoingInvoiceCreateRequest(
             actuarialNumber: actuarialNumber,
             variableSymbol: variableSymbol,
             actuarialTypeId: actuarialTypeId ?? 1,
-            partnerId: selectedPartner?.id ?? 0,
-            accountId: selectedAccount?.id ?? 0,
-            currencyId: selectedCurrency?.id ?? 0,
-            iban: selectedAccount?.bankAccount?.iban ?? "",
-            swift: selectedAccount?.bankAccount?.swift ?? "",
-            bankNumber: selectedAccount?.bankAccount?.bankCode ?? "",
-            paymentTypeId: selectedPaymentType?.id ?? 0,
-            vatRegimeId: selectedVatRegime?.id ?? 0,
-            issueDateAt: formatter.string(from: issueDate),
-            dueDateAt: formatter.string(from: dueDate),
-            uzpDateAt: formatter.string(from: uzpDate),
+            partnerId: partnerId,
+            accountId: accountId,
+            currencyId: currencyId,
+            iban: account.bankAccount?.iban ?? "",
+            swift: account.bankAccount?.swift ?? "",
+            bankNumber: account.bankAccount?.bankCode ?? "",
+            paymentTypeId: selectedPaymentType?.id,
+            vatRegimeId: isCompanyTaxable ? selectedVatRegime?.id : nil,
+            issueDateAt: Self.apiDateFormatter.string(from: issueDate),
+            dueDateAt: Self.apiDateFormatter.string(from: dueDate),
+            uzpDateAt: Self.apiDateFormatter.string(from: uzpDate),
             printNotice: printNotice,
             footNotice: footNotice,
-            orderNumber: orderNumber, lines: items
+            orderNumber: orderNumber,
+            lines: items.map(calculated),
         )
 
         do {
-            // 🔧 Kódování do JSONu
-            let encoder = JSONEncoder()
-            encoder.keyEncodingStrategy = .convertToSnakeCase
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-
-            let jsonData = try encoder.encode(requestBody)
-
-            // Pro kontrolu — můžeš si nechat vytisknout JSON
-            if let jsonString = String(data: jsonData, encoding: .utf8) {
-                print("📦 JSON Body:")
-                print(jsonString)
-            }
-
-            // POST na API
-            let _: OutgoingInvoiceCreatedResponse = try await APIService.shared.request(
-                endpoint: APIConstants.createOutgoingInvoice(companyId: companyId),
+            let jsonData = try JSONEncoder().encode(requestBody)
+            let _: OutgoingInvoiceCreatedResponse = try await session.send(
+                APIConstants.createOutgoingInvoice(companyId: companyId),
                 method: .POST,
-                token: token,
-                body: jsonData
+                body: jsonData,
             )
-
             creationSuccess = true
             errorMessage = nil
+        } catch is CancellationError {
+            return
         } catch {
             errorMessage = error.localizedDescription
             creationSuccess = false
         }
     }
 
-    func updateLine(_ line: inout OutgoingInvoiceCreateLine) {
-        line.basePrice = line.unitPrice * line.quantity
-        line.totalPrice = line.basePrice + line.tax
+    // MARK: - Položky
+
+    func makeEmptyLine() -> OutgoingInvoiceCreateLine {
+        OutgoingInvoiceCreateLine(
+            vatId: availableVats.first?.id ?? 108,
+            lineableType: "Actuarial",
+            name: "",
+            quantity: 0,
+            unitPrice: 0,
+            basePrice: 0,
+            tax: 0,
+            totalPrice: 0,
+            unitName: nil,
+        )
     }
+
+    struct Totals {
+        var base = 0.0
+        var tax = 0.0
+        var total = 0.0
+    }
+
+    /// Součty za celou fakturu (základ, DPH, celkem) pro náhled ve formuláři.
+    var totals: Totals {
+        var result = Totals()
+        for line in items.map(calculated) {
+            result.base += line.basePrice
+            result.tax += line.tax
+            result.total += line.totalPrice
+        }
+        return result
+    }
+
+    /// Základ a celkem položky se v UI neupravují, proto je dopočítáme před odesláním.
+    private func calculated(_ line: OutgoingInvoiceCreateLine) -> OutgoingInvoiceCreateLine {
+        var line = line
+        let rate = availableVats.first { $0.id == line.vatId }.flatMap { Double($0.value) } ?? 0
+        line.basePrice = line.quantity * line.unitPrice
+        line.tax = line.basePrice * rate / 100
+        line.totalPrice = line.basePrice + line.tax
+        return line
+    }
+
+    private static let apiDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
 }

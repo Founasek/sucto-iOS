@@ -9,93 +9,110 @@ import SwiftUI
 
 struct BankAccountDetailView: View {
     let account: Account
+    var currencySymbol: String?
 
     var body: some View {
-        List {
-            // 🏷 Název účtu
-            VStack(alignment: .leading, spacing: 4) {
-                Text(account.name)
-                    .font(.title2)
-                    .bold()
-            }
-            VStack(alignment: .leading, spacing: 24) {
-                // 💳 Bankovní údaje (pouze pro bankovní účty)
-                if !account.isCashAccount,
-                   let bankAccount = account.bankAccount
-                {
-                    SectionView(title: "Bankovní údaje") {
-                        InfoRow(label: "Číslo účtu", value: "\(bankAccount.account, default: " - ")/\(bankAccount.bankCode, default: " - ")")
+        ScrollView {
+            VStack(spacing: Theme.Spacing.l) {
+                hero
 
-                        InfoRow(label: "SWIFT", value: "\(bankAccount.swift, default: " - ")")
-                        InfoRow(label: "IBAN", value: "\(bankAccount.iban, default: " - ")")
-                        InfoRow(label: "Banka", value: "\(bankAccount.bankName, default: " - ")")
+                if !account.isCashAccount, let bank = account.bankAccount {
+                    DetailCard(title: "Bankovní údaje", systemImage: "building.columns") {
+                        CopyableRow(
+                            label: "Číslo účtu",
+                            value: bank.account.map { "\($0)/\(bank.bankCode ?? "")" },
+                        )
+                        CopyableRow(label: "IBAN", value: bank.iban)
+                        CopyableRow(label: "SWIFT", value: bank.swift)
+                        DetailRow(label: "Banka", value: bank.bankName, hideWhenEmpty: true)
                     }
                 }
 
-                // 💰 Finanční informace
-                SectionView(title: "Zůstatek a parametry") {
-                    InfoRow(label: "Prefix", value: account.prefix)
-
-                    InfoRow(
+                DetailCard(title: "Parametry", systemImage: "slider.horizontal.3") {
+                    DetailRow(label: "Prefix", value: account.prefix, hideWhenEmpty: true)
+                    DetailRow(
                         label: "Počáteční zůstatek",
-                        value: FormatterHelper.formatPrice(account.openingBalance, currency: "Kč")
+                        value: FormatterHelper.formatPrice(account.openingBalance, currency: currencySymbol),
                     )
                 }
 
-                // ⚠️ Stav účtu
                 if account.isDeactivated {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.red)
-                        Text("Účet je deaktivován")
-                            .foregroundColor(.red)
-                            .bold()
-                    }
-                    .padding(.top, 8)
+                    Label("Účet je deaktivován", systemImage: "exclamationmark.triangle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.red)
+                        .padding(Theme.Spacing.m)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.red.opacity(0.1), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
                 }
-
-                Spacer()
             }
+            .padding(Theme.Spacing.l)
         }
+        .background(Theme.background)
         .navigationTitle(account.isCashAccount ? "Hotovostní účet" : "Bankovní účet")
         .navigationBarTitleDisplayMode(.inline)
     }
-}
 
-// MARK: - Podkomponenty
-
-private struct SectionView<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
-                .foregroundColor(.primary)
-
-            VStack(spacing: 8) {
-                content
-            }
+    private var hero: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Image(systemName: account.isCashAccount ? "banknote" : "building.columns")
+                .font(.title2)
+                .foregroundStyle(.white.opacity(0.85))
+            Text(account.name)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(.white)
+            Text(FormatterHelper.formatPrice(account.openingBalance, currency: currencySymbol))
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+            Text("Počáteční zůstatek")
+                .font(.footnote)
+                .foregroundStyle(.white.opacity(0.7))
         }
+        .padding(Theme.Spacing.xl)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.brandGradient, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .shadow(color: Theme.brand.opacity(0.3), radius: 18, y: 10)
+        .accessibilityElement(children: .combine)
     }
 }
 
-private struct InfoRow: View {
+/// Řádek, jehož hodnotu lze klepnutím zkopírovat do schránky.
+private struct CopyableRow: View {
     let label: String
-    let value: String
-    var copyable: Bool = false
+    let value: String?
     @State private var copied = false
 
     var body: some View {
-        HStack {
-            Text(label)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            Spacer()
-            Text(value)
-                .font(.body)
-                .multilineTextAlignment(.trailing)
+        if let value, !value.isEmpty {
+            Button {
+                UIPasteboard.general.string = value
+                copied = true
+                Task {
+                    try? await Task.sleep(for: .seconds(1.5))
+                    copied = false
+                }
+            } label: {
+                HStack {
+                    Text(label)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(copied ? "Zkopírováno" : value)
+                        .font(.subheadline)
+                        .monospacedDigit()
+                        .foregroundStyle(copied ? Color.accentColor : Color.primary)
+                        .multilineTextAlignment(.trailing)
+                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                        .font(.caption)
+                        .foregroundStyle(copied ? Color.accentColor : Color.secondary)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.success, trigger: copied) { _, new in new }
+            .animation(.snappy, value: copied)
+            .accessibilityHint("Zkopíruje hodnotu do schránky")
         }
     }
 }

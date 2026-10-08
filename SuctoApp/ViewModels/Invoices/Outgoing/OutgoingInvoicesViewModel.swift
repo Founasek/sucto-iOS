@@ -8,122 +8,101 @@
 import SwiftUI
 
 @MainActor
-class OutgoingInvoicesViewModel: ObservableObject {
+final class OutgoingInvoicesViewModel: ObservableObject {
     @Published var invoices: [Invoice] = []
     @Published var selectedInvoice: Invoice?
 
-    @Published var successMessage: String?
+    /// Chyba načtení seznamu.
     @Published var errorMessage: String?
+    /// Chyba načtení detailu (oddělená od seznamu, aby se nepřenášela mezi obrazovkami).
+    @Published var detailErrorMessage: String?
+    /// Chyba akce (např. úhrady) zobrazená v alertu.
+    @Published var alertMessage: String?
+    /// Text potvrzení po úspěšné úhradě; dokud je nastavený, ukazuje se animace úspěchu.
+    @Published var paymentConfirmation: String?
 
     @Published var isLoadingPage = false
     @Published var isLoadingDetail = false
-
     @Published var hasMorePages = true
+
     private var currentPage = 1
 
     let companyId: Int
-    var session: SessionManager
+    private let session: SessionManager
 
     init(companyId: Int, session: SessionManager) {
         self.companyId = companyId
         self.session = session
     }
 
-    func resetPagination() {
+    /// Načte první stránku znovu (pull-to-refresh, návrat na obrazovku).
+    func refresh() async {
         currentPage = 1
         hasMorePages = true
+        await fetchNextPage()
     }
 
-    func fetchInvoices(page: Int? = nil) async {
-        guard let token = session.authToken else {
-            errorMessage = "Token není k dispozici"
-            return
-        }
-
+    func fetchNextPage() async {
         guard !isLoadingPage, hasMorePages else { return }
-
         isLoadingPage = true
+        defer { isLoadingPage = false }
 
-        let pageToLoad = page ?? currentPage
-
+        let pageToLoad = currentPage
         do {
-            let result: [Invoice] = try await APIService.shared.request(
-                endpoint: "companies/\(companyId)/actuarials_outs?page=\(pageToLoad)",
-                method: .GET,
-                token: token
+            let result: [Invoice] = try await session.send(
+                APIConstants.outgoingInvoices(companyId: companyId, page: pageToLoad),
             )
-
-            if result.isEmpty {
-                hasMorePages = false
+            if pageToLoad == 1 {
+                invoices = result
             } else {
-                if pageToLoad == 1 {
-                    invoices = result
-                } else {
-                    invoices.append(contentsOf: result)
-                }
-                currentPage += 1
+                invoices.append(contentsOf: result)
             }
-
+            hasMorePages = !result.isEmpty
+            currentPage = pageToLoad + 1
             errorMessage = nil
-            print("✅ Načtena stránka \(pageToLoad), počet faktur: \(result.count)")
-        } catch APIError.unauthorized {
-            session.logout()
-        } catch APIError.badURL {
-            errorMessage = APIError.badURL.localizedDescription
+        } catch is CancellationError {
+            return
         } catch {
             errorMessage = error.localizedDescription
         }
-
-        isLoadingPage = false
     }
 
     func fetchInvoiceDetail(invoiceId: Int) async {
-        guard let token = session.authToken else {
-            errorMessage = "Token není k dispozici"
-            return
-        }
-
+        // Nezobrazuj detail dříve prohlížené faktury, než se načte ta aktuální.
+        if selectedInvoice?.id != invoiceId { selectedInvoice = nil }
         isLoadingDetail = true
+        defer { isLoadingDetail = false }
 
         do {
-            let invoice: Invoice = try await APIService.shared.request(
-                endpoint: APIConstants.GetOutgoingInvoiceDetail(companyId: companyId, invoiceId: invoiceId),
-                method: .GET,
-                token: token
+            selectedInvoice = try await session.send(
+                APIConstants.outgoingInvoiceDetail(companyId: companyId, invoiceId: invoiceId),
             )
-
-            selectedInvoice = invoice
-            errorMessage = nil
-        } catch APIError.unauthorized {
-            session.logout()
-
-        } catch APIError.network {
-            errorMessage = APIError.network.localizedDescription
-
+            detailErrorMessage = nil
+        } catch is CancellationError {
+            return
         } catch {
-            errorMessage = error.localizedDescription
+            detailErrorMessage = error.localizedDescription
         }
-
-        isLoadingDetail = false
     }
 
     func markOutgoingInvoiceAsPaid(invoiceId: Int) async {
-        guard let token = session.authToken else {
-            errorMessage = "Token není k dispozici"
-            return
-        }
-
         do {
-            let result: PayInvoiceResponse = try await APIService.shared.request(
-                endpoint: APIConstants.outgoingInvoiceMarkAsPaid(companyId: companyId, invoiceId: invoiceId),
-                method: .GET,
-                token: token
+            let result: PayInvoiceResponse = try await session.send(
+                APIConstants.outgoingInvoiceMarkAsPaid(companyId: companyId, invoiceId: invoiceId),
             )
-            successMessage = "Faktura byla úspěšně zaplacena. Doklad č. \(result.cashVoucherId)"
-            errorMessage = nil
-            print("✅ Faktura zaplacena, doklad ID: \(result.cashVoucherId)")
+            withAnimation(Motion.bouncy) {
+                paymentConfirmation = "Doklad č. \(result.cashVoucherId)"
+            }
+            Task {
+                try? await Task.sleep(for: .seconds(2))
+                withAnimation(Motion.standard) { paymentConfirmation = nil }
+            }
+            await fetchInvoiceDetail(invoiceId: invoiceId)
+            await refresh()
+        } catch is CancellationError {
+            return
         } catch {
-            errorMessage = error.localizedDescription
+            alertMessage = error.localizedDescription
         }
     }
 }

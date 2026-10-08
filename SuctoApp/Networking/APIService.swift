@@ -8,28 +8,26 @@
 import Foundation
 
 enum HTTPMethod: String {
-    case GET, POST, PUT, DELETE
+    case GET, POST, PUT, PATCH, DELETE
 }
 
-@MainActor
-class APIService {
+/// Stateless HTTP klient. Token se doplňuje v `SessionManager.send`,
+/// který zároveň odhlásí uživatele při 401.
+final class APIService: Sendable {
     static let shared = APIService()
-    private let baseURL = "https://www.sucto.cz/api/"
     private init() {}
-
-    weak var session: SessionManager?
 
     func request<T: Decodable>(
         endpoint: String,
         method: HTTPMethod = .GET,
         token: String? = nil,
-        body: Data? = nil
+        body: Data? = nil,
     ) async throws -> T {
-        guard let url = URL(string: baseURL + endpoint) else {
+        guard let url = URL(string: APIConstants.baseURL + endpoint) else {
             throw APIError.badURL
         }
 
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: url, timeoutInterval: APIConstants.defaultTimeout)
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -38,59 +36,40 @@ class APIService {
         }
         request.httpBody = body
 
-        print("🌍 API Request → \(method.rawValue) \(url.absoluteString)")
-        if let token { print("🔑 Token: \(token)") }
-        if let body, let jsonBody = String(data: body, encoding: .utf8) {
-            print("📦 Request body:\n\(jsonBody)")
-        }
+        Log.debug("🌍 \(method.rawValue) \(url.absoluteString)")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
+        } catch {
+            Log.debug("❌ Network error: \(error.localizedDescription)")
+            throw APIError.network
+        }
 
         if let httpResponse = response as? HTTPURLResponse {
-            print("📡 Status code: \(httpResponse.statusCode)")
-            if httpResponse.statusCode == 401 {
-                print("🚪 Token expired → logging out user")
-                session?.logout()
+            Log.debug("📡 Status \(httpResponse.statusCode) ← \(endpoint)")
+            switch httpResponse.statusCode {
+            case 200 ..< 300:
+                break
+            case 401:
                 throw APIError.unauthorized
+            case 400, 422:
+                throw APIError.badRequest
+            default:
+                throw APIError.server(statusCode: httpResponse.statusCode)
             }
         }
-
-        if let jsonString = String(data: data, encoding: .utf8) {
-            print("📥 Raw response for \(endpoint):\n\(jsonString)")
-        }
-
-        // 📅 Nastavení správného dekodéru pro český formát datumu
-        let decoder = JSONDecoder()
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "dd. MM. yyyy"
-        dateFormatter.locale = Locale(identifier: "cs_CZ")
-        decoder.dateDecodingStrategy = .formatted(dateFormatter)
 
         do {
-            let decoded = try JSONDecoder().decode(T.self, from: data)
-            print("✅ Successfully decoded response of type \(T.self)")
-            return decoded
-        } catch let decodingError as DecodingError {
-            print("❌ Decoding error for endpoint: \(endpoint)")
-            switch decodingError {
-            case let .typeMismatch(type, context):
-                print("🔹 Type mismatch for type \(type): \(context.debugDescription)")
-                print("🔹 codingPath:", context.codingPath.map(\.stringValue).joined(separator: " → "))
-            case let .valueNotFound(type, context):
-                print("🔹 Value not found for type \(type): \(context.debugDescription)")
-                print("🔹 codingPath:", context.codingPath.map(\.stringValue).joined(separator: " → "))
-            case let .keyNotFound(key, context):
-                print("🔹 Missing key '\(key.stringValue)': \(context.debugDescription)")
-                print("🔹 codingPath:", context.codingPath.map(\.stringValue).joined(separator: " → "))
-            case let .dataCorrupted(context):
-                print("🔹 Data corrupted:", context.debugDescription)
-            @unknown default:
-                print("🔹 Unknown decoding error: \(decodingError.localizedDescription)")
-            }
-            throw APIError.decodingError
+            return try JSONDecoder().decode(T.self, from: data)
         } catch {
-            print("❌ Other error: \(error.localizedDescription)")
-            throw error
+            Log.debug("❌ Decoding \(T.self) failed for \(endpoint): \(error)")
+            throw APIError.decodingError
         }
     }
 }

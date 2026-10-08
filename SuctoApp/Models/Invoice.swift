@@ -5,7 +5,7 @@
 //  Created by Jan Founě on 17.09.2025.
 //
 
-import Foundation
+import SwiftUI
 
 struct Invoice: Identifiable, Codable, Hashable {
     let id: Int
@@ -25,10 +25,10 @@ struct Invoice: Identifiable, Codable, Hashable {
     let footNotice: String?
     let externalNumber: String?
     let orderNumber: String?
-    let taxable : Bool?
-    let vat : String?
-    let pay : String?
-    
+    let taxable: Bool?
+    let vat: String?
+    let pay: String?
+
     let account: Account?
 
     // U vydané faktury
@@ -80,42 +80,55 @@ extension Invoice {
         case archived
         case storno
         case done
-        
+
         var title: String {
             switch self {
-            case .concept: return "Koncept"
-            case .prepare: return "Připraveno"
-            case .sent: return "Odesláno"
-            case .displayed: return "Zobrazeno"
-            case .commented: return "Okomentováno"
-            case .corrected: return "Opraveno"
-            case .partlyPaid: return "Částečně uhrazeno"
-            case .paid: return "Zaplaceno"
-            case .archived: return "Archivováno"
-            case .storno: return "Stornováno"
-            case .done: return "Dokončeno"
+            case .concept: "Koncept"
+            case .prepare: "Připraveno"
+            case .sent: "Odesláno"
+            case .displayed: "Zobrazeno"
+            case .commented: "Okomentováno"
+            case .corrected: "Opraveno"
+            case .partlyPaid: "Částečně uhrazeno"
+            case .paid: "Zaplaceno"
+            case .archived: "Archivováno"
+            case .storno: "Stornováno"
+            case .done: "Dokončeno"
             }
         }
-        
+
         var color: String {
             switch self {
-            case .concept: return "#9CA3AF" // šedá
-            case .prepare: return "#3B82F6" // modrá
-            case .sent: return "#2563EB"
-            case .displayed: return "#10B981" // zelená
-            case .commented: return "#F59E0B" // oranžová
-            case .corrected: return "#FBBF24"
-            case .partlyPaid: return "#FCD34D"
-            case .paid: return "#22C55E"
-            case .archived: return "#6B7280"
-            case .storno: return "#EF4444" // červená
-            case .done: return "#16A34A"
+            case .concept: "#9CA3AF" // šedá
+            case .prepare: "#3B82F6" // modrá
+            case .sent: "#2563EB"
+            case .displayed: "#10B981" // zelená
+            case .commented: "#F59E0B" // oranžová
+            case .corrected: "#FBBF24"
+            case .partlyPaid: "#FCD34D"
+            case .paid: "#22C55E"
+            case .archived: "#6B7280"
+            case .storno: "#EF4444" // červená
+            case .done: "#16A34A"
             }
         }
     }
-    
+
     var invoiceStatus: Status? {
         Status(rawValue: statusId)
     }
-}
 
+    var isPaid: Bool { invoiceStatus == .paid || invoiceStatus == .done }
+
+    var dueDate: Date? { dueDateAt?.toDate() }
+
+    /// Nezaplacená faktura po datu splatnosti (storno a koncepty se nepočítají).
+    var isOverdue: Bool {
+        guard !isPaid, invoiceStatus != .storno, invoiceStatus != .concept,
+              let dueDate else { return false }
+        return dueDate < Calendar.current.startOfDay(for: Date())
+    }
+
+    /// Barva textu stavu v seznamech a detailu.
+    var statusColor: Color { tone.color }
+}

@@ -9,5 +9,10 @@ import Foundation
 
 struct LoginResponse: Decodable {
     let email: String
-    let authentication_token: String
+    let authenticationToken: String
+
+    enum CodingKeys: String, CodingKey {
+        case email
+        case authenticationToken = "authentication_token"
+    }
 }
