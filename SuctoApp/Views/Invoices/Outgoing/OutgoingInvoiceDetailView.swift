@@ -11,6 +11,7 @@ struct OutgoingInvoiceDetailView: View {
     let invoiceId: Int
     @EnvironmentObject var viewModel: OutgoingInvoicesViewModel
     @State private var showSendSheet = false
+    @State private var showExportSheet = false
 
     var body: some View {
         ScrollView {
@@ -46,15 +47,32 @@ struct OutgoingInvoiceDetailView: View {
         .toolbar {
             if let invoice = viewModel.selectedInvoice {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showSendSheet = true
+                    Menu {
+                        Button {
+                            showSendSheet = true
+                        } label: {
+                            Label("Odeslat e-mailem", systemImage: "paperplane")
+                        }
+                        .disabled(invoice.invoiceStatus == .storno)
+
+                        Button {
+                            showExportSheet = true
+                        } label: {
+                            Label("Exportovat do Pohody", systemImage: "square.and.arrow.up")
+                        }
                     } label: {
-                        Image(systemName: "paperplane")
+                        Image(systemName: "ellipsis.circle")
                     }
-                    .accessibilityLabel("Odeslat e-mailem")
-                    .disabled(invoice.invoiceStatus == .storno)
+                    .accessibilityLabel("Akce faktury")
                 }
             }
+        }
+        .sheet(isPresented: $showExportSheet) {
+            PohodaExportSheet(
+                companyId: viewModel.companyId,
+                session: viewModel.session,
+                mode: .invoice(id: invoiceId, number: viewModel.selectedInvoice?.actuarialNumber ?? ""),
+            )
         }
         .sheet(isPresented: $showSendSheet) {
             SendEmailSheet(invoiceNumber: viewModel.selectedInvoice?.actuarialNumber ?? "") { email, comment in

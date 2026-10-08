@@ -5,6 +5,7 @@ struct DashboardView: View {
     @EnvironmentObject var navManager: NavigationManager
     @EnvironmentObject var session: SessionManager
     @State private var selectedTab = 0
+    @State private var showPohodaExport = false
     @State private var slideEdge: Edge = .trailing
 
     @StateObject var outgoingInvoicesVM: OutgoingInvoicesViewModel
@@ -73,6 +74,14 @@ struct DashboardView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
+                    if selectedTab == 0 {
+                        Button {
+                            showPohodaExport = true
+                        } label: {
+                            Label("Export vydaných do Pohody", systemImage: "square.and.arrow.up")
+                        }
+                    }
+
                     Button {
                         navManager.goToCompanies()
                     } label: {
@@ -91,6 +100,9 @@ struct DashboardView: View {
                 }
                 .accessibilityLabel("Menu")
             }
+        }
+        .sheet(isPresented: $showPohodaExport) {
+            PohodaExportSheet(companyId: companyId, session: session, mode: .period)
         }
         .task {
             async let outgoing: Void = outgoingInvoicesVM.refresh()
