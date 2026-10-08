@@ -13,6 +13,8 @@ final class SessionManager: ObservableObject {
 
     @Published private(set) var authToken: String?
     @Published var selectedCompany: Company?
+    /// Nastaveno, pokud poslední čtení skončilo výpadkem připojení a zobrazila se uložená data.
+    @Published private(set) var cachedDataDate: Date?
 
     var isLoggedIn: Bool { authToken != nil }
 
@@ -27,11 +29,14 @@ final class SessionManager: ObservableObject {
 
     func logout() {
         KeychainStore.delete(Self.tokenKey)
+        ResponseCache.shared.clear()
         authToken = nil
         selectedCompany = nil
+        cachedDataDate = nil
     }
 
     /// Autorizovaný požadavek. Při 401 odhlásí uživatele a chybu pošle dál.
+    /// Čtení (GET) se ukládá do cache a při výpadku připojení se z ní doplní poslední známá data.
     func send<T: Decodable>(
         _ endpoint: String,
         method: HTTPMethod = .GET,
@@ -41,11 +46,23 @@ final class SessionManager: ObservableObject {
             logout()
             throw APIError.unauthorized
         }
+        let cacheable = ResponseCache.isCacheable(endpoint: endpoint, method: method)
         do {
-            return try await APIService.shared.request(endpoint: endpoint, method: method, token: token, body: body)
+            let data = try await APIService.shared.requestData(endpoint: endpoint, method: method, token: token, body: body)
+            let value = try APIService.shared.decode(T.self, from: data, label: endpoint)
+            if cacheable { ResponseCache.shared.store(data, for: endpoint) }
+            if cachedDataDate != nil { cachedDataDate = nil }
+            return value
         } catch APIError.unauthorized {
             logout()
             throw APIError.unauthorized
+        } catch APIError.network where cacheable {
+            guard
+                let entry = ResponseCache.shared.load(for: endpoint),
+                let value = try? APIService.shared.decode(T.self, from: entry.data, label: endpoint)
+            else { throw APIError.network }
+            cachedDataDate = entry.savedAt
+            return value
         }
     }
 

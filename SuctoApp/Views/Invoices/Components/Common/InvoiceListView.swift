@@ -21,6 +21,14 @@ struct InvoiceListView: View {
     let namespace: Namespace.ID
 
     var body: some View {
+        VStack(spacing: 0) {
+            filterBar
+            list
+        }
+        .background(Theme.background)
+    }
+
+    private var list: some View {
         ScrollView {
             if invoices.isEmpty {
                 emptyOrLoading
@@ -53,12 +61,10 @@ struct InvoiceListView: View {
                     }
                 }
                 .padding(.horizontal, Theme.Spacing.l)
-                .padding(.vertical, Theme.Spacing.s)
+                .padding(.top, Theme.Spacing.xs)
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) { filterBar }
         .contentMargins(.bottom, 80, for: .scrollContent)
-        .background(Theme.background)
         .refreshable { await refresh() }
     }
 
@@ -66,7 +72,7 @@ struct InvoiceListView: View {
     private var emptyOrLoading: some View {
         if isLoading {
             InvoiceListSkeleton()
-                .padding(.top, Theme.Spacing.s)
+                .padding(.top, Theme.Spacing.xs)
         } else if let errorMessage {
             ErrorStateView(message: errorMessage) {
                 Task { await refresh() }
@@ -83,35 +89,44 @@ struct InvoiceListView: View {
         }
     }
 
-    /// Rychlé filtry – zůstávají nahoře i při rolování.
+    /// Rychlé filtry – leží mimo rolovaný seznam, takže zůstávají nahoře a nereagují na tažení ani pull-to-refresh.
+    /// Když se chipy vejdou na šířku, lišta se nehýbe vůbec; na úzkém displeji se posouvá jen vodorovně.
     private var filterBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Theme.Spacing.s) {
-                ForEach(InvoiceFilter.allCases) { option in
-                    let isSelected = filter == option
-                    Button {
-                        withAnimation(Motion.standard) { filter = option }
-                    } label: {
-                        Label(option.title, systemImage: option.systemImage)
-                            .font(.subheadline.weight(.medium))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .foregroundStyle(isSelected ? Color.white : Color.primary)
-                            .background(
-                                isSelected ? AnyShapeStyle(Theme.brandGradient) : AnyShapeStyle(Theme.surface),
-                                in: Capsule(),
-                            )
-                            .overlay(Capsule().strokeBorder(Color.primary.opacity(isSelected ? 0 : 0.08), lineWidth: 0.5))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(isSelected ? .isSelected : [])
-                }
-            }
-            .padding(.horizontal, Theme.Spacing.l)
-            .padding(.vertical, Theme.Spacing.s)
+        ViewThatFits(in: .horizontal) {
+            filterChips
+            ScrollView(.horizontal, showsIndicators: false) { filterChips }
+                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         }
+        .padding(.top, Theme.Spacing.xs)
+        .padding(.bottom, Theme.Spacing.xs)
         .background(Theme.background)
         .sensoryFeedback(.selection, trigger: filter)
+    }
+
+    private var filterChips: some View {
+        HStack(spacing: Theme.Spacing.s) {
+            ForEach(InvoiceFilter.allCases) { option in
+                let isSelected = filter == option
+                Button {
+                    withAnimation(Motion.standard) { filter = option }
+                } label: {
+                    Label(option.title, systemImage: option.systemImage)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .foregroundStyle(isSelected ? Color.white : Color.primary)
+                        .background(
+                            isSelected ? AnyShapeStyle(Theme.brandGradient) : AnyShapeStyle(Theme.surface),
+                            in: Capsule(),
+                        )
+                        .overlay(Capsule().strokeBorder(Color.primary.opacity(isSelected ? 0 : 0.08), lineWidth: 0.5))
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+        .padding(.horizontal, Theme.Spacing.l)
     }
 
     /// Rychlý přehled nad seznamem – ukáže se jen když je co zdůraznit.

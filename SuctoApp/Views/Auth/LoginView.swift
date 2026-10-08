@@ -14,6 +14,9 @@ struct LoginView: View {
     @FocusState private var focusedField: Field?
 
     @EnvironmentObject private var session: SessionManager
+    @EnvironmentObject private var appLock: AppLock
+
+    @ScaledMetric(relativeTo: .body) private var iconWidth: CGFloat = 22
 
     private enum Field { case email, password }
 
@@ -126,13 +129,14 @@ struct LoginView: View {
         HStack(spacing: Theme.Spacing.m) {
             Image(systemName: icon)
                 .foregroundStyle(.white.opacity(0.6))
-                .frame(width: 22)
+                .frame(width: iconWidth)
+                .accessibilityHidden(true)
             content()
                 .foregroundStyle(.white)
                 .tint(Theme.brand)
         }
         .padding(.horizontal, Theme.Spacing.l)
-        .frame(height: 54)
+        .frame(minHeight: 54)
         .background(.white.opacity(0.1), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
     }
 
@@ -141,6 +145,8 @@ struct LoginView: View {
         focusedField = nil
         Task {
             if let token = await viewModel.login(email: email, password: password) {
+                // Odemknout dřív než se přepne obrazovka, aby zamčený překryv ani na okamžik neproblikl.
+                appLock.markUnlocked()
                 session.login(token: token)
             }
         }
@@ -150,4 +156,5 @@ struct LoginView: View {
 #Preview {
     LoginView()
         .environmentObject(SessionManager())
+        .environmentObject(AppLock())
 }
