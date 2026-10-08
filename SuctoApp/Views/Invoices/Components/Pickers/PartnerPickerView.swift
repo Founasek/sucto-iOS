@@ -10,6 +10,8 @@ import SwiftUI
 struct PartnerPickerView: View {
     @Binding var selectedPartner: Partner?
     let partners: [Partner]
+    var label = "Odběratel"
+    var placeholder = "Vyberte odběratele"
 
     @State private var searchText = ""
     @State private var isPresented = false
@@ -22,7 +24,7 @@ struct PartnerPickerView: View {
             isPresented = true
         } label: {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Odběratel")
+                Text(label)
                     .foregroundColor(.primary)
 
                 HStack {
@@ -31,7 +33,7 @@ struct PartnerPickerView: View {
                             .font(.body)
                             .foregroundStyle(.accent)
                     } else {
-                        Text("Vyberte odběratele")
+                        Text(placeholder)
                             .foregroundColor(.secondary)
                     }
 
@@ -68,7 +70,7 @@ struct PartnerPickerView: View {
                     guard !Task.isCancelled else { return }
                     await onSearch(searchText)
                 }
-                .navigationTitle("Vyberte odběratele")
+                .navigationTitle(placeholder)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("Zavřít") {

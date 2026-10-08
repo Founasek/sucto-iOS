@@ -17,6 +17,7 @@ private struct Checkmark: Shape {
 
 /// Potvrzení úhrady: kroužek se dokreslí, objeví se fajfka a vlna.
 struct PaymentSuccessOverlay: View {
+    var title = "Zaplaceno"
     let message: String
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -44,7 +45,7 @@ struct PaymentSuccessOverlay: View {
             .frame(width: 96, height: 96)
 
             VStack(spacing: Theme.Spacing.xs) {
-                Text("Zaplaceno")
+                Text(title)
                     .font(.title2.weight(.bold))
                 Text(message)
                     .font(.subheadline)

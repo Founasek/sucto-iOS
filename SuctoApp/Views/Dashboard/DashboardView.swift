@@ -59,8 +59,9 @@ struct DashboardView: View {
             }
             .clipped()
 
-            if selectedTab == 0 {
-                newInvoiceButton
+            if let direction = createDirection {
+                newInvoiceButton(direction)
+                    .id(direction)
                     .transition(.scale(scale: 0.8).combined(with: .opacity))
             }
         }
@@ -99,11 +100,21 @@ struct DashboardView: View {
         }
     }
 
-    private var newInvoiceButton: some View {
-        Button {
-            navManager.createOutgoingInvoice(companyId: companyId)
+    /// Směr faktury, kterou lze na aktuální záložce vytvořit (na záložce Účty tlačítko není).
+    private var createDirection: InvoiceDirection? {
+        switch selectedTab {
+        case 0: .outgoing
+        case 1: .incoming
+        default: nil
+        }
+    }
+
+    private func newInvoiceButton(_ direction: InvoiceDirection) -> some View {
+        let title = direction == .outgoing ? "Nová faktura" : "Nová přijatá"
+        return Button {
+            navManager.createInvoice(companyId: companyId, direction: direction)
         } label: {
-            Label("Nová faktura", systemImage: "plus")
+            Label(title, systemImage: "plus")
                 .font(.headline)
                 .foregroundStyle(.white)
                 .padding(.horizontal, 20)
@@ -113,6 +124,6 @@ struct DashboardView: View {
         }
         .buttonStyle(.plain)
         .padding(Theme.Spacing.l)
-        .accessibilityLabel("Nová faktura")
+        .accessibilityLabel(direction.createTitle)
     }
 }

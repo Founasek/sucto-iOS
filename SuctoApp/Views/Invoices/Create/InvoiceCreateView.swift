@@ -1,5 +1,5 @@
 //
-//  OutgoingInvoiceCreateView.swift
+//  InvoiceCreateView.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 13.10.2025.
@@ -7,13 +7,13 @@
 
 import SwiftUI
 
-struct OutgoingInvoiceCreateView: View {
+struct InvoiceCreateView: View {
     @Environment(\.dismiss) var dismiss
-    @StateObject var viewModel: OutgoingInvoiceCreateViewModel
+    @StateObject var viewModel: InvoiceCreateViewModel
     @FocusState private var keyboardFocused: Bool
 
-    init(companyId: Int, session: SessionManager) {
-        _viewModel = StateObject(wrappedValue: OutgoingInvoiceCreateViewModel(companyId: companyId, session: session))
+    init(companyId: Int, direction: InvoiceDirection, session: SessionManager) {
+        _viewModel = StateObject(wrappedValue: InvoiceCreateViewModel(companyId: companyId, direction: direction, session: session))
     }
 
     private var currencyCode: String {
@@ -38,7 +38,7 @@ struct OutgoingInvoiceCreateView: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
-        .navigationTitle("Nová faktura")
+        .navigationTitle(viewModel.direction.createTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -73,9 +73,15 @@ struct OutgoingInvoiceCreateView: View {
     private var basicSection: some View {
         Section {
             LabeledContent("Číslo faktury") {
-                Text(viewModel.actuarialNumber.isEmpty ? "—" : viewModel.actuarialNumber)
-                    .fontWeight(.semibold)
-                    .monospacedDigit()
+                if viewModel.direction.numberIsEditable {
+                    TextField("Číslo od dodavatele", text: $viewModel.actuarialNumber)
+                        .multilineTextAlignment(.trailing)
+                        .focused($keyboardFocused)
+                } else {
+                    Text(viewModel.actuarialNumber.isEmpty ? "—" : viewModel.actuarialNumber)
+                        .fontWeight(.semibold)
+                        .monospacedDigit()
+                }
             }
 
             LabeledContent("Variabilní symbol") {
@@ -88,8 +94,13 @@ struct OutgoingInvoiceCreateView: View {
             PartnerPickerView(
                 selectedPartner: $viewModel.selectedPartner,
                 partners: viewModel.availablePartners,
+                label: viewModel.direction.partnerLabel,
+                placeholder: viewModel.direction.partnerPlaceholder,
                 onSearch: { await viewModel.searchPartners($0) },
             )
+            .onChange(of: viewModel.selectedPartner?.id) {
+                viewModel.applyPartnerDefaults()
+            }
         } header: {
             Text("Základní informace")
         }
@@ -137,12 +148,14 @@ struct OutgoingInvoiceCreateView: View {
 
     private var itemsSection: some View {
         Group {
-            Section {
-                TextField("Úvodní text", text: $viewModel.printNotice, axis: .vertical)
-                    .lineLimit(1 ... 3)
-                    .focused($keyboardFocused)
-            } header: {
-                Text("Úvodní text faktury")
+            if viewModel.direction == .outgoing {
+                Section {
+                    TextField("Úvodní text", text: $viewModel.printNotice, axis: .vertical)
+                        .lineLimit(1 ... 3)
+                        .focused($keyboardFocused)
+                } header: {
+                    Text("Úvodní text faktury")
+                }
             }
 
             ForEach($viewModel.items) { $item in
@@ -180,7 +193,7 @@ struct OutgoingInvoiceCreateView: View {
     }
 
     @ViewBuilder
-    private func itemFields(_ item: Binding<OutgoingInvoiceCreateLine>) -> some View {
+    private func itemFields(_ item: Binding<InvoiceCreateLine>) -> some View {
         TextField("Název položky", text: item.name)
             .textInputAutocapitalization(.sentences)
             .focused($keyboardFocused)

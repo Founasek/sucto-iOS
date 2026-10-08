@@ -1,5 +1,5 @@
 //
-//  OutgoingInvoiceCreateLine.swift
+//  InvoiceCreateLine.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 26.10.2025.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct OutgoingInvoiceCreateLine: Identifiable, Codable, Hashable {
+struct InvoiceCreateLine: Identifiable, Codable, Hashable {
     /// Pouze lokální identifikátor pro SwiftUI (neposílá se na server).
     let id = UUID()
     var vatId: Int

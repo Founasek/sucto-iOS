@@ -11,6 +11,9 @@ enum HTTPMethod: String {
     case GET, POST, PUT, PATCH, DELETE
 }
 
+/// Odpověď bez obsahu (200 s prázdným tělem).
+struct EmptyResponse: Decodable {}
+
 /// Stateless HTTP klient. Token se doplňuje v `SessionManager.send`,
 /// který zároveň odhlásí uživatele při 401.
 final class APIService: Sendable {
@@ -65,8 +68,10 @@ final class APIService: Sendable {
             }
         }
 
+        // Některé akce (např. odeslání e-mailem) vrací 200 s prázdným tělem.
+        let payload = data.isEmpty ? Data("{}".utf8) : data
         do {
-            return try JSONDecoder().decode(T.self, from: data)
+            return try JSONDecoder().decode(T.self, from: payload)
         } catch {
             Log.debug("❌ Decoding \(T.self) failed for \(endpoint): \(error)")
             throw APIError.decodingError

@@ -19,8 +19,8 @@ final class NavigationManager: ObservableObject {
         path.append(AppRoute.dashboard(companyId: companyId))
     }
 
-    func createOutgoingInvoice(companyId: Int) {
-        path.append(AppRoute.createOutgoingInvoice(companyId: companyId))
+    func createInvoice(companyId: Int, direction: InvoiceDirection) {
+        path.append(AppRoute.createInvoice(companyId: companyId, direction: direction))
     }
 
     func reset() {

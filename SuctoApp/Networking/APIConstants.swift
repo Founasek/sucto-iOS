@@ -13,16 +13,12 @@ enum APIConstants {
 
     static let loginEndpoint = "sessions/create"
 
-    static func outgoingInvoices(companyId: Int, page: Int) -> String {
-        "companies/\(companyId)/actuarials_outs?page=\(page)"
-    }
-
-    static func incomingInvoices(companyId: Int, page: Int) -> String {
-        "companies/\(companyId)/actuarials_ins?page=\(page)"
-    }
-
     static func outgoingInvoiceMarkAsPaid(companyId: Int, invoiceId: Int) -> String {
         "companies/\(companyId)/actuarials_outs/\(invoiceId)/pay"
+    }
+
+    static func outgoingInvoiceSendToEmail(companyId: Int, invoiceId: Int) -> String {
+        "companies/\(companyId)/actuarials_outs/\(invoiceId)/send_to_email"
     }
 
     static func outgoingInvoiceDetail(companyId: Int, invoiceId: Int) -> String {
@@ -36,6 +32,16 @@ enum APIConstants {
     static func newOutgoingInvoice(companyId: Int) -> String {
         "companies/\(companyId)/actuarials_outs/new"
     }
+
+    static func newIncomingInvoice(companyId: Int) -> String {
+        "companies/\(companyId)/actuarials_ins/new"
+    }
+
+    static func createIncomingInvoice(companyId: Int) -> String {
+        "companies/\(companyId)/actuarials_ins"
+    }
+
+    static let actuarialTypes = "actuarial_types"
 
     static func createOutgoingInvoice(companyId: Int) -> String {
         "companies/\(companyId)/actuarials_outs"

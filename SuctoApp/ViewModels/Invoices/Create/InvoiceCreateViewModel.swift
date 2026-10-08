@@ -1,5 +1,5 @@
 //
-//  OutgoingInvoiceCreateViewModel.swift
+//  InvoiceCreateViewModel.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 13.10.2025.
@@ -8,8 +8,9 @@
 import SwiftUI
 
 @MainActor
-final class OutgoingInvoiceCreateViewModel: ObservableObject {
+final class InvoiceCreateViewModel: ObservableObject {
     let companyId: Int
+    let direction: InvoiceDirection
     private let session: SessionManager
 
     // MARK: - Faktura
@@ -32,7 +33,7 @@ final class OutgoingInvoiceCreateViewModel: ObservableObject {
     @Published var footNotice = ""
     @Published var orderNumber = ""
 
-    @Published var items: [OutgoingInvoiceCreateLine] = []
+    @Published var items: [InvoiceCreateLine] = []
 
     // MARK: - Reference data
 
@@ -51,9 +52,11 @@ final class OutgoingInvoiceCreateViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init(companyId: Int, session: SessionManager) {
+    init(companyId: Int, direction: InvoiceDirection, session: SessionManager) {
         self.companyId = companyId
+        self.direction = direction
         self.session = session
+        if direction == .incoming { printNotice = "" }
     }
 
     // MARK: - Načtení výchozích dat
@@ -61,18 +64,20 @@ final class OutgoingInvoiceCreateViewModel: ObservableObject {
     func loadInitialData() async {
         do {
             // Výchozí údaje pro novou fakturu
-            let newInvoice: OutgoingInvoiceInitResponse = try await session.send(
-                APIConstants.newOutgoingInvoice(companyId: companyId),
+            let newInvoice: InvoiceInitResponse = try await session.send(
+                direction.newEndpoint(companyId: companyId),
             )
 
-            actuarialNumber = newInvoice.actuarialNumber
+            actuarialNumber = newInvoice.actuarialNumber ?? ""
             issueDate = newInvoice.issueDate ?? Date()
             dueDate = newInvoice.dueDate ?? Date()
             uzpDate = newInvoice.uzpDateAt?.toDate() ?? issueDate
             items = newInvoice.items
 
             // Variabilní symbol = číselná část čísla faktury
-            variableSymbol = actuarialNumber.filter(\.isNumber)
+            if direction == .outgoing {
+                variableSymbol = actuarialNumber.filter(\.isNumber)
+            }
 
             // Sazby a režimy DPH závisí na zemi vybrané firmy (výchozí ČR).
             let countryId = session.selectedCompany?.countryId ?? 1
@@ -82,6 +87,8 @@ final class OutgoingInvoiceCreateViewModel: ObservableObject {
             async let paymentTypes: [PaymentType] = session.send(APIConstants.paymentTypes(companyId: companyId))
             async let vatRegimes: [VatRegime] = session.send(APIConstants.vatRegimes(countryId: countryId))
             async let vats: [Vat] = session.send(APIConstants.vats(countryId: countryId))
+            // Typ dokladu je jen doplněk – při selhání zůstane výchozí hodnota.
+            async let types: [ActuarialType]? = try? session.send(APIConstants.actuarialTypes)
 
             await searchPartners("")
             availableCurrencies = try await currencies
@@ -89,6 +96,7 @@ final class OutgoingInvoiceCreateViewModel: ObservableObject {
             availablePaymentTypes = try await paymentTypes
             availableVatRegimes = try await vatRegimes
             availableVats = try await vats.filter { $0.validTo == nil }
+            if let invoiceType = await types?.first { actuarialTypeId = invoiceType.id }
             errorMessage = nil
         } catch is CancellationError {
             return
@@ -113,6 +121,17 @@ final class OutgoingInvoiceCreateViewModel: ObservableObject {
         }
     }
 
+    /// Po výběru partnera předvyplní splatnost (podle `invoice_due`) a měnu, pokud ještě není zvolená.
+    func applyPartnerDefaults() {
+        guard let partner = selectedPartner else { return }
+        if let days = partner.invoiceDue, days > 0 {
+            dueDate = Calendar.current.date(byAdding: .day, value: days, to: issueDate) ?? dueDate
+        }
+        if selectedCurrency == nil, let currencyId = partner.currency?.id {
+            selectedCurrency = availableCurrencies.first { $0.id == currencyId }
+        }
+    }
+
     // MARK: - Vytvoření faktury
 
     func createInvoice() async {
@@ -123,9 +142,14 @@ final class OutgoingInvoiceCreateViewModel: ObservableObject {
               let currencyId = selectedCurrency?.id,
               !isCompanyTaxable || selectedVatRegime != nil
         else {
+            let partner = direction.partnerLabel.lowercased()
             errorMessage = isCompanyTaxable
-                ? "Vyplňte odběratele, účet, měnu a DPH režim."
-                : "Vyplňte odběratele, účet a měnu."
+                ? "Vyplňte \(partner)e, účet, měnu a DPH režim."
+                : "Vyplňte \(partner)e, účet a měnu."
+            return
+        }
+        guard !actuarialNumber.trimmingCharacters(in: .whitespaces).isEmpty else {
+            errorMessage = "Vyplňte číslo faktury."
             return
         }
         guard !items.isEmpty, items.allSatisfy({ !$0.name.trimmingCharacters(in: .whitespaces).isEmpty }) else {
@@ -136,16 +160,16 @@ final class OutgoingInvoiceCreateViewModel: ObservableObject {
         isSubmitting = true
         defer { isSubmitting = false }
 
-        let requestBody = OutgoingInvoiceCreateRequest(
+        let requestBody = InvoiceCreateRequest(
             actuarialNumber: actuarialNumber,
             variableSymbol: variableSymbol,
             actuarialTypeId: actuarialTypeId ?? 1,
             partnerId: partnerId,
             accountId: accountId,
             currencyId: currencyId,
-            iban: account.bankAccount?.iban ?? "",
-            swift: account.bankAccount?.swift ?? "",
-            bankNumber: account.bankAccount?.bankCode ?? "",
+            iban: direction == .outgoing ? account.bankAccount?.iban ?? "" : nil,
+            swift: direction == .outgoing ? account.bankAccount?.swift ?? "" : nil,
+            bankNumber: direction == .outgoing ? account.bankAccount?.bankCode ?? "" : nil,
             paymentTypeId: selectedPaymentType?.id,
             vatRegimeId: isCompanyTaxable ? selectedVatRegime?.id : nil,
             issueDateAt: Self.apiDateFormatter.string(from: issueDate),
@@ -159,8 +183,8 @@ final class OutgoingInvoiceCreateViewModel: ObservableObject {
 
         do {
             let jsonData = try JSONEncoder().encode(requestBody)
-            let _: OutgoingInvoiceCreatedResponse = try await session.send(
-                APIConstants.createOutgoingInvoice(companyId: companyId),
+            let _: InvoiceCreatedResponse = try await session.send(
+                direction.createEndpoint(companyId: companyId),
                 method: .POST,
                 body: jsonData,
             )
@@ -176,8 +200,8 @@ final class OutgoingInvoiceCreateViewModel: ObservableObject {
 
     // MARK: - Položky
 
-    func makeEmptyLine() -> OutgoingInvoiceCreateLine {
-        OutgoingInvoiceCreateLine(
+    func makeEmptyLine() -> InvoiceCreateLine {
+        InvoiceCreateLine(
             vatId: availableVats.first?.id ?? 108,
             lineableType: "Actuarial",
             name: "",
@@ -208,7 +232,7 @@ final class OutgoingInvoiceCreateViewModel: ObservableObject {
     }
 
     /// Základ a celkem položky se v UI neupravují, proto je dopočítáme před odesláním.
-    private func calculated(_ line: OutgoingInvoiceCreateLine) -> OutgoingInvoiceCreateLine {
+    private func calculated(_ line: InvoiceCreateLine) -> InvoiceCreateLine {
         var line = line
         let rate = availableVats.first { $0.id == line.vatId }.flatMap { Double($0.value) } ?? 0
         line.basePrice = line.quantity * line.unitPrice

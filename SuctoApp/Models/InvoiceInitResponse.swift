@@ -1,5 +1,5 @@
 //
-//  OutgoingInvoiceInitResponse.swift
+//  InvoiceInitResponse.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 13.10.2025.
@@ -7,8 +7,9 @@
 
 import Foundation
 
-struct OutgoingInvoiceInitResponse: Decodable {
-    let actuarialNumber: String
+struct InvoiceInitResponse: Decodable {
+    /// U nové přijaté faktury je číslo `null` (zadává ho uživatel).
+    let actuarialNumber: String?
     let variableSymbol: String?
 
     let issueDateAt: String?
@@ -17,7 +18,7 @@ struct OutgoingInvoiceInitResponse: Decodable {
 
     let currency: Currency?
     let customer: Customer?
-    let items: [OutgoingInvoiceCreateLine]
+    let items: [InvoiceCreateLine]
 
     var issueDate: Date? {
         issueDateAt?.toDate()
@@ -53,6 +54,6 @@ extension String {
     }
 }
 
-struct OutgoingInvoiceCreatedResponse: Decodable {
+struct InvoiceCreatedResponse: Decodable {
     let id: Int
 }

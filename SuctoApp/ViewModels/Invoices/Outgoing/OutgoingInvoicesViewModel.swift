@@ -8,63 +8,19 @@
 import SwiftUI
 
 @MainActor
-final class OutgoingInvoicesViewModel: ObservableObject {
-    @Published var invoices: [Invoice] = []
-    @Published var selectedInvoice: Invoice?
-
-    /// Chyba načtení seznamu.
-    @Published var errorMessage: String?
-    /// Chyba načtení detailu (oddělená od seznamu, aby se nepřenášela mezi obrazovkami).
-    @Published var detailErrorMessage: String?
+final class OutgoingInvoicesViewModel: PagedInvoicesViewModel {
     /// Chyba akce (např. úhrady) zobrazená v alertu.
     @Published var alertMessage: String?
-    /// Text potvrzení po úspěšné úhradě; dokud je nastavený, ukazuje se animace úspěchu.
-    @Published var paymentConfirmation: String?
+    /// Potvrzení úspěšné akce (úhrada, odeslání); dokud je nastavené, ukazuje se animace úspěchu.
+    @Published var confirmation: Confirmation?
 
-    @Published var isLoadingPage = false
-    @Published var isLoadingDetail = false
-    @Published var hasMorePages = true
-
-    private var currentPage = 1
-
-    let companyId: Int
-    private let session: SessionManager
-
-    init(companyId: Int, session: SessionManager) {
-        self.companyId = companyId
-        self.session = session
+    struct Confirmation: Equatable {
+        let title: String
+        let message: String
     }
 
-    /// Načte první stránku znovu (pull-to-refresh, návrat na obrazovku).
-    func refresh() async {
-        currentPage = 1
-        hasMorePages = true
-        await fetchNextPage()
-    }
-
-    func fetchNextPage() async {
-        guard !isLoadingPage, hasMorePages else { return }
-        isLoadingPage = true
-        defer { isLoadingPage = false }
-
-        let pageToLoad = currentPage
-        do {
-            let result: [Invoice] = try await session.send(
-                APIConstants.outgoingInvoices(companyId: companyId, page: pageToLoad),
-            )
-            if pageToLoad == 1 {
-                invoices = result
-            } else {
-                invoices.append(contentsOf: result)
-            }
-            hasMorePages = !result.isEmpty
-            currentPage = pageToLoad + 1
-            errorMessage = nil
-        } catch is CancellationError {
-            return
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+    override func listEndpoint(page: Int, query: InvoiceQuery) -> String {
+        query.path("companies/\(companyId)/actuarials_outs", page: page)
     }
 
     func fetchInvoiceDetail(invoiceId: Int) async {
@@ -85,24 +41,50 @@ final class OutgoingInvoicesViewModel: ObservableObject {
         }
     }
 
+    /// Pošle fakturu e-mailem. Vrací text chyby, nebo `nil` při úspěchu.
+    func sendByEmail(invoiceId: Int, email: String, comment: String) async -> String? {
+        struct Body: Encodable {
+            let email: String
+            let comment: String?
+        }
+        do {
+            let body = try JSONEncoder().encode(Body(email: email, comment: comment.isEmpty ? nil : comment))
+            let _: EmptyResponse = try await session.send(
+                APIConstants.outgoingInvoiceSendToEmail(companyId: companyId, invoiceId: invoiceId),
+                method: .PATCH,
+                body: body,
+            )
+            showConfirmation(title: "Odesláno", message: email)
+            return nil
+        } catch is CancellationError {
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
     func markOutgoingInvoiceAsPaid(invoiceId: Int) async {
         do {
             let result: PayInvoiceResponse = try await session.send(
                 APIConstants.outgoingInvoiceMarkAsPaid(companyId: companyId, invoiceId: invoiceId),
             )
-            withAnimation(Motion.bouncy) {
-                paymentConfirmation = "Doklad č. \(result.cashVoucherId)"
-            }
-            Task {
-                try? await Task.sleep(for: .seconds(2))
-                withAnimation(Motion.standard) { paymentConfirmation = nil }
-            }
+            showConfirmation(title: "Zaplaceno", message: "Doklad č. \(result.cashVoucherId)")
             await fetchInvoiceDetail(invoiceId: invoiceId)
             await refresh()
         } catch is CancellationError {
             return
         } catch {
             alertMessage = error.localizedDescription
+        }
+    }
+
+    private func showConfirmation(title: String, message: String) {
+        withAnimation(Motion.bouncy) {
+            confirmation = Confirmation(title: title, message: message)
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation(Motion.standard) { confirmation = nil }
         }
     }
 }

@@ -1,11 +1,11 @@
 //
-//  OutgoingInvoiceCreateRequest.swift
+//  InvoiceCreateRequest.swift
 //  SuctoApp
 //
 //  Created by Jan Founě on 26.10.2025.
 //
 
-struct OutgoingInvoiceCreateRequest: Codable {
+struct InvoiceCreateRequest: Codable {
     var actuarialNumber: String
     var variableSymbol: String
     var actuarialTypeId: Int
@@ -14,9 +14,10 @@ struct OutgoingInvoiceCreateRequest: Codable {
     var accountId: Int
     var currencyId: Int
 
-    var iban: String
-    var swift: String
-    var bankNumber: String
+    /// Bankovní údaje se posílají jen u vydané faktury (vlastní účet); u přijaté jsou prázdné.
+    var iban: String?
+    var swift: String?
+    var bankNumber: String?
 
     /// Nepovinné dle API dokumentace.
     var paymentTypeId: Int?
@@ -31,7 +32,7 @@ struct OutgoingInvoiceCreateRequest: Codable {
     var footNotice: String
     var orderNumber: String
 
-    var lines: [OutgoingInvoiceCreateLine]
+    var lines: [InvoiceCreateLine]
 
     enum CodingKeys: String, CodingKey {
         case actuarialNumber = "actuarial_number"

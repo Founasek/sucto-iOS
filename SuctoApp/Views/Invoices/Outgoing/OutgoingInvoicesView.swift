@@ -17,11 +17,16 @@ struct OutgoingInvoicesView: View {
             isLoading: viewModel.isLoadingPage,
             errorMessage: viewModel.errorMessage,
             emptyMessage: "Zatím tu nejsou žádné vydané faktury.\nVytvoříte je tlačítkem Nová faktura.",
+            filter: $viewModel.filter,
+            isFiltering: viewModel.isFiltering,
+            clearFilters: { viewModel.clearFilters() },
             counterparty: { $0.customer?.name },
             refresh: { await viewModel.refresh() },
             loadMore: { await viewModel.fetchNextPage() },
             namespace: transitionNamespace,
         )
+        .searchable(text: $viewModel.searchText, prompt: "Číslo faktury nebo odběratel")
+        .onChange(of: viewModel.searchText) { viewModel.searchTextChanged() }
         .navigationDestination(for: Invoice.self) { invoice in
             OutgoingInvoiceDetailView(invoiceId: invoice.id)
                 .environmentObject(viewModel)

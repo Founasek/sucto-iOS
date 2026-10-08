@@ -10,6 +10,7 @@ import SwiftUI
 struct OutgoingInvoiceDetailView: View {
     let invoiceId: Int
     @EnvironmentObject var viewModel: OutgoingInvoicesViewModel
+    @State private var showSendSheet = false
 
     var body: some View {
         ScrollView {
@@ -33,15 +34,33 @@ struct OutgoingInvoiceDetailView: View {
         .background(Theme.background)
         .safeAreaInset(edge: .bottom) { payBar }
         .overlay {
-            if let confirmation = viewModel.paymentConfirmation {
+            if let confirmation = viewModel.confirmation {
                 ZStack {
                     Color.black.opacity(0.25).ignoresSafeArea()
-                    PaymentSuccessOverlay(message: confirmation)
+                    PaymentSuccessOverlay(title: confirmation.title, message: confirmation.message)
                 }
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
         }
-        .sensoryFeedback(.success, trigger: viewModel.paymentConfirmation) { _, new in new != nil }
+        .sensoryFeedback(.success, trigger: viewModel.confirmation) { _, new in new != nil }
+        .toolbar {
+            if let invoice = viewModel.selectedInvoice {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showSendSheet = true
+                    } label: {
+                        Image(systemName: "paperplane")
+                    }
+                    .accessibilityLabel("Odeslat e-mailem")
+                    .disabled(invoice.invoiceStatus == .storno)
+                }
+            }
+        }
+        .sheet(isPresented: $showSendSheet) {
+            SendEmailSheet(invoiceNumber: viewModel.selectedInvoice?.actuarialNumber ?? "") { email, comment in
+                await viewModel.sendByEmail(invoiceId: invoiceId, email: email, comment: comment)
+            }
+        }
         .task {
             await viewModel.fetchInvoiceDetail(invoiceId: invoiceId)
         }
