@@ -40,6 +40,8 @@ class PagedInvoicesViewModel: ObservableObject {
 
     let companyId: Int
     let session: SessionManager
+    /// Vydané × přijaté: určuje, na který zdroj (`actuarials_outs` / `actuarials_ins`) se seznam, detail i řádky ptají.
+    let direction: InvoiceDirection
 
     private var currentPage = 1
     /// Zvyšuje se při každém novém načtení; odpovědi starší generace se zahodí.
@@ -50,65 +52,19 @@ class PagedInvoicesViewModel: ObservableObject {
     private let minimumMatches = 10
     private let maximumPagesPerLoad = 5
 
-    init(companyId: Int, session: SessionManager) {
+    init(companyId: Int, session: SessionManager, direction: InvoiceDirection) {
         self.companyId = companyId
         self.session = session
+        self.direction = direction
     }
 
-    /// Endpoint seznamu pro danou stránku a dotaz – dodává potomek.
-    func listEndpoint(page _: Int, query _: InvoiceQuery) -> String {
-        fatalError("Potomek musí přepsat listEndpoint")
+    var resourcePath: String {
+        "companies/\(companyId)/" + (direction == .outgoing ? "actuarials_outs" : "actuarials_ins")
     }
 
-    /// Všechny faktury odpovídající aktuálnímu hledání a filtrům (pro export) – stránky se čtou, dokud nejsou prázdné.
-    func fetchAllMatching() async throws -> [Invoice] {
-        let query = query
-        var all: [Invoice] = []
-        var seen = Set<Int>()
-        for page in 1 ... 200 {
-            let result: [Invoice] = try await session.send(listEndpoint(page: page, query: query))
-            let fresh = result.filter { seen.insert($0.id).inserted }
-            if fresh.isEmpty { break }
-            all += query.filter == .overdue ? fresh.filter(\.isOverdue) : fresh
-        }
-        return all
-    }
-
-    /// Endpoint řádků faktury (`.../lines`) – dodává potomek.
-    func linesEndpoint(invoiceId _: Int) -> String {
-        fatalError("Potomek musí přepsat linesEndpoint")
-    }
-
-    /// Přidá (`lineId == nil`) nebo upraví řádek faktury. Vrací text chyby, nebo `nil` při úspěchu.
-    func saveLine(invoiceId: Int, lineId: Int?, request: InvoiceLineRequest) async -> String? {
-        do {
-            let body = try JSONEncoder().encode(request)
-            let base = linesEndpoint(invoiceId: invoiceId)
-            let _: InvoiceItem = try await session.send(
-                lineId.map { "\(base)/\($0)" } ?? base,
-                method: lineId == nil ? .POST : .PATCH,
-                body: body,
-            )
-            return nil
-        } catch is CancellationError {
-            return nil
-        } catch {
-            return error.localizedDescription
-        }
-    }
-
-    func deleteLine(invoiceId: Int, lineId: Int) async -> String? {
-        do {
-            let _: EmptyResponse = try await session.send(
-                "\(linesEndpoint(invoiceId: invoiceId))/\(lineId)",
-                method: .DELETE,
-            )
-            return nil
-        } catch is CancellationError {
-            return nil
-        } catch {
-            return error.localizedDescription
-        }
+    /// Endpoint seznamu pro danou stránku a dotaz.
+    func listEndpoint(page: Int, query: InvoiceQuery) -> String {
+        query.path(resourcePath, page: page)
     }
 
     var query: InvoiceQuery {

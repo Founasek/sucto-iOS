@@ -15,7 +15,7 @@ struct SettingsView: View {
     @State private var hasSavedLogin = CredentialStore.hasSavedLogin()
     @State private var showNotificationsDenied = false
     @State private var offlineDataCleared = false
-    @AppStorage("remindersEnabled") private var remindersEnabled = false
+    @AppStorage(ReminderSettings.enabledKey) private var remindersEnabled = false
 
     var body: some View {
         Form {

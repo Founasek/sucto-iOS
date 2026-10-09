@@ -9,29 +9,7 @@ import SwiftUI
 
 @MainActor
 final class IncomingInvoicesViewModel: PagedInvoicesViewModel {
-    override func listEndpoint(page: Int, query: InvoiceQuery) -> String {
-        query.path("companies/\(companyId)/actuarials_ins", page: page)
-    }
-
-    override func linesEndpoint(invoiceId: Int) -> String {
-        "companies/\(companyId)/actuarials_ins/\(invoiceId)/lines"
-    }
-
-    func fetchInvoiceDetail(invoiceId: Int) async {
-        // Nezobrazuj detail dříve prohlížené faktury, než se načte ta aktuální.
-        if selectedInvoice?.id != invoiceId { selectedInvoice = nil }
-        isLoadingDetail = true
-        defer { isLoadingDetail = false }
-
-        do {
-            selectedInvoice = try await session.send(
-                APIConstants.incomingInvoiceDetail(companyId: companyId, invoiceId: invoiceId),
-            )
-            detailErrorMessage = nil
-        } catch is CancellationError {
-            return
-        } catch {
-            detailErrorMessage = error.localizedDescription
-        }
+    init(companyId: Int, session: SessionManager) {
+        super.init(companyId: companyId, session: session, direction: .incoming)
     }
 }
