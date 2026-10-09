@@ -14,6 +14,7 @@ struct CompaniesView: View {
     @EnvironmentObject var appLock: AppLock
     @ObservedObject private var dueNotifier = DueNotifier.shared
     @State private var showNotificationsDenied = false
+    @State private var hasSavedLogin = false
 
     var body: some View {
         Group {
@@ -71,6 +72,15 @@ struct CompaniesView: View {
                         Label("Upozornění na splatnost", systemImage: "bell")
                     }
 
+                    if hasSavedLogin {
+                        Button {
+                            CredentialStore.delete()
+                            hasSavedLogin = false
+                        } label: {
+                            Label("Zapomenout uložené přihlášení", systemImage: "key.slash")
+                        }
+                    }
+
                     Button(role: .destructive) {
                         session.logout()
                         navManager.reset()
@@ -83,6 +93,7 @@ struct CompaniesView: View {
                 .accessibilityLabel("Nastavení")
             }
         }
+        .onAppear { hasSavedLogin = CredentialStore.hasSavedLogin() }
         .alert("Upozornění jsou zakázaná", isPresented: $showNotificationsDenied) {
             Button("Otevřít Nastavení") {
                 if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }

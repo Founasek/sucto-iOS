@@ -12,6 +12,13 @@ struct LoginView: View {
     @State private var email = DevCredentials.email
     @State private var password = DevCredentials.password
     @FocusState private var focusedField: Field?
+    /// Jsou uložené údaje pro Face ID přihlášení? Zjišťuje se jednou při zobrazení, ne při každém překreslení.
+    @State private var hasSavedLogin = false
+    /// Po úspěšném ručním přihlášení čeká na odpověď na „Uložit přihlášení?“.
+    @State private var pendingLogin: PendingLogin?
+    @State private var showSaveFailed = false
+    /// Ověření Face ID právě probíhá – další klepnutí se ignorují (jinak by se dotazy hromadily).
+    @State private var isBiometricInProgress = false
 
     @EnvironmentObject private var session: SessionManager
     @EnvironmentObject private var appLock: AppLock
@@ -19,6 +26,11 @@ struct LoginView: View {
     @ScaledMetric(relativeTo: .body) private var iconWidth: CGFloat = 22
 
     private enum Field { case email, password }
+
+    private struct PendingLogin {
+        let token: String
+        let credentials: CredentialStore.Credentials
+    }
 
     private var canSubmit: Bool {
         !viewModel.isLoading && !email.isEmpty && !password.isEmpty
@@ -48,6 +60,25 @@ struct LoginView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear { hasSavedLogin = CredentialStore.hasSavedLogin() }
+        .alert("Uložit přihlášení?", isPresented: Binding(
+            get: { pendingLogin != nil },
+            set: { if !$0 { finishPendingLogin(save: false) } },
+        )) {
+            Button("Uložit") { finishPendingLogin(save: true) }
+            Button("Teď ne", role: .cancel) { finishPendingLogin(save: false) }
+            Button("Nikdy", role: .destructive) {
+                CredentialStore.offerDeclined = true
+                finishPendingLogin(save: false)
+            }
+        } message: {
+            Text("Příště se přihlásíte přes \(appLock.methodName). Údaje se uloží jen do zabezpečeného úložiště tohoto zařízení.")
+        }
+        .alert("Přihlášení se nepodařilo uložit", isPresented: $showSaveFailed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Uložení vyžaduje, aby bylo na zařízení nastavené heslo nebo Face ID / Touch ID.")
+        }
     }
 
     // MARK: - Části
@@ -96,6 +127,10 @@ struct LoginView: View {
             .buttonStyle(.primary)
             .disabled(!canSubmit)
             .padding(.top, Theme.Spacing.s)
+
+            if hasSavedLogin {
+                savedLoginControls
+            }
         }
         .padding(Theme.Spacing.xl)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
@@ -140,16 +175,76 @@ struct LoginView: View {
         .background(.white.opacity(0.1), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
     }
 
+    /// Tlačítko rychlého přihlášení a možnost uložené údaje zapomenout.
+    private var savedLoginControls: some View {
+        VStack(spacing: Theme.Spacing.xs) {
+            Button(action: loginWithSaved) {
+                Label("Přihlásit se přes \(appLock.methodName)", systemImage: "faceid")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
+            }
+            .disabled(viewModel.isLoading || isBiometricInProgress)
+            .accessibilityHint("Přihlásí uloženým účtem")
+
+            Button("Zapomenout uložené přihlášení") {
+                CredentialStore.delete()
+                hasSavedLogin = false
+            }
+            .font(.caption)
+            .foregroundStyle(.white.opacity(0.7))
+            .padding(.top, Theme.Spacing.xs)
+        }
+    }
+
     private func submit() {
         guard canSubmit else { return }
         focusedField = nil
+        let credentials = CredentialStore.Credentials(email: email, password: password)
         Task {
-            if let token = await viewModel.login(email: email, password: password) {
-                // Odemknout dřív než se přepne obrazovka, aby zamčený překryv ani na okamžik neproblikl.
-                appLock.markUnlocked()
-                session.login(token: token)
+            guard let token = await viewModel.login(email: credentials.email, password: credentials.password) else { return }
+            if !hasSavedLogin, !CredentialStore.offerDeclined {
+                pendingLogin = PendingLogin(token: token, credentials: credentials)
+                return
+            }
+            // Změněné heslo u už uloženého účtu se tiše aktualizuje, ať Face ID přihlášení dál funguje.
+            if hasSavedLogin { CredentialStore.save(credentials) }
+            finish(token: token)
+        }
+    }
+
+    /// Face ID se vyvolá jen klepnutím na tlačítko, nikdy samo.
+    private func loginWithSaved() {
+        guard !isBiometricInProgress else { return }
+        isBiometricInProgress = true
+        Task {
+            defer { isBiometricInProgress = false }
+            guard let credentials = await CredentialStore.load(reason: "Přihlášení do sÚčta") else { return }
+            if let token = await viewModel.login(email: credentials.email, password: credentials.password) {
+                finish(token: token)
             }
         }
+    }
+
+    private func finishPendingLogin(save: Bool) {
+        guard let pending = pendingLogin else { return }
+        pendingLogin = nil
+        if save {
+            if CredentialStore.save(pending.credentials) {
+                hasSavedLogin = true
+            } else {
+                showSaveFailed = true
+            }
+        }
+        finish(token: pending.token)
+    }
+
+    private func finish(token: String) {
+        // Odemknout dřív než se přepne obrazovka, aby zamčený překryv ani na okamžik neproblikl.
+        appLock.markUnlocked()
+        session.login(token: token)
     }
 }
 
