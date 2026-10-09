@@ -111,9 +111,6 @@ private struct CashVoucherRow: View {
             VStack(alignment: .trailing, spacing: Theme.Spacing.xs) {
                 Text(FormatterHelper.formatPrice(voucher.totalPrice, currency: nil))
                     .moneyStyle(.headline)
-                if voucher.isStorno {
-                    Text("Storno").font(.caption2.weight(.semibold)).foregroundStyle(.red)
-                }
             }
         }
         .card()

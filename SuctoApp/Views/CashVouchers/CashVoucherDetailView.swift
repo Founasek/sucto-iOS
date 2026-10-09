@@ -31,7 +31,7 @@ struct CashVoucherDetailView: View {
         .navigationTitle("Pokladní doklad")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if let voucher = viewModel.voucher, !voucher.isStorno {
+            if viewModel.voucher != nil {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button { showEmailSheet = true } label: { Label("Odeslat e-mailem", systemImage: "paperplane") }
@@ -84,7 +84,6 @@ struct CashVoucherDetailView: View {
                     DetailRow(label: "Popis", value: voucher.description, hideWhenEmpty: true)
                     DetailRow(label: "Účet", value: voucher.account, hideWhenEmpty: true)
                     DetailRow(label: "Externí číslo", value: voucher.externalNumber, hideWhenEmpty: true)
-                    DetailRow(label: "Stav", value: voucher.statusTitle, valueColor: voucher.isStorno ? .red : .primary, hideWhenEmpty: true)
                 }
 
                 if let recipient = voucher.recipient, recipient.name != nil {

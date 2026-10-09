@@ -81,7 +81,10 @@ struct CashRecipient: Decodable, Equatable {
     }
 }
 
-/// Pokladní doklad (seznam vrací jen část polí, detail i `status`, `account` a položky).
+/// Pokladní doklad (seznam vrací jen část polí, detail i `account` a položky).
+/// Pole `status` ze serveru se záměrně nečte. V dokumentaci i v reálných datech (příjmový doklad zaplacené faktury)
+/// má vždy hodnotu `{"storno": "Stornováno"}`, i když doklad stornovaný není – nejde tedy o jeho stav, nejspíš o nabídku
+/// možné akce. Stav pokladního dokladu API spolehlivě nevrací.
 struct CashVoucher: Identifiable, Decodable, Equatable {
     let id: Int
     let number: String
@@ -91,14 +94,11 @@ struct CashVoucher: Identifiable, Decodable, Equatable {
     let transactionDate: String?
     let recipient: CashRecipient?
     let externalNumber: String?
-    /// `status` chodí jako objekt `{"storno": "Stornováno"}` – klíč je kód, hodnota název.
-    let statusCode: String?
-    let statusTitle: String?
     let account: String?
     let items: [InvoiceItem]
 
     private enum CodingKeys: String, CodingKey {
-        case id, number, description, recipient, status, account, items
+        case id, number, description, recipient, account, items
         case totalPrice = "total_price"
         case basePrice = "base_price"
         case transactionDate = "transaction_date"
@@ -115,16 +115,7 @@ struct CashVoucher: Identifiable, Decodable, Equatable {
         transactionDate = container.lossyString(.transactionDate)
         recipient = try? container.decodeIfPresent(CashRecipient.self, forKey: .recipient)
         externalNumber = container.lossyString(.externalNumber)
-        if let status = try? container.decodeIfPresent([String: String].self, forKey: .status), let first = status.first {
-            statusCode = first.key
-            statusTitle = first.value
-        } else {
-            statusCode = nil
-            statusTitle = container.lossyString(.status)
-        }
         account = container.lossyString(.account)
         items = (try? container.decodeIfPresent([InvoiceItem].self, forKey: .items)) ?? []
     }
-
-    var isStorno: Bool { statusCode == "storno" }
 }
