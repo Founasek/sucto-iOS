@@ -1,17 +1,22 @@
 import SwiftUI
 
-/// Záložky dashboardu; pořadí odpovídá pořadí v přepínači.
-private enum DashboardTab: Int, CaseIterable {
-    case overview, outgoing, incoming, accounts
+/// Záložky dolní lišty.
+private enum MainTab: Hashable {
+    case overview, invoices, cash
+}
+
+/// Strana v záložce Faktury (přepínač nahoře).
+private enum InvoiceSide: Int, CaseIterable {
+    case outgoing, incoming
 
     var item: SegmentedTabs.Item {
         switch self {
-        case .overview: .init(title: "Přehled", systemImage: "chart.bar.xaxis")
         case .outgoing: .init(title: "Vydané", systemImage: "arrow.up.right.circle")
         case .incoming: .init(title: "Přijaté", systemImage: "arrow.down.left.circle")
-        case .accounts: .init(title: "Účty", systemImage: "creditcard")
         }
     }
+
+    var direction: InvoiceDirection { self == .outgoing ? .outgoing : .incoming }
 }
 
 struct DashboardView: View {
@@ -19,7 +24,9 @@ struct DashboardView: View {
     @EnvironmentObject var navManager: NavigationManager
     @EnvironmentObject var session: SessionManager
     @EnvironmentObject var permissions: PermissionsStore
-    @State private var selectedTab = DashboardTab.overview.rawValue
+    @Namespace private var invoiceNamespace
+    @State private var mainTab = MainTab.overview
+    @State private var invoiceSide = InvoiceSide.outgoing
     @State private var pohodaExportDirection: InvoiceDirection?
     @State private var scanSource: ScanSource?
     @State private var slideEdge: Edge = .trailing
@@ -32,9 +39,6 @@ struct DashboardView: View {
     @StateObject private var scanUploader: ScanUploadViewModel
     @StateObject var outgoingInvoicesVM: OutgoingInvoicesViewModel
     @StateObject var incomingInvoicesVM: IncomingInvoicesViewModel
-    @StateObject private var accountsVM: AccountsViewModel
-
-    private var visibleTabs: [DashboardTab] { DashboardTab.allCases }
 
     init(companyId: Int, session: SessionManager) {
         self.companyId = companyId
@@ -42,56 +46,26 @@ struct DashboardView: View {
         _scanUploader = StateObject(wrappedValue: ScanUploadViewModel(companyId: companyId, session: session))
         _outgoingInvoicesVM = StateObject(wrappedValue: OutgoingInvoicesViewModel(companyId: companyId, session: session))
         _incomingInvoicesVM = StateObject(wrappedValue: IncomingInvoicesViewModel(companyId: companyId, session: session))
-        _accountsVM = StateObject(wrappedValue: AccountsViewModel(companyId: companyId, session: session))
     }
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            VStack(spacing: 0) {
-                SegmentedTabs(items: visibleTabs.map(\.item), selection: Binding(
-                    get: { visibleTabs.firstIndex(of: tab) ?? 0 },
-                    set: { index in
-                        guard visibleTabs.indices.contains(index) else { return }
-                        let newTab = visibleTabs[index]
-                        // Směr přechodu se nastaví dřív než samotná změna záložky.
-                        slideEdge = newTab.rawValue > selectedTab ? .trailing : .leading
-                        selectedTab = newTab.rawValue
-                    },
-                ))
-                .padding(.horizontal, Theme.Spacing.l)
-                .padding(.vertical, Theme.Spacing.s)
-
-                Group {
-                    switch tab {
-                    case .overview:
-                        OverviewView()
-                            .environmentObject(overviewVM)
-                    case .outgoing:
-                        OutgoingInvoicesView()
-                            .environmentObject(outgoingInvoicesVM)
-                    case .incoming:
-                        IncomingInvoicesView()
-                            .environmentObject(incomingInvoicesVM)
-                    case .accounts:
-                        BankAccountsView()
-                            .environmentObject(accountsVM)
-                    }
-                }
-                .id(selectedTab)
-                .transition(.asymmetric(
-                    insertion: .move(edge: slideEdge).combined(with: .opacity),
-                    removal: .move(edge: slideEdge == .trailing ? .leading : .trailing).combined(with: .opacity),
-                ))
+        TabView(selection: $mainTab) {
+            Tab("Přehled", systemImage: "chart.bar.xaxis", value: MainTab.overview) {
+                OverviewView()
+                    .environmentObject(overviewVM)
+                    .offlineBanner()
             }
-            .clipped()
 
-            if let direction = createDirection {
-                newInvoiceButton(direction)
-                    .id(direction)
-                    .transition(.scale(scale: 0.8).combined(with: .opacity))
+            Tab("Faktury", systemImage: "doc.text", value: MainTab.invoices) {
+                invoicesTab
+                    .offlineBanner()
+            }
+
+            Tab("Pokladna", systemImage: "banknote", value: MainTab.cash) {
+                CashVouchersView(companyId: companyId, session: session, embedded: true)
+                    .offlineBanner()
             }
         }
-        .offlineBanner()
         .task { await permissions.load(companyId: companyId, session: session) }
         .onAppear { consumePendingTarget() }
         .onChange(of: navManager.pendingTarget) { consumePendingTarget() }
@@ -100,34 +74,36 @@ struct DashboardView: View {
             if phase == .active { Task { await refreshDueSnapshot() } }
         }
         .background(Theme.background)
-        .animation(Motion.standard, value: selectedTab)
+        // Cíl navigace musí být nad TabView: uvnitř záložky ho zásobník nenajde a detail faktury by se neotevřel.
+        // Obě strany sdílejí typ `Invoice`, otevře se detail té, která je zrovna vybraná.
+        .navigationDestination(for: Invoice.self) { invoice in
+            invoiceDetail(for: invoice)
+        }
         .navigationTitle(session.selectedCompany?.name ?? "Přehled")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
-                    if tab == .outgoing || tab == .incoming {
+                    if mainTab == .invoices {
                         Button {
-                            pohodaExportDirection = tab == .outgoing ? .outgoing : .incoming
+                            pohodaExportDirection = invoiceSide.direction
                         } label: {
                             Label(
-                                tab == .outgoing ? "Export vydaných do Pohody" : "Export přijatých do Pohody",
+                                invoiceSide == .outgoing ? "Export vydaných do Pohody" : "Export přijatých do Pohody",
                                 systemImage: "square.and.arrow.up",
                             )
                         }
-                    }
 
-                    if tab == .outgoing || tab == .incoming {
                         Button {
-                            Task { await exportCSV(direction: tab == .outgoing ? .outgoing : .incoming) }
+                            Task { await exportCSV(direction: invoiceSide.direction) }
                         } label: {
                             Label("Exportovat seznam do CSV", systemImage: "tablecells")
                         }
                         .disabled(isExportingCSV)
                     }
 
-                    if FeatureFlags.scans, tab == .incoming {
+                    if FeatureFlags.scans, mainTab == .invoices, invoiceSide == .incoming {
                         Button {
                             navManager.showScans(companyId: companyId)
                         } label: {
@@ -136,15 +112,21 @@ struct DashboardView: View {
                     }
 
                     Button {
-                        navManager.showCashVouchers(companyId: companyId)
+                        navManager.showAccounts(companyId: companyId)
                     } label: {
-                        Label("Pokladna", systemImage: "banknote")
+                        Label("Účty", systemImage: "creditcard")
                     }
 
                     Button {
                         navManager.showPartners(companyId: companyId)
                     } label: {
                         Label("Partneři", systemImage: "person.2")
+                    }
+
+                    Button {
+                        navManager.showSettings()
+                    } label: {
+                        Label("Nastavení", systemImage: "gearshape")
                     }
 
                     Button {
@@ -204,24 +186,59 @@ struct DashboardView: View {
         .task {
             async let outgoing: Void = outgoingInvoicesVM.refresh()
             async let incoming: Void = incomingInvoicesVM.refresh()
-            async let accounts: Void = accountsVM.fetchAccounts()
-            _ = await (outgoing, incoming, accounts)
+            _ = await (outgoing, incoming)
         }
     }
 
-    /// Směr faktury, kterou lze na aktuální záložce vytvořit (na záložce Účty tlačítko není).
-    /// Tlačítko se neukáže, když uživatel podle `api_permissions` faktury daného směru vytvářet nesmí.
-    private var createDirection: InvoiceDirection? {
-        let direction: InvoiceDirection? = switch tab {
-        case .outgoing: .outgoing
-        case .incoming: .incoming
-        default: nil
+    /// Záložka Faktury: přepínač Vydané/Přijaté nahoře, seznam pod ním a plovoucí tlačítko nové faktury.
+    private var invoicesTab: some View {
+        ZStack(alignment: .bottomTrailing) {
+            VStack(spacing: 0) {
+                SegmentedTabs(items: InvoiceSide.allCases.map(\.item), selection: Binding(
+                    get: { invoiceSide.rawValue },
+                    set: { index in
+                        guard let newSide = InvoiceSide(rawValue: index) else { return }
+                        // Směr přechodu se nastaví dřív než samotná změna strany.
+                        slideEdge = newSide.rawValue > invoiceSide.rawValue ? .trailing : .leading
+                        invoiceSide = newSide
+                    },
+                ))
+                .padding(.horizontal, Theme.Spacing.l)
+                .padding(.vertical, Theme.Spacing.s)
+
+                Group {
+                    switch invoiceSide {
+                    case .outgoing:
+                        OutgoingInvoicesView(namespace: invoiceNamespace)
+                            .environmentObject(outgoingInvoicesVM)
+                    case .incoming:
+                        IncomingInvoicesView(namespace: invoiceNamespace)
+                            .environmentObject(incomingInvoicesVM)
+                    }
+                }
+                .id(invoiceSide)
+                .transition(.asymmetric(
+                    insertion: .move(edge: slideEdge).combined(with: .opacity),
+                    removal: .move(edge: slideEdge == .trailing ? .leading : .trailing).combined(with: .opacity),
+                ))
+            }
+            .clipped()
+
+            if let direction = createDirection {
+                newInvoiceButton(direction)
+                    .id(direction)
+                    .transition(.scale(scale: 0.8).combined(with: .opacity))
+            }
         }
-        guard let direction, permissions.can(.create, direction.permissionResource, companyId: companyId) else { return nil }
+        .animation(Motion.standard, value: invoiceSide)
+    }
+
+    /// Tlačítko nové faktury se neukáže, když uživatel podle `api_permissions` faktury daného směru vytvářet nesmí.
+    private var createDirection: InvoiceDirection? {
+        let direction = invoiceSide.direction
+        guard permissions.can(.create, direction.permissionResource, companyId: companyId) else { return nil }
         return direction
     }
-
-    private var tab: DashboardTab { DashboardTab(rawValue: selectedTab) ?? .overview }
 
     private func newInvoiceButton(_ direction: InvoiceDirection) -> some View {
         HStack(spacing: Theme.Spacing.m) {
@@ -272,6 +289,20 @@ struct DashboardView: View {
 }
 
 private extension DashboardView {
+    @ViewBuilder
+    private func invoiceDetail(for invoice: Invoice) -> some View {
+        switch invoiceSide {
+        case .outgoing:
+            OutgoingInvoiceDetailView(invoiceId: invoice.id)
+                .environmentObject(outgoingInvoicesVM)
+                .navigationTransition(.zoom(sourceID: invoice.id, in: invoiceNamespace))
+        case .incoming:
+            IncomingInvoiceDetailView(invoiceId: invoice.id)
+                .environmentObject(incomingInvoicesVM)
+                .navigationTransition(.zoom(sourceID: invoice.id, in: invoiceNamespace))
+        }
+    }
+
     /// Exportuje aktuální výběr faktur (hledání + filtry) do CSV a otevře sdílecí okno.
     private func exportCSV(direction: InvoiceDirection) async {
         isExportingCSV = true
@@ -294,7 +325,8 @@ private extension DashboardView {
     private func consumePendingTarget() {
         guard let target = navManager.pendingTarget else { return }
         navManager.pendingTarget = nil
-        selectedTab = (target.isIncoming ? DashboardTab.incoming : DashboardTab.outgoing).rawValue
+        mainTab = .invoices
+        invoiceSide = target.isIncoming ? .incoming : .outgoing
         if target.isIncoming {
             incomingInvoicesVM.filter = .overdue
         } else {

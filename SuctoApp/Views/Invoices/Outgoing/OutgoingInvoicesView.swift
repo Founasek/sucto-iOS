@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct OutgoingInvoicesView: View {
-    @Namespace private var transitionNamespace
+    /// Jmenný prostor zoom přechodu do detailu; patří dashboardu, který detail otevírá.
+    let namespace: Namespace.ID
     @EnvironmentObject var viewModel: OutgoingInvoicesViewModel
 
     var body: some View {
@@ -24,14 +25,9 @@ struct OutgoingInvoicesView: View {
             counterparty: { $0.customer?.name },
             refresh: { await viewModel.refresh() },
             loadMore: { await viewModel.fetchNextPage() },
-            namespace: transitionNamespace,
+            namespace: namespace,
         )
         .searchable(text: $viewModel.searchText, prompt: "Číslo faktury nebo odběratel")
         .onChange(of: viewModel.searchText) { viewModel.searchTextChanged() }
-        .navigationDestination(for: Invoice.self) { invoice in
-            OutgoingInvoiceDetailView(invoiceId: invoice.id)
-                .environmentObject(viewModel)
-                .navigationTransition(.zoom(sourceID: invoice.id, in: transitionNamespace))
-        }
     }
 }

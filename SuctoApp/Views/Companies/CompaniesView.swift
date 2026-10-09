@@ -11,10 +11,6 @@ struct CompaniesView: View {
     @StateObject var viewModel: CompaniesViewModel
     @EnvironmentObject var session: SessionManager
     @EnvironmentObject var navManager: NavigationManager
-    @EnvironmentObject var appLock: AppLock
-    @ObservedObject private var dueNotifier = DueNotifier.shared
-    @State private var showNotificationsDenied = false
-    @State private var hasSavedLogin = false
 
     var body: some View {
         Group {
@@ -57,29 +53,10 @@ struct CompaniesView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
-                    Toggle(isOn: Binding(
-                        get: { appLock.isEnabled },
-                        set: { newValue in Task { await appLock.setEnabled(newValue) } },
-                    )) {
-                        Label("Zámek aplikace (\(appLock.methodName))", systemImage: "lock")
-                    }
-
-                    Toggle(isOn: Binding(
-                        get: { dueNotifier.isEnabled },
-                        set: { newValue in
-                            Task { if await !dueNotifier.setEnabled(newValue) { showNotificationsDenied = true } }
-                        },
-                    )) {
-                        Label("Upozornění na splatnost", systemImage: "bell")
-                    }
-
-                    if hasSavedLogin {
-                        Button {
-                            CredentialStore.delete()
-                            hasSavedLogin = false
-                        } label: {
-                            Label("Zapomenout uložené přihlášení", systemImage: "key.slash")
-                        }
+                    Button {
+                        navManager.showSettings()
+                    } label: {
+                        Label("Nastavení", systemImage: "gearshape")
                     }
 
                     Button(role: .destructive) {
@@ -93,15 +70,6 @@ struct CompaniesView: View {
                 }
                 .accessibilityLabel("Nastavení")
             }
-        }
-        .onAppear { hasSavedLogin = CredentialStore.hasSavedLogin() }
-        .alert("Upozornění jsou zakázaná", isPresented: $showNotificationsDenied) {
-            Button("Otevřít Nastavení") {
-                if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
-            }
-            Button("Zrušit", role: .cancel) {}
-        } message: {
-            Text("Povolte oznámení pro sÚčto v Nastavení iOS.")
         }
         .task {
             await viewModel.fetchCompanies()
@@ -206,5 +174,4 @@ private struct CompanyCard: View {
     return CompaniesView(viewModel: viewModel)
         .environmentObject(session)
         .environmentObject(NavigationManager())
-        .environmentObject(AppLock())
 }

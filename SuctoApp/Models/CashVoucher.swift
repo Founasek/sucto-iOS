@@ -19,6 +19,14 @@ enum CashDirection: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Ikona v přepínači (stejný styl jako Vydané/Přijaté u faktur).
+    var systemImage: String {
+        switch self {
+        case .income: "arrow.down.left.circle"
+        case .expense: "arrow.up.right.circle"
+        }
+    }
+
     func list(companyId: Int, query: String, page: Int) -> String {
         var components = URLComponents()
         components.queryItems = [URLQueryItem(name: "page", value: "\(page)")]

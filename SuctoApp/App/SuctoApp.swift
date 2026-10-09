@@ -15,6 +15,11 @@ struct SuctoApp: App {
     @StateObject private var permissions = PermissionsStore()
     @Environment(\.scenePhase) private var scenePhase
 
+    init() {
+        // Obsluha klepnutí na upozornění musí být zaregistrovaná hned při startu.
+        DueNotifier.shared.activate()
+    }
+
     var body: some Scene {
         WindowGroup {
             NavigationStack(path: $navManager.path) {
@@ -49,11 +54,17 @@ struct SuctoApp: App {
             .onOpenURL { url in
                 Task { await openOverdue(from: url) }
             }
+            .onReceive(NotificationCenter.default.publisher(for: DueNotifier.openLinkNotification)) { note in
+                guard let url = note.object as? URL else { return }
+                _ = DueNotifier.shared.takePendingURL()
+                Task { await openOverdue(from: url) }
+            }
             .onChange(of: scenePhase) { _, phase in
                 switch phase {
                 case .background:
-                    appLock.lock()
+                    appLock.appDidEnterBackground()
                 case .active:
+                    appLock.appBecameActive()
                     if session.isLoggedIn, appLock.isLocked {
                         Task { await appLock.unlockAutomatically() }
                     }
@@ -62,6 +73,10 @@ struct SuctoApp: App {
                 }
             }
             .task {
+                // Aplikace se spustila klepnutím na upozornění: otevřít odkaz, jakmile je scéna připravená.
+                if let url = DueNotifier.shared.takePendingURL() {
+                    await openOverdue(from: url)
+                }
                 if session.isLoggedIn, appLock.isLocked {
                     await appLock.unlockAutomatically()
                 }

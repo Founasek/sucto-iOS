@@ -95,3 +95,20 @@ private struct AccountRow: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+/// Samostatná obrazovka Účty (z menu „…“): drží vlastní view model a načte účty.
+struct AccountsScreen: View {
+    @StateObject private var viewModel: AccountsViewModel
+
+    init(companyId: Int, session: SessionManager) {
+        _viewModel = StateObject(wrappedValue: AccountsViewModel(companyId: companyId, session: session))
+    }
+
+    var body: some View {
+        BankAccountsView()
+            .environmentObject(viewModel)
+            .navigationTitle("Účty")
+            .navigationBarTitleDisplayMode(.inline)
+            .task { await viewModel.fetchAccounts() }
+    }
+}

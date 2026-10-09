@@ -8,21 +8,28 @@ import SwiftUI
 /// Pokladní doklady (jen čtení a odeslání – API nic dalšího neumožňuje).
 struct CashVouchersView: View {
     let companyId: Int
+    /// V záložce dolní lišty se nadpis nenastavuje (patří dashboardu).
+    var embedded = false
     @StateObject private var viewModel: CashVouchersViewModel
 
-    init(companyId: Int, session: SessionManager) {
+    init(companyId: Int, session: SessionManager, embedded: Bool = false) {
         self.companyId = companyId
+        self.embedded = embedded
         _viewModel = StateObject(wrappedValue: CashVouchersViewModel(companyId: companyId, session: session))
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Směr", selection: $viewModel.direction) {
-                ForEach(CashDirection.allCases) { direction in
-                    Text(direction.title).tag(direction)
-                }
-            }
-            .pickerStyle(.segmented)
+            SegmentedTabs(
+                items: CashDirection.allCases.map { .init(title: $0.title, systemImage: $0.systemImage) },
+                selection: Binding(
+                    get: { CashDirection.allCases.firstIndex(of: viewModel.direction) ?? 0 },
+                    set: { index in
+                        guard CashDirection.allCases.indices.contains(index) else { return }
+                        viewModel.direction = CashDirection.allCases[index]
+                    },
+                ),
+            )
             .padding(.horizontal, Theme.Spacing.l)
             .padding(.vertical, Theme.Spacing.s)
 
@@ -57,7 +64,7 @@ struct CashVouchersView: View {
             .contentMargins(.bottom, 24, for: .scrollContent)
         }
         .background(Theme.background)
-        .navigationTitle("Pokladna")
+        .navigationTitle(embedded ? "" : "Pokladna")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $viewModel.searchText, prompt: "Číslo dokladu nebo příjemce")
         .onChange(of: viewModel.searchText) { viewModel.searchTextChanged() }

@@ -20,25 +20,33 @@ final class OverviewViewModel: ObservableObject {
     }
 
     /// Sekce po měnách (u účetního deníku jedna, u přehledu z faktur jedna na každou měnu, nejpoužívanější první).
-    @Published private(set) var sections: [CurrencySection] = []
-    @Published private(set) var source = Source.accounting
+    @Published var sections: [CurrencySection] = []
+    @Published var source = Source.accounting
     @Published private(set) var isLoading = false
-    @Published private(set) var errorMessage: String?
+    @Published var errorMessage: String?
     /// `true`, pokud server za zvolený rok nevrátil žádné nenulové údaje.
-    @Published private(set) var isEmpty = false
+    @Published var isEmpty = false
     /// Poslední zpráva ze sÚčta (dashboard API); zobrazuje se na vyžádání.
     @Published private(set) var notice: SystemNotice?
     @Published private(set) var isNoticeUnread = false
+    /// Průběh načítání pro úvodní obrazovku (kroky a počty načtených faktur).
+    @Published var progress = OverviewLoadProgress()
     /// Stáří prošlých pohledávek a závazků (nezávisí na zvoleném roce).
     @Published private(set) var aging = AgingSummary(items: [])
 
     let companyId: Int
-    private let session: SessionManager
-    private let concurrentRequests = 4
-    private let maximumPages = 100
-    private var generation = 0
+    let session: SessionManager
+    let concurrentRequests = 4
+    let maximumPages = 100
+    /// Kolik stránek seznamu faktur se stahuje současně.
+    let concurrentPages = 4
+    var generation = 0
     /// Server už jednou účetní deník odmítl – příště se rovnou použijí faktury (pull-to-refresh to zkusí znovu).
-    private var accountingKnownForbidden = false
+    /// Pamatuje se i mezi spuštěními, ať se při každém otevření firmy nečeká na zbytečný dotaz, který skončí 403.
+    private var accountingKnownForbidden: Bool {
+        get { UserDefaults.standard.bool(forKey: "overview.accountingForbidden.\(companyId)") }
+        set { UserDefaults.standard.set(newValue, forKey: "overview.accountingForbidden.\(companyId)") }
+    }
 
     init(companyId: Int, session: SessionManager) {
         self.companyId = companyId
@@ -79,12 +87,14 @@ final class OverviewViewModel: ObservableObject {
         let myGeneration = generation
         isLoading = true
         defer { if myGeneration == generation { isLoading = false } }
+        progress = OverviewLoadProgress()
 
         let selectedYear = year
         do {
             if accountingKnownForbidden, !retryAccounting { throw APIError.forbidden(message: nil) }
             try await loadAccounting(year: selectedYear, generation: myGeneration)
             accountingKnownForbidden = false
+            progress.finishAll()
         } catch is CancellationError {
             return
         } catch APIError.forbidden {
@@ -94,6 +104,9 @@ final class OverviewViewModel: ObservableObject {
                 await probePermissions()
             }
             accountingKnownForbidden = true
+            progress.connecting = .done
+            progress.issued = .active
+            progress.received = .active
             do {
                 try await loadInvoices(year: selectedYear, generation: myGeneration)
             } catch is CancellationError {
@@ -179,111 +192,6 @@ final class OverviewViewModel: ObservableObject {
         }
         return results
     }
-
-    // MARK: - Záložní zdroj: faktury
-
-    private func loadInvoices(year: Int, generation myGeneration: Int) async throws {
-        async let issued = listInvoices(base: "actuarials_outs", year: year)
-        async let received = listInvoices(base: "actuarials_ins", year: year)
-        // Minulý rok je jen doplněk srovnání – při chybě se srovnání neukáže.
-        async let previousIssued: [Invoice]? = try? listInvoices(base: "actuarials_outs", year: year - 1)
-        async let previousReceived: [Invoice]? = try? listInvoices(base: "actuarials_ins", year: year - 1)
-        let (issuedList, receivedList) = try await (issued, received)
-        let previousLists = await (previousIssued, previousReceived)
-        guard myGeneration == generation else { return }
-
-        // Měny se nepřepočítávají (API nemá kurzy) – každá měna dostane vlastní sekci, všechny se ukážou najednou.
-        let all = issuedList + receivedList
-        func code(_ invoice: Invoice) -> String { invoice.currency?.symbol ?? "Kč" }
-        let counts = Dictionary(grouping: all, by: code).mapValues(\.count)
-
-        func monthly(_ invoices: [Invoice], currency: String) -> [Int: Double] {
-            var sums: [Int: Double] = [:]
-            for invoice in invoices where code(invoice) == currency {
-                guard let date = invoice.issueDateAt?.toDate(), let base = invoice.basePrice.flatMap(Double.init) else { continue }
-                sums[Calendar.current.component(.month, from: date), default: 0] += base
-            }
-            return sums
-        }
-
-        let ordered = counts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }
-        sections = ordered.compactMap { currency, count in
-            let revenue = monthly(issuedList, currency: currency)
-            let cost = monthly(receivedList, currency: currency)
-            let months = (1 ... 12).map { month in
-                let r = revenue[month] ?? 0
-                let c = cost[month] ?? 0
-                return MonthlyFigures(month: month, revenue: r, cost: c, result: r - c)
-            }
-            let revenueTotal = months.reduce(0) { $0 + $1.revenue }
-            let costTotal = months.reduce(0) { $0 + $1.cost }
-            var section = CurrencySection(
-                currency: currency, months: months, revenue: revenueTotal, cost: costTotal,
-                result: revenueTotal - costTotal, invoiceCount: count,
-            )
-            if let previousIssued = previousLists.0, let previousReceived = previousLists.1 {
-                let totals = YearTotals(
-                    revenue: Self.baseSum(previousIssued, currency: currency, code: code),
-                    cost: Self.baseSum(previousReceived, currency: currency, code: code),
-                )
-                section.previous = totals.revenue != 0 || totals.cost != 0 ? totals : nil
-            }
-            section.topCustomers = Self.ranking(issuedList, currency: currency, code: code) { $0.customer?.name }
-            section.topSuppliers = Self.ranking(receivedList, currency: currency, code: code) { $0.supplier?.name }
-            return section.hasData ? section : nil
-        }
-        source = .invoices
-        isEmpty = sections.isEmpty
-        errorMessage = nil
-    }
-
-    private static func baseSum(_ invoices: [Invoice], currency: String, code: (Invoice) -> String) -> Double {
-        invoices.filter { code($0) == currency }.reduce(0) { $0 + ($1.basePrice.flatMap(Double.init) ?? 0) }
-    }
-
-    /// Nejvyšší součty základu podle protistrany (v dané měně), nejvýše pět.
-    private static func ranking(
-        _ invoices: [Invoice],
-        currency: String,
-        code: (Invoice) -> String,
-        name: (Invoice) -> String?,
-    ) -> [RankedParty] {
-        var sums: [String: Double] = [:]
-        for invoice in invoices where code(invoice) == currency {
-            let key = name(invoice).flatMap { $0.isEmpty ? nil : $0 } ?? "Neuvedeno"
-            sums[key, default: 0] += invoice.basePrice.flatMap(Double.init) ?? 0
-        }
-        var parties: [RankedParty] = []
-        for (name, amount) in sums where amount != 0 {
-            parties.append(RankedParty(name: name, amount: amount))
-        }
-        parties.sort { lhs, rhs in
-            lhs.amount == rhs.amount ? lhs.name < rhs.name : lhs.amount > rhs.amount
-        }
-        return Array(parties.prefix(5))
-    }
-
-    /// Všechny faktury vystavené v daném roce (bez konceptů a stornovaných).
-    private func listInvoices(base: String, year: Int) async throws -> [Invoice] {
-        var all: [Invoice] = []
-        var seen = Set<Int>()
-        for page in 1 ... maximumPages {
-            var components = URLComponents()
-            components.queryItems = [
-                URLQueryItem(name: "page", value: "\(page)"),
-                URLQueryItem(name: "q[issue_date_at_gteq]", value: "\(year)-01-01"),
-                URLQueryItem(name: "q[issue_date_at_lteq]", value: "\(year)-12-31"),
-            ]
-            let path = "companies/\(companyId)/\(base)?\(components.percentEncodedQuery ?? "")"
-            let result: [Invoice] = try await session.send(path)
-            let fresh = result.filter { seen.insert($0.id).inserted }
-            if fresh.isEmpty { break }
-            all += fresh
-        }
-        return all.filter { $0.invoiceStatus != .concept && $0.invoiceStatus != .storno }
-    }
-
-    // MARK: - Společné
 
     /// Jen pro ladění: zjistí, co server pro tento účet povoluje (výsledek jde do konzole).
     private func probePermissions() async {
