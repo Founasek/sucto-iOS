@@ -126,3 +126,34 @@ struct CurrencySection: Identifiable, Equatable {
         return all.sorted { $0.month < $1.month }
     }
 }
+
+/// Průběh prvního načtení přehledu (pro úvodní načítací stránku).
+struct OverviewLoadProgress: Equatable {
+    enum StepState: Equatable {
+        case pending, active, done
+    }
+
+    var connecting = StepState.active
+    var issued = StepState.pending
+    var received = StepState.pending
+    var preparing = StepState.pending
+    var issuedCount = 0
+    var receivedCount = 0
+
+    /// Podíl dokončených kroků (0…1) pro ukazatel průběhu; rozpracovaný krok se počítá za půl.
+    var fraction: Double {
+        let states = [connecting, issued, received, preparing]
+        let value = states.reduce(0.0) { sum, state in
+            sum + (state == .done ? 1 : (state == .active ? 0.5 : 0))
+        }
+        return value / Double(states.count)
+    }
+
+    /// Všechno hotovo (účetní deník se načetl bez dalších kroků).
+    mutating func finishAll() {
+        connecting = .done
+        issued = .done
+        received = .done
+        preparing = .done
+    }
+}

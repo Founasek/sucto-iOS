@@ -49,11 +49,6 @@ struct InvoiceListView: View {
                         .buttonStyle(PressableCardStyle())
                         .matchedTransitionSource(id: invoice.id, in: namespace)
                         .staggeredAppear(index: index)
-                        .scrollTransition(.animated(.snappy)) { content, phase in
-                            content
-                                .opacity(phase.isIdentity ? 1 : 0.4)
-                                .scaleEffect(phase.isIdentity ? 1 : 0.97)
-                        }
                         .onAppear {
                             if invoice.id == invoices.last?.id {
                                 Task { await loadMore() }

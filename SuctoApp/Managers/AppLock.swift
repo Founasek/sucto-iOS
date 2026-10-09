@@ -7,10 +7,36 @@ import LocalAuthentication
 import SwiftUI
 
 /// Zámek aplikace přes Face ID / Touch ID (s kódem zařízení jako zálohou).
-/// Zamyká se při odchodu do pozadí a při studeném startu.
+/// Zamyká se při studeném startu a po návratu z pozadí, pokud v pozadí byla déle než zvolená prodleva.
 @MainActor
 final class AppLock: ObservableObject {
+    /// Za jak dlouho v pozadí se aplikace zamkne.
+    enum Delay: Int, CaseIterable, Identifiable {
+        case immediately = 0
+        case oneMinute = 60
+        case fiveMinutes = 300
+
+        var id: Int { rawValue }
+
+        var title: String {
+            switch self {
+            case .immediately: "Ihned"
+            case .oneMinute: "Po 1 minutě"
+            case .fiveMinutes: "Po 5 minutách"
+            }
+        }
+    }
+
     private static let enabledKey = "appLockEnabled"
+    private static let delayKey = "appLockDelay"
+
+    /// Prodleva zamčení; výchozí je 1 minuta.
+    @Published var delay: Delay {
+        didSet { UserDefaults.standard.set(delay.rawValue, forKey: Self.delayKey) }
+    }
+
+    /// Okamžik odchodu do pozadí z neutáhnuté hodinové osy (monotónní hodiny, přestavení času je neovlivní).
+    private var backgroundedAt: UInt64?
 
     @Published private(set) var isLocked: Bool
     @Published private(set) var isEnabled: Bool
@@ -28,6 +54,7 @@ final class AppLock: ObservableObject {
         let enabled = defaults.bool(forKey: Self.enabledKey) && Self.canAuthenticate
         isEnabled = enabled
         isLocked = enabled
+        delay = (defaults.object(forKey: Self.delayKey) as? Int).flatMap(Delay.init(rawValue:)) ?? .oneMinute
     }
 
     static var canAuthenticate: Bool {
@@ -61,6 +88,28 @@ final class AppLock: ObservableObject {
     /// Automatické ověření (po návratu z pozadí / při startu) už pro tohle zamčení proběhlo. Zabraňuje smyčce:
     /// zavření systémového okna Face ID vyvolá další přechod scény do stavu „aktivní“, který by ověření spustil znovu.
     private var autoPromptUsed = false
+
+    private static func monotonicNow() -> UInt64 {
+        clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
+    }
+
+    /// Aplikace odešla do pozadí. Při prodlevě „Ihned“ se zamkne hned, jinak si jen zapamatuje čas.
+    func appDidEnterBackground() {
+        guard isEnabled, !isAuthenticating else { return }
+        if isLocked || delay == .immediately {
+            lock()
+        } else {
+            backgroundedAt = Self.monotonicNow()
+        }
+    }
+
+    /// Aplikace je zase aktivní. Zamkne se, pokud byla v pozadí aspoň tak dlouho, jak je nastaveno.
+    func appBecameActive() {
+        defer { backgroundedAt = nil }
+        guard isEnabled, !isLocked, let started = backgroundedAt else { return }
+        let elapsed = Double(Self.monotonicNow() - started) / 1_000_000_000
+        if elapsed >= Double(delay.rawValue) { lock() }
+    }
 
     func lock() {
         guard isEnabled, !isAuthenticating else { return }

@@ -9,6 +9,7 @@ import SwiftUI
 /// Přehled hospodaření: výnosy, náklady a výsledek za rok, graf po měsících.
 struct OverviewView: View {
     @EnvironmentObject var viewModel: OverviewViewModel
+    @EnvironmentObject var session: SessionManager
     @State private var showNotice = false
 
     var body: some View {
@@ -25,7 +26,11 @@ struct OverviewView: View {
                         Task { await viewModel.load() }
                     }
                 } else if viewModel.isLoading, viewModel.sections.isEmpty {
-                    skeleton
+                    OverviewLoadingView(
+                        progress: viewModel.progress,
+                        companyName: session.selectedCompany?.name ?? "",
+                        year: viewModel.year,
+                    )
                 } else if viewModel.isEmpty {
                     EmptyStateView(
                         systemImage: "chart.bar.xaxis",
@@ -149,21 +154,7 @@ struct OverviewView: View {
     }
 }
 
-private extension OverviewView {
-    private var skeleton: some View {
-        VStack(spacing: Theme.Spacing.l) {
-            RoundedRectangle(cornerRadius: 28).frame(height: 130)
-            HStack(spacing: Theme.Spacing.m) {
-                RoundedRectangle(cornerRadius: 20).frame(height: 100)
-                RoundedRectangle(cornerRadius: 20).frame(height: 100)
-            }
-            RoundedRectangle(cornerRadius: 20).frame(height: 280)
-        }
-        .foregroundStyle(Color.primary.opacity(0.08))
-        .shimmer()
-        .accessibilityLabel("Načítám přehled")
-    }
-}
+private extension OverviewView {}
 
 private extension OverviewView {
     /// Tlačítko se zprávou ze sÚčta; červená tečka značí nepřečtenou.
