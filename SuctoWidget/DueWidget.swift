@@ -39,6 +39,7 @@ struct DueProvider: TimelineProvider {
         let day: TimeInterval = 86400
         let now = Date()
         return DueSnapshot(
+            companyId: 1,
             companyName: "Ukázková firma",
             items: [
                 DueItem(id: 1, isIncoming: false, number: "FV 2026001", counterparty: "Klient s.r.o.", dueDate: now - 3 * day, amount: 24500, currency: "Kč"),

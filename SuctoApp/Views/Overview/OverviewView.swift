@@ -43,16 +43,29 @@ struct OverviewView: View {
                     }
                     OverviewChartCarousel(sections: viewModel.sections, labels: labels)
                     OverviewMonthsCard(sections: viewModel.sections, labels: labels)
+                    OverviewTopPartiesCard(sections: viewModel.sections, labels: labels)
+                }
+
+                if !viewModel.aging.isEmpty {
+                    OverviewAgingCard(aging: viewModel.aging)
                 }
             }
             .padding(Theme.Spacing.l)
+            // Obsah je vždy přesně tak široký jako obrazovka – nic (dlouhý text, tabulka) ho nemůže roztáhnout do šířky.
+            .containerRelativeFrame(.horizontal)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         .background(Theme.background)
-        .refreshable { await viewModel.load(retryAccounting: true) }
+        .refreshable {
+            async let aging: Void = viewModel.loadAging()
+            await viewModel.load(retryAccounting: true)
+            await aging
+        }
         .task {
             if viewModel.sections.isEmpty { await viewModel.load() }
         }
         .task { await viewModel.loadNotice() }
+        .task { await viewModel.loadAging() }
         .sheet(isPresented: $showNotice) {
             if let notice = viewModel.notice {
                 NoticeSheet(notice: notice)
@@ -73,13 +86,15 @@ struct OverviewView: View {
                 Text("Server pro váš účet nepouští účetní deník (403), proto jsou součty z vystavených a přijatých faktur bez DPH – nejde o účetní výnosy a náklady.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 if viewModel.sections.count > 1 {
                     Text("Faktury jsou ve více měnách (\(viewModel.sections.map(\.currency).joined(separator: ", "))). Měny se nepřepočítávají, proto má každá vlastní součty a graf.")
                         .font(.footnote)
                         .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(Theme.Spacing.m)
         .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))

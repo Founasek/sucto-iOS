@@ -10,6 +10,12 @@ import SwiftUI
 @MainActor
 final class NavigationManager: ObservableObject {
     @Published var path = NavigationPath()
+    /// Cíl z odkazu (např. widget): po otevření dashboardu se přepne záložka a nastaví filtr „Po splatnosti“.
+    @Published var pendingTarget: DashboardTarget?
+
+    struct DashboardTarget: Equatable {
+        let isIncoming: Bool
+    }
 
     func goToCompanies() {
         path = NavigationPath()
@@ -21,6 +27,10 @@ final class NavigationManager: ObservableObject {
 
     func createInvoice(companyId: Int, direction: InvoiceDirection, scanId: String? = nil) {
         path.append(AppRoute.createInvoice(companyId: companyId, direction: direction, scanId: scanId))
+    }
+
+    func duplicateInvoice(companyId: Int, direction: InvoiceDirection, invoiceId: Int) {
+        path.append(AppRoute.duplicateInvoice(companyId: companyId, direction: direction, invoiceId: invoiceId))
     }
 
     func showScans(companyId: Int) {

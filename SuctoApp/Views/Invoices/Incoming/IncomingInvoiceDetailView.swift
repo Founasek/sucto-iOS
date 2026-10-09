@@ -12,6 +12,7 @@ struct IncomingInvoiceDetailView: View {
     @EnvironmentObject var viewModel: IncomingInvoicesViewModel
     @State private var showExportSheet = false
     @EnvironmentObject private var permissions: PermissionsStore
+    @EnvironmentObject private var navManager: NavigationManager
     @State private var lineSheet: LineSheet?
 
     /// Co se právě edituje: nová položka, nebo existující.
@@ -44,6 +45,14 @@ struct IncomingInvoiceDetailView: View {
             if viewModel.selectedInvoice != nil {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
+                        if permissions.can(.create, InvoiceDirection.incoming.permissionResource, companyId: viewModel.companyId) {
+                            Button {
+                                navManager.duplicateInvoice(companyId: viewModel.companyId, direction: .incoming, invoiceId: invoiceId)
+                            } label: {
+                                Label("Duplikovat fakturu", systemImage: "doc.on.doc")
+                            }
+                        }
+
                         Button {
                             showExportSheet = true
                         } label: {
@@ -116,6 +125,7 @@ struct IncomingInvoiceDetailView: View {
             InvoiceItemsCard(invoice: invoice, editing: itemEditing(for: invoice))
         }
         .padding(Theme.Spacing.l)
+        .fitsScreenWidth()
     }
 
     /// Úprava položek je jen pro uživatele s právem `update` a u faktur, které nejsou stornované.

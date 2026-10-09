@@ -37,6 +37,15 @@ struct OverviewLabels {
     var negative: String { isAccounting ? "Ztráta" : "Převaha přijatých" }
 }
 
+enum OverviewComparison {
+    /// „+12 %“ / „−5 %“ (typografické mínus), bez desetinných míst nad 10 %.
+    static func format(_ value: Double) -> String {
+        let magnitude = abs(value)
+        let text = magnitude >= 10 ? String(format: "%.0f", magnitude) : String(format: "%.1f", magnitude).replacingOccurrences(of: ".", with: ",")
+        return (value < 0 ? "\u{2212}" : "+") + text + " %"
+    }
+}
+
 /// Hlavní karta: výsledek roku. Při více měnách je v ní řádek pro každou měnu (vše na první obrazovce).
 struct OverviewResultCard: View {
     let sections: [CurrencySection]
@@ -82,6 +91,15 @@ struct OverviewResultCard: View {
         .appear()
     }
 
+    /// „Oproti 2025: Vydané +12 %, Přijaté −5 %“ (část, kterou nejde spočítat, se vynechá).
+    private func comparison(section: CurrencySection, previous: YearTotals) -> String {
+        func part(_ title: String, _ previous: Double, _ current: Double) -> String? {
+            percentChange(from: previous, to: current).map { "\(title) \(OverviewComparison.format($0))" }
+        }
+        let parts = [part(labels.revenue, previous.revenue, section.revenue), part(labels.cost, previous.cost, section.cost)].compactMap(\.self)
+        return parts.isEmpty ? "Oproti \(year - 1): minulý rok bez srovnatelných dat" : "Oproti \(year - 1): " + parts.joined(separator: ", ")
+    }
+
     private func row(_ section: CurrencySection) -> some View {
         let positive = section.result >= 0
         return VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
@@ -97,6 +115,12 @@ struct OverviewResultCard: View {
             Label(positive ? labels.positive : labels.negative, systemImage: positive ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.9))
+            if let previous = section.previous {
+                Text(comparison(section: section, previous: previous))
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.8))
+                    .minimumScaleFactor(0.8)
+            }
             if !isSingle {
                 Text("\(labels.revenue) \(FormatterHelper.formatWhole(section.revenue, currency: section.currency)) · \(labels.cost) \(FormatterHelper.formatWhole(section.cost, currency: section.currency))")
                     .font(.footnote)

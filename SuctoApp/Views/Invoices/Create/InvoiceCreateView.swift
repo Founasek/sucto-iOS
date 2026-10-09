@@ -12,8 +12,16 @@ struct InvoiceCreateView: View {
     @StateObject var viewModel: InvoiceCreateViewModel
     @FocusState private var keyboardFocused: Bool
 
-    init(companyId: Int, direction: InvoiceDirection, scanId: String? = nil, session: SessionManager) {
-        _viewModel = StateObject(wrappedValue: InvoiceCreateViewModel(companyId: companyId, direction: direction, scanId: scanId, session: session))
+    init(
+        companyId: Int,
+        direction: InvoiceDirection,
+        scanId: String? = nil,
+        copyFromInvoiceId: Int? = nil,
+        session: SessionManager,
+    ) {
+        _viewModel = StateObject(wrappedValue: InvoiceCreateViewModel(
+            companyId: companyId, direction: direction, scanId: scanId, copyFromInvoiceId: copyFromInvoiceId, session: session,
+        ))
     }
 
     private var currencyCode: String {
@@ -22,6 +30,7 @@ struct InvoiceCreateView: View {
 
     var body: some View {
         Form {
+            if viewModel.isCopy { CopyBanner() }
             if let supplier = viewModel.scanSupplier {
                 ScanBanner(supplier: supplier, notMatched: viewModel.scanSupplierNotMatched)
             }
@@ -271,7 +280,9 @@ struct InvoiceCreateView: View {
         }
         .animation(.snappy, value: totals.total)
     }
+}
 
+private extension InvoiceCreateView {
     private var notesSection: some View {
         Section("Patička") {
             TextField("Text v patičce faktury", text: $viewModel.footNotice, axis: .vertical)
@@ -304,6 +315,17 @@ private struct ScanBanner: View {
             } icon: {
                 Image(systemName: "doc.viewfinder").foregroundStyle(Color.accentColor)
             }
+        }
+    }
+}
+
+/// Upozornění nad formulářem vytvářeným jako kopie existující faktury.
+private struct CopyBanner: View {
+    var body: some View {
+        Section {
+            Label("Předvyplněno podle existující faktury. Zkontrolujte data, částky a číslo.", systemImage: "doc.on.doc")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
     }
 }

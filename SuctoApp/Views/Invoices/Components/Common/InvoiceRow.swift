@@ -17,13 +17,15 @@ struct InvoiceRow: View {
                 Text(invoice.actuarialNumber)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
-                Spacer()
+                    .lineLimit(1)
+                Spacer(minLength: Theme.Spacing.s)
                 StatusBadge(invoice: invoice)
             }
 
             Text(counterparty ?? "—")
                 .font(.headline)
                 .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(alignment: .lastTextBaseline) {
                 Text(FormatterHelper.formatPrice(invoice.endPrice, currency: invoice.currency?.symbol))

@@ -77,6 +77,27 @@ struct MonthlyFigures: Identifiable, Equatable {
     var id: Int { month }
 }
 
+/// Součty za celý rok (pro srovnání s minulým rokem).
+struct YearTotals: Equatable {
+    let revenue: Double
+    let cost: Double
+
+    var result: Double { revenue - cost }
+}
+
+/// Největší protistrana roku (odběratel u vydaných, dodavatel u přijatých faktur).
+struct RankedParty: Identifiable, Equatable {
+    let name: String
+    let amount: Double
+    var id: String { name }
+}
+
+/// Procentní změna oproti minulému roku; `nil`, pokud se nedá smysluplně spočítat (minulý rok nulový).
+func percentChange(from previous: Double, to current: Double) -> Double? {
+    guard previous != 0 else { return nil }
+    return (current - previous) / abs(previous) * 100
+}
+
 /// Součty roku v jedné měně: měsíce, výnosy/vydané, náklady/přijaté a výsledek.
 /// Měny se nepřepočítávají (API nemá kurzy), proto má každá měna vlastní sekci přehledu.
 struct CurrencySection: Identifiable, Equatable {
@@ -87,6 +108,11 @@ struct CurrencySection: Identifiable, Equatable {
     let result: Double
     /// Počet faktur v této měně (u přehledu z faktur).
     let invoiceCount: Int
+    /// Předchozí rok pro srovnání (`nil`, pokud se nepodařilo načíst nebo v něm nic nebylo).
+    var previous: YearTotals?
+    /// Největší odběratelé a dodavatelé (jen u přehledu z faktur).
+    var topCustomers: [RankedParty] = []
+    var topSuppliers: [RankedParty] = []
 
     var id: String { currency }
     var hasData: Bool { revenue != 0 || cost != 0 || months.contains { $0.revenue != 0 || $0.cost != 0 } }

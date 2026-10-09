@@ -13,6 +13,7 @@ struct OutgoingInvoiceDetailView: View {
     @State private var showSendSheet = false
     @State private var showExportSheet = false
     @EnvironmentObject private var permissions: PermissionsStore
+    @EnvironmentObject private var navManager: NavigationManager
     @State private var lineSheet: LineSheet?
 
     /// Co se právě edituje: nová položka, nebo existující.
@@ -62,6 +63,14 @@ struct OutgoingInvoiceDetailView: View {
                             Label("Odeslat e-mailem", systemImage: "paperplane")
                         }
                         .disabled(invoice.invoiceStatus == .storno)
+
+                        if permissions.can(.create, InvoiceDirection.outgoing.permissionResource, companyId: viewModel.companyId) {
+                            Button {
+                                navManager.duplicateInvoice(companyId: viewModel.companyId, direction: .outgoing, invoiceId: invoiceId)
+                            } label: {
+                                Label("Duplikovat fakturu", systemImage: "doc.on.doc")
+                            }
+                        }
 
                         Button {
                             showExportSheet = true
@@ -149,6 +158,7 @@ struct OutgoingInvoiceDetailView: View {
             InvoiceItemsCard(invoice: invoice, editing: itemEditing(for: invoice))
         }
         .padding(Theme.Spacing.l)
+        .fitsScreenWidth()
     }
 
     @ViewBuilder

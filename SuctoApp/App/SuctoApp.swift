@@ -46,13 +46,16 @@ struct SuctoApp: App {
                     AppLockOverlay(lock: appLock, isCovered: scenePhase != .active)
                 }
             }
+            .onOpenURL { url in
+                Task { await openOverdue(from: url) }
+            }
             .onChange(of: scenePhase) { _, phase in
                 switch phase {
                 case .background:
                     appLock.lock()
                 case .active:
                     if session.isLoggedIn, appLock.isLocked {
-                        Task { await appLock.unlock() }
+                        Task { await appLock.unlockAutomatically() }
                     }
                 default:
                     break
@@ -60,10 +63,23 @@ struct SuctoApp: App {
             }
             .task {
                 if session.isLoggedIn, appLock.isLocked {
-                    await appLock.unlock()
+                    await appLock.unlockAutomatically()
                 }
             }
         }
+    }
+
+    /// Odkaz z widgetu (`sucto://overdue?...`): otevře firmu na seznamu faktur po splatnosti.
+    private func openOverdue(from url: URL) async {
+        guard session.isLoggedIn, let link = DueLink.parse(url) else { return }
+        if session.selectedCompany?.id != link.companyId {
+            let companies: [Company]? = try? await session.send(APIConstants.companies)
+            guard let company = companies?.first(where: { $0.id == link.companyId }) else { return }
+            session.selectedCompany = company
+        }
+        navManager.reset()
+        navManager.pendingTarget = .init(isIncoming: link.isIncoming)
+        navManager.goToDashboard(companyId: link.companyId)
     }
 
     private var isCovered: Bool {

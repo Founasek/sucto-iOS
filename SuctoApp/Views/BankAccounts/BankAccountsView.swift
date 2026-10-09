@@ -36,6 +36,7 @@ struct BankAccountsView: View {
                     }
                 }
                 .padding(.horizontal, Theme.Spacing.l)
+                .fitsScreenWidth()
                 .padding(.vertical, Theme.Spacing.s)
             }
         }

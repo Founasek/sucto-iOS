@@ -118,6 +118,7 @@ struct PartnerDetailView: View {
                 }
             }
             .padding(Theme.Spacing.l)
+            .fitsScreenWidth()
         }
         .refreshable { await viewModel.load() }
     }

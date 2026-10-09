@@ -23,6 +23,9 @@ struct DashboardView: View {
     @State private var pohodaExportDirection: InvoiceDirection?
     @State private var scanSource: ScanSource?
     @State private var slideEdge: Edge = .trailing
+    @State private var csvFile: ShareableFile?
+    @State private var isExportingCSV = false
+    @State private var csvError: String?
     @Environment(\.scenePhase) private var scenePhase
 
     @StateObject private var overviewVM: OverviewViewModel
@@ -90,6 +93,8 @@ struct DashboardView: View {
         }
         .offlineBanner()
         .task { await permissions.load(companyId: companyId, session: session) }
+        .onAppear { consumePendingTarget() }
+        .onChange(of: navManager.pendingTarget) { consumePendingTarget() }
         .task { await refreshDueSnapshot() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await refreshDueSnapshot() } }
@@ -111,6 +116,15 @@ struct DashboardView: View {
                                 systemImage: "square.and.arrow.up",
                             )
                         }
+                    }
+
+                    if tab == .outgoing || tab == .incoming {
+                        Button {
+                            Task { await exportCSV(direction: tab == .outgoing ? .outgoing : .incoming) }
+                        } label: {
+                            Label("Exportovat seznam do CSV", systemImage: "tablecells")
+                        }
+                        .disabled(isExportingCSV)
                     }
 
                     if FeatureFlags.scans, tab == .incoming {
@@ -151,6 +165,14 @@ struct DashboardView: View {
                 }
                 .accessibilityLabel("Menu")
             }
+        }
+        .sheet(item: $csvFile) { file in
+            ShareSheet(file: file)
+        }
+        .alert("Export se nezdařil", isPresented: Binding(get: { csvError != nil }, set: { if !$0 { csvError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(csvError ?? "")
         }
         .scanSourcePresenter(source: $scanSource, onFile: uploadScan, onFailure: { scanUploader.errorMessage = $0 })
         .alert(
@@ -246,6 +268,38 @@ struct DashboardView: View {
                 .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
         }
         .accessibilityLabel("Nahrát doklad ke zpracování")
+    }
+}
+
+private extension DashboardView {
+    /// Exportuje aktuální výběr faktur (hledání + filtry) do CSV a otevře sdílecí okno.
+    private func exportCSV(direction: InvoiceDirection) async {
+        isExportingCSV = true
+        defer { isExportingCSV = false }
+        do {
+            let viewModel: PagedInvoicesViewModel = direction == .outgoing ? outgoingInvoicesVM : incomingInvoicesVM
+            let invoices = try await viewModel.fetchAllMatching()
+            let data = InvoiceCSVExporter.csv(for: invoices, direction: direction)
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(InvoiceCSVExporter.fileName(direction: direction))
+            try data.write(to: url, options: [.atomic, .completeFileProtection])
+            csvFile = ShareableFile(url: url)
+        } catch is CancellationError {
+            return
+        } catch {
+            csvError = error.localizedDescription
+        }
+    }
+
+    /// Odkaz z widgetu: přepne záložku vydaných/přijatých a zapne filtr „Po splatnosti“.
+    private func consumePendingTarget() {
+        guard let target = navManager.pendingTarget else { return }
+        navManager.pendingTarget = nil
+        selectedTab = (target.isIncoming ? DashboardTab.incoming : DashboardTab.outgoing).rawValue
+        if target.isIncoming {
+            incomingInvoicesVM.filter = .overdue
+        } else {
+            outgoingInvoicesVM.filter = .overdue
+        }
     }
 
     /// Obnoví data pro widget a upozornění na splatnost (běží na pozadí, chyby se ignorují).

@@ -35,6 +35,7 @@ struct PartnersView: View {
                     }
                 }
                 .padding(.horizontal, Theme.Spacing.l)
+                .fitsScreenWidth()
                 .padding(.top, Theme.Spacing.s)
             }
         }

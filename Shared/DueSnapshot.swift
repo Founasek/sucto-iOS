@@ -20,6 +20,8 @@ struct DueItem: Codable, Hashable {
 
 /// Poslední stav splatností vybrané firmy. Widget ho jen čte; token ani síť nepotřebuje.
 struct DueSnapshot: Codable {
+    /// Chybí u snapshotů uložených starší verzí; widget pak odkaz do aplikace neumí cílit na firmu.
+    let companyId: Int?
     let companyName: String
     let items: [DueItem]
     let updatedAt: Date
@@ -128,5 +130,31 @@ enum DueFormat {
         case 2 ... 4: "\(count) faktury"
         default: "\(count) faktur"
         }
+    }
+}
+
+/// Odkaz z widgetu do aplikace: `sucto://overdue?company=ID&side=issued|received`.
+/// Aplikace otevře firmu na záložce vydaných/přijatých s filtrem „Po splatnosti“.
+enum DueLink {
+    static let scheme = "sucto"
+
+    static func url(companyId: Int?, isIncoming: Bool) -> URL? {
+        guard let companyId else { return nil }
+        var components = URLComponents()
+        components.scheme = scheme
+        components.host = "overdue"
+        components.queryItems = [
+            URLQueryItem(name: "company", value: "\(companyId)"),
+            URLQueryItem(name: "side", value: isIncoming ? "received" : "issued"),
+        ]
+        return components.url
+    }
+
+    static func parse(_ url: URL) -> (companyId: Int, isIncoming: Bool)? {
+        guard url.scheme == scheme, url.host == "overdue",
+              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+              let company = items.first(where: { $0.name == "company" })?.value.flatMap(Int.init)
+        else { return nil }
+        return (company, items.first { $0.name == "side" }?.value == "received")
     }
 }

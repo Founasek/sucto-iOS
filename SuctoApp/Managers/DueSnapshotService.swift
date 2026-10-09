@@ -21,17 +21,23 @@ final class DueSnapshotService {
         self.session = session
     }
 
+    /// Nezaplacené faktury firmy se splatností do 30 dní dopředu (a všechny prošlé), vydané i přijaté.
+    func fetchItems(companyId: Int) async throws -> [DueItem] {
+        guard let horizon = Calendar.current.date(byAdding: .day, value: Self.horizonDays, to: Date()) else { return [] }
+        let outgoing = try await load(direction: .outgoing, companyId: companyId, until: horizon)
+        let incoming = try await load(direction: .incoming, companyId: companyId, until: horizon)
+        return outgoing + incoming
+    }
+
     /// Obnoví snapshot firmy; vrací `true`, pokud se podařilo uložit čerstvá data.
     @discardableResult
     func refresh(company: Company) async -> Bool {
-        guard let horizon = Calendar.current.date(byAdding: .day, value: Self.horizonDays, to: Date()) else { return false }
         do {
-            let outgoing = try await load(direction: .outgoing, companyId: company.id, until: horizon)
-            let incoming = try await load(direction: .incoming, companyId: company.id, until: horizon)
+            let items = try await fetchItems(companyId: company.id)
             // Při výpadku připojení by `SessionManager` vrátil starou cache – ta se nesmí vydávat za čerstvá data.
             guard session.cachedDataDate == nil else { return false }
 
-            let snapshot = DueSnapshot(companyName: company.name, items: outgoing + incoming, updatedAt: Date())
+            let snapshot = DueSnapshot(companyId: company.id, companyName: company.name, items: items, updatedAt: Date())
             DueSnapshotStore.save(snapshot)
             WidgetCenter.shared.reloadAllTimelines()
             await DueNotifier.shared.reschedule(from: snapshot)

@@ -14,6 +14,9 @@ struct RootView: View {
                 case let .createInvoice(companyId, direction, scanId):
                     InvoiceCreateView(companyId: companyId, direction: direction, scanId: scanId, session: session)
 
+                case let .duplicateInvoice(companyId, direction, invoiceId):
+                    InvoiceCreateView(companyId: companyId, direction: direction, copyFromInvoiceId: invoiceId, session: session)
+
                 case let .scans(companyId):
                     ScansView(companyId: companyId, session: session)
 

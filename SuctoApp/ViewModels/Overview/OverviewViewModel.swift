@@ -29,6 +29,8 @@ final class OverviewViewModel: ObservableObject {
     /// Poslední zpráva ze sÚčta (dashboard API); zobrazuje se na vyžádání.
     @Published private(set) var notice: SystemNotice?
     @Published private(set) var isNoticeUnread = false
+    /// Stáří prošlých pohledávek a závazků (nezávisí na zvoleném roce).
+    @Published private(set) var aging = AgingSummary(items: [])
 
     let companyId: Int
     private let session: SessionManager
@@ -55,6 +57,14 @@ final class OverviewViewModel: ObservableObject {
         guard let response: DashboardResponse = try? await session.send(APIConstants.dashboard(companyId: companyId)) else { return }
         notice = response.notices.first
         isNoticeUnread = notice.map { !SystemNoticeStore.isDismissed($0.id) } ?? false
+    }
+
+    /// Načte nezaplacené faktury a spočítá stáří po splatnosti. Jen doplněk – při chybě nebo výpadku zůstane předchozí stav.
+    func loadAging() async {
+        guard let items = try? await DueSnapshotService(session: session).fetchItems(companyId: companyId),
+              session.cachedDataDate == nil
+        else { return }
+        aging = AgingSummary(items: items)
     }
 
     /// Zpráva se ukazuje jen na vyžádání; po otevření se označí jako přečtená (zmizí tečka u tlačítka).
@@ -114,6 +124,13 @@ final class OverviewViewModel: ObservableObject {
         let revenueTotal = revenue?.value ?? 0
         let costTotal = cost?.value ?? 0
         let result = annualReport.amount(.result)?.value ?? (revenueTotal - costTotal)
+        // Minulý rok je jen doplněk srovnání – při chybě se prostě neukáže.
+        let previousReport: AccountingDiaryReport? = try? await session.send(
+            APIConstants.accountingDiaries(companyId: companyId, year: year - 1),
+        )
+        let previousTotals = previousReport.map {
+            YearTotals(revenue: $0.amount(.revenue)?.value ?? 0, cost: $0.amount(.cost)?.value ?? 0)
+        }
         let section = CurrencySection(
             currency: revenue?.currency ?? cost?.currency ?? "Kč",
             months: CurrencySection.padded(monthly),
@@ -121,6 +138,7 @@ final class OverviewViewModel: ObservableObject {
             cost: costTotal,
             result: result,
             invoiceCount: 0,
+            previous: previousTotals.flatMap { $0.revenue != 0 || $0.cost != 0 ? $0 : nil },
         )
         sections = section.hasData ? [section] : []
         source = .accounting
@@ -167,7 +185,11 @@ final class OverviewViewModel: ObservableObject {
     private func loadInvoices(year: Int, generation myGeneration: Int) async throws {
         async let issued = listInvoices(base: "actuarials_outs", year: year)
         async let received = listInvoices(base: "actuarials_ins", year: year)
+        // Minulý rok je jen doplněk srovnání – při chybě se srovnání neukáže.
+        async let previousIssued: [Invoice]? = try? listInvoices(base: "actuarials_outs", year: year - 1)
+        async let previousReceived: [Invoice]? = try? listInvoices(base: "actuarials_ins", year: year - 1)
         let (issuedList, receivedList) = try await (issued, received)
+        let previousLists = await (previousIssued, previousReceived)
         guard myGeneration == generation else { return }
 
         // Měny se nepřepočítávají (API nemá kurzy) – každá měna dostane vlastní sekci, všechny se ukážou najednou.
@@ -195,15 +217,50 @@ final class OverviewViewModel: ObservableObject {
             }
             let revenueTotal = months.reduce(0) { $0 + $1.revenue }
             let costTotal = months.reduce(0) { $0 + $1.cost }
-            let section = CurrencySection(
+            var section = CurrencySection(
                 currency: currency, months: months, revenue: revenueTotal, cost: costTotal,
                 result: revenueTotal - costTotal, invoiceCount: count,
             )
+            if let previousIssued = previousLists.0, let previousReceived = previousLists.1 {
+                let totals = YearTotals(
+                    revenue: Self.baseSum(previousIssued, currency: currency, code: code),
+                    cost: Self.baseSum(previousReceived, currency: currency, code: code),
+                )
+                section.previous = totals.revenue != 0 || totals.cost != 0 ? totals : nil
+            }
+            section.topCustomers = Self.ranking(issuedList, currency: currency, code: code) { $0.customer?.name }
+            section.topSuppliers = Self.ranking(receivedList, currency: currency, code: code) { $0.supplier?.name }
             return section.hasData ? section : nil
         }
         source = .invoices
         isEmpty = sections.isEmpty
         errorMessage = nil
+    }
+
+    private static func baseSum(_ invoices: [Invoice], currency: String, code: (Invoice) -> String) -> Double {
+        invoices.filter { code($0) == currency }.reduce(0) { $0 + ($1.basePrice.flatMap(Double.init) ?? 0) }
+    }
+
+    /// Nejvyšší součty základu podle protistrany (v dané měně), nejvýše pět.
+    private static func ranking(
+        _ invoices: [Invoice],
+        currency: String,
+        code: (Invoice) -> String,
+        name: (Invoice) -> String?,
+    ) -> [RankedParty] {
+        var sums: [String: Double] = [:]
+        for invoice in invoices where code(invoice) == currency {
+            let key = name(invoice).flatMap { $0.isEmpty ? nil : $0 } ?? "Neuvedeno"
+            sums[key, default: 0] += invoice.basePrice.flatMap(Double.init) ?? 0
+        }
+        var parties: [RankedParty] = []
+        for (name, amount) in sums where amount != 0 {
+            parties.append(RankedParty(name: name, amount: amount))
+        }
+        parties.sort { lhs, rhs in
+            lhs.amount == rhs.amount ? lhs.name < rhs.name : lhs.amount > rhs.amount
+        }
+        return Array(parties.prefix(5))
     }
 
     /// Všechny faktury vystavené v daném roce (bez konceptů a stornovaných).
