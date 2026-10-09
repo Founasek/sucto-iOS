@@ -68,7 +68,10 @@ struct ScansView: View {
         .onAppear { viewModel.reloadUsedScans() }
         .scanSourcePresenter(source: $source, onFile: upload, onFailure: { uploader.errorMessage = $0 })
         .sheet(item: $previewScan) { scan in
-            ScanPreviewSheet(scan: scan, viewModel: viewModel)
+            ScanPreviewSheet(scan: scan, isUsed: viewModel.usedScanIds.contains(scan.id), viewModel: viewModel) {
+                previewScan = nil
+                navManager.createInvoice(companyId: viewModel.companyId, direction: .incoming, scanId: scan.id)
+            }
         }
         .alert(
             "Nahrání se nezdařilo",
@@ -226,10 +229,15 @@ private struct ScanRow: View {
 
 private struct ScanPreviewSheet: View {
     let scan: Scan
+    let isUsed: Bool
     @ObservedObject var viewModel: ScansViewModel
+    /// Vytvoří z dokladu přijatou fakturu (otevře formulář).
+    let onCreateInvoice: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var image: UIImage?
     @State private var failed = false
+
+    private var isLinked: Bool { scan.actuarialId != nil || isUsed }
 
     var body: some View {
         NavigationStack {
@@ -244,6 +252,7 @@ private struct ScanPreviewSheet: View {
                     ProgressView()
                 }
             }
+            .safeAreaInset(edge: .bottom) { statusBar }
             .navigationTitle("Náhled dokladu")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -254,5 +263,36 @@ private struct ScanPreviewSheet: View {
                 failed = image == nil
             }
         }
+    }
+
+    /// Proč se z klepnutí otevřel náhled a ne formulář faktury – a co s dokladem jde dělat dál.
+    @ViewBuilder
+    private var statusBar: some View {
+        VStack(spacing: Theme.Spacing.s) {
+            if isLinked {
+                Label("Z tohoto dokladu už faktura vznikla.", systemImage: "checkmark.seal.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.green)
+                Button("Vytvořit fakturu znovu", action: onCreateInvoice)
+                    .buttonStyle(.bordered)
+            } else if scan.isPending {
+                Label(scan.state == .processing ? "Doklad se zpracovává." : "Doklad čeká na zpracování.", systemImage: "hourglass")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.orange)
+                Text("Fakturu z něj půjde vytvořit, jakmile bude zpracovaný. Stav se v seznamu obnovuje sám.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Button("Zkusit předvyplnit i tak", action: onCreateInvoice)
+                    .buttonStyle(.bordered)
+                    .accessibilityHint("Požádá server o údaje z dokladu, ještě nemusí být k dispozici")
+            } else if scan.state == .processed {
+                Button("Vytvořit přijatou fakturu", action: onCreateInvoice)
+                    .buttonStyle(.primary)
+            }
+        }
+        .padding(Theme.Spacing.l)
+        .frame(maxWidth: .infinity)
+        .background(.bar)
     }
 }
