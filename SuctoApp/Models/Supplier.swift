@@ -24,3 +24,12 @@ struct Supplier: Codable, Hashable {
         case countryId = "country_id"
     }
 }
+
+extension Supplier {
+    /// „Ulice, 110 00 Praha“ – prázdné části se vynechají.
+    var addressLine: String? {
+        let place = [zip, city].compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " ")
+        let parts = [street, place].compactMap(\.self).filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    }
+}

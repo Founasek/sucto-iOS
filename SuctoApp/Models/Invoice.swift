@@ -28,6 +28,12 @@ struct Invoice: Identifiable, Codable, Hashable {
     let taxable: Bool?
     let vat: String?
     let pay: String?
+    /// Platební údaje na faktuře. Tvar hodnot dokumentace nepopisuje, proto se čtou tolerantně (text, číslo i objekt).
+    let paymentType: LossyText?
+    let bankNumber: LossyText?
+    let iban: LossyText?
+    let swift: LossyText?
+    let paypalIdentifier: LossyText?
 
     let account: Account?
 
@@ -64,6 +70,34 @@ struct Invoice: Identifiable, Codable, Hashable {
         case taxable
         case vat
         case pay
+        case paymentType = "payment_type"
+        case bankNumber = "bank_number"
+        case iban
+        case swift
+        case paypalIdentifier = "paypal_identifier"
+    }
+}
+
+/// Hodnota, o které nevíme jistě, zda přijde jako text, číslo nebo objekt s názvem. Nikdy nespadne při dekódování celé faktury.
+struct LossyText: Codable, Hashable {
+    let value: String?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let text = try? container.decode(String.self) {
+            value = text
+        } else if let number = try? container.decode(Double.self) {
+            value = number == number.rounded() ? String(Int(number)) : String(number)
+        } else if let object = try? container.decode([String: LossyText].self) {
+            value = object["name"]?.value ?? object["title"]?.value ?? object["value"]?.value
+        } else {
+            value = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(value)
     }
 }
 

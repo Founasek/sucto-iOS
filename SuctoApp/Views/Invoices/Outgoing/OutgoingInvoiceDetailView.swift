@@ -15,6 +15,7 @@ struct OutgoingInvoiceDetailView: View {
     @EnvironmentObject private var permissions: PermissionsStore
     @EnvironmentObject private var navManager: NavigationManager
     @State private var lineSheet: LineSheet?
+    @State private var qrInput: PaymentQR.Input?
 
     /// Co se právě edituje: nová položka, nebo existující.
     private struct LineSheet: Identifiable {
@@ -64,6 +65,14 @@ struct OutgoingInvoiceDetailView: View {
                         }
                         .disabled(invoice.invoiceStatus == .storno)
 
+                        if let input = invoice.paymentQRInput(recipientName: viewModel.session.selectedCompany?.name) {
+                            Button {
+                                qrInput = input
+                            } label: {
+                                Label("QR kód k úhradě", systemImage: "qrcode")
+                            }
+                        }
+
                         if permissions.can(.create, InvoiceDirection.outgoing.permissionResource, companyId: viewModel.companyId) {
                             Button {
                                 navManager.duplicateInvoice(companyId: viewModel.companyId, direction: .outgoing, invoiceId: invoiceId)
@@ -94,6 +103,11 @@ struct OutgoingInvoiceDetailView: View {
         .sheet(isPresented: $showSendSheet) {
             SendEmailSheet(invoiceNumber: viewModel.selectedInvoice?.actuarialNumber ?? "") { email, comment in
                 await viewModel.sendByEmail(invoiceId: invoiceId, email: email, comment: comment)
+            }
+        }
+        .sheet(isPresented: Binding(get: { qrInput != nil }, set: { if !$0 { qrInput = nil } })) {
+            if let invoice = viewModel.selectedInvoice, let input = qrInput {
+                InvoiceQRSheet(invoice: invoice, input: input)
             }
         }
         .sheet(item: $lineSheet) { sheet in
@@ -148,12 +162,17 @@ struct OutgoingInvoiceDetailView: View {
                 DetailRow(label: "Číslo objednávky", value: invoice.orderNumber, hideWhenEmpty: true)
             }
 
+            InvoicePaymentCard(invoice: invoice)
+
             DetailCard(title: "Zákazník", systemImage: "person.crop.circle") {
                 DetailRow(label: "Název", value: invoice.customer?.name)
-                DetailRow(label: "IČO", value: invoice.customer?.ic)
-                DetailRow(label: "DIČ", value: invoice.customer?.dic)
+                DetailRow(label: "IČO", value: invoice.customer?.ic, hideWhenEmpty: true)
+                DetailRow(label: "DIČ", value: invoice.customer?.dic, hideWhenEmpty: true)
+                DetailRow(label: "Adresa", value: invoice.customer?.addressLine, hideWhenEmpty: true)
+                DetailRow(label: "E-mail", value: invoice.customer?.email, hideWhenEmpty: true)
             }
 
+            InvoiceBankCard(invoice: invoice)
             InvoiceDatesCard(invoice: invoice)
             InvoiceItemsCard(invoice: invoice, editing: itemEditing(for: invoice))
         }

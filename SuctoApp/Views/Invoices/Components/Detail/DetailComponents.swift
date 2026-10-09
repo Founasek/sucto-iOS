@@ -84,22 +84,24 @@ struct InvoiceItemsCard: View {
     var editing: InvoiceItemEditing?
 
     var body: some View {
-        let notice = invoice.printNotice ?? ""
         let items = invoice.items ?? []
-        if !notice.isEmpty || !items.isEmpty || editing != nil {
+        if !invoice.notes.isEmpty || !items.isEmpty || editing != nil {
             DetailCard(title: "Poznámka a položky", systemImage: "bubble.right") {
-                if !notice.isEmpty {
-                    Text(notice)
+                ForEach(invoice.notes, id: \.self) { note in
+                    Text(note)
                         .font(.subheadline)
                         .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 ForEach(items) { item in
                     if let editing {
-                        Button { editing.onEdit(item) } label: { itemRow(item) }
-                            .buttonStyle(.plain)
-                            .accessibilityHint("Upraví položku")
+                        Button { editing.onEdit(item) } label: {
+                            InvoiceItemRow(item: item, currency: invoice.currency?.symbol, showsChevron: true)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Upraví položku")
                     } else {
-                        itemRow(item)
+                        InvoiceItemRow(item: item, currency: invoice.currency?.symbol)
                     }
                 }
                 if let editing {
@@ -111,35 +113,6 @@ struct InvoiceItemsCard: View {
                 }
             }
         }
-    }
-}
-
-private extension InvoiceItemsCard {
-    func itemRow(_ item: InvoiceItem) -> some View {
-        HStack {
-            VStack(alignment: .leading) {
-                Text(item.name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                if let quantity = item.quantity, let unit = item.unitName {
-                    Text("\(quantity) \(unit)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
-            if let price = item.totalPrice {
-                Text(FormatterHelper.formatPrice(price, currency: invoice.currency?.symbol))
-                    .font(.subheadline)
-            }
-            if editing != nil {
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.top, 8)
-        .contentShape(Rectangle())
     }
 }
 

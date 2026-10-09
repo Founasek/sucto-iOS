@@ -14,6 +14,7 @@ struct IncomingInvoiceDetailView: View {
     @EnvironmentObject private var permissions: PermissionsStore
     @EnvironmentObject private var navManager: NavigationManager
     @State private var lineSheet: LineSheet?
+    @State private var qrInput: PaymentQR.Input?
 
     /// Co se právě edituje: nová položka, nebo existující.
     private struct LineSheet: Identifiable {
@@ -42,9 +43,17 @@ struct IncomingInvoiceDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .background(Theme.background)
         .toolbar {
-            if viewModel.selectedInvoice != nil {
+            if let invoice = viewModel.selectedInvoice {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
+                        if let input = invoice.paymentQRInput(recipientName: invoice.supplier?.name) {
+                            Button {
+                                qrInput = input
+                            } label: {
+                                Label("QR kód k úhradě", systemImage: "qrcode")
+                            }
+                        }
+
                         if permissions.can(.create, InvoiceDirection.incoming.permissionResource, companyId: viewModel.companyId) {
                             Button {
                                 navManager.duplicateInvoice(companyId: viewModel.companyId, direction: .incoming, invoiceId: invoiceId)
@@ -72,6 +81,11 @@ struct IncomingInvoiceDetailView: View {
                 direction: .incoming,
                 mode: .invoice(id: invoiceId, number: viewModel.selectedInvoice?.actuarialNumber ?? ""),
             )
+        }
+        .sheet(isPresented: Binding(get: { qrInput != nil }, set: { if !$0 { qrInput = nil } })) {
+            if let invoice = viewModel.selectedInvoice, let input = qrInput {
+                InvoiceQRSheet(invoice: invoice, input: input)
+            }
         }
         .sheet(item: $lineSheet) { sheet in
             InvoiceLineEditSheet(
@@ -114,13 +128,18 @@ struct IncomingInvoiceDetailView: View {
                 DetailRow(label: "Variabilní symbol", value: invoice.variableSymbol, hideWhenEmpty: true)
             }
 
+            InvoicePaymentCard(invoice: invoice)
+
             DetailCard(title: "Dodavatel", systemImage: "building.2") {
                 DetailRow(label: "Název", value: invoice.supplier?.name)
                 DetailRow(label: "IČO", value: invoice.supplier?.ic, hideWhenEmpty: true)
                 DetailRow(label: "DIČ", value: invoice.supplier?.dic, hideWhenEmpty: true)
+                DetailRow(label: "DIČ (SK)", value: invoice.supplier?.dic2, hideWhenEmpty: true)
+                DetailRow(label: "Adresa", value: invoice.supplier?.addressLine, hideWhenEmpty: true)
                 DetailRow(label: "Plátce DPH", value: invoice.supplier?.isTaxable == true ? "Ano" : "Ne")
             }
 
+            InvoiceBankCard(invoice: invoice)
             InvoiceDatesCard(invoice: invoice)
             InvoiceItemsCard(invoice: invoice, editing: itemEditing(for: invoice))
         }
