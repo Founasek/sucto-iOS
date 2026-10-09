@@ -46,6 +46,7 @@ struct BankAccountDetailView: View {
                 }
             }
             .padding(Theme.Spacing.l)
+            .fitsScreenWidth()
         }
         .background(Theme.background)
         .navigationTitle(account.isCashAccount ? "Hotovostní účet" : "Bankovní účet")

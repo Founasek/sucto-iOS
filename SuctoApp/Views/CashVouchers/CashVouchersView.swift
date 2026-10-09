@@ -50,6 +50,7 @@ struct CashVouchersView: View {
                         }
                     }
                     .padding(.horizontal, Theme.Spacing.l)
+                    .fitsScreenWidth()
                     .padding(.top, Theme.Spacing.xs)
                 }
             }

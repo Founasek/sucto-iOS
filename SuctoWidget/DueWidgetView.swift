@@ -15,10 +15,16 @@ struct DueWidgetView: View {
     var body: some View {
         if let summary = entry.summary, let snapshot = entry.snapshot {
             switch family {
-            case .systemSmall: SmallView(summary: summary, company: snapshot.companyName)
+            case .systemSmall:
+                SmallView(summary: summary, company: snapshot.companyName)
+                    .widgetURL(summary.overdueLink(companyId: snapshot.companyId))
             case .systemMedium: MediumView(summary: summary, snapshot: snapshot)
-            case .accessoryRectangular: RectangularView(summary: summary)
-            case .accessoryInline: InlineView(summary: summary)
+            case .accessoryRectangular:
+                RectangularView(summary: summary)
+                    .widgetURL(summary.overdueLink(companyId: snapshot.companyId))
+            case .accessoryInline:
+                InlineView(summary: summary)
+                    .widgetURL(summary.overdueLink(companyId: snapshot.companyId))
             default: SmallView(summary: summary, company: snapshot.companyName)
             }
         } else {
@@ -127,10 +133,22 @@ private struct MediumView: View {
                     .foregroundStyle(.secondary)
             }
             HStack(alignment: .top, spacing: 12) {
-                Column(title: "Vydané", side: summary.issued, currency: summary.currency, tint: brandGreen)
+                linked(Column(title: "Vydané", side: summary.issued, currency: summary.currency, tint: brandGreen), isIncoming: false)
                 Divider()
-                Column(title: "Přijaté", side: summary.received, currency: summary.currency, tint: .orange)
+                linked(Column(title: "Přijaté", side: summary.received, currency: summary.currency, tint: .orange), isIncoming: true)
             }
+        }
+    }
+}
+
+private extension MediumView {
+    /// Každý sloupec odkazuje na svůj seznam po splatnosti (bez ID firmy se odkaz nevytvoří).
+    @ViewBuilder
+    func linked(_ content: some View, isIncoming: Bool) -> some View {
+        if let url = DueLink.url(companyId: snapshot.companyId, isIncoming: isIncoming) {
+            Link(destination: url) { content }
+        } else {
+            content
         }
     }
 }
@@ -181,5 +199,12 @@ private struct InlineView: View {
 
     var body: some View {
         Text("sÚčto: po splatnosti \(summary.issued.overdueCount + summary.received.overdueCount)")
+    }
+}
+
+private extension DueSummary {
+    /// Malý widget a zamykací obrazovka: odkaz na stranu s víc prošlými fakturami (při shodě vydané).
+    func overdueLink(companyId: Int?) -> URL? {
+        DueLink.url(companyId: companyId, isIncoming: received.overdueCount > issued.overdueCount)
     }
 }

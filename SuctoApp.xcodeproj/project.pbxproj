@@ -371,6 +371,7 @@
 				DEVELOPMENT_TEAM = HF6XDVP6L4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/SuctoApp-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "sÚčto";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Fotoaparát slouží ke skenování přijatých faktur.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID slouží k odemknutí aplikace.";
@@ -404,6 +405,7 @@
 				DEVELOPMENT_TEAM = HF6XDVP6L4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/SuctoApp-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "sÚčto";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Fotoaparát slouží ke skenování přijatých faktur.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID slouží k odemknutí aplikace.";

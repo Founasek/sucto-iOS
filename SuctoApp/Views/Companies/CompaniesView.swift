@@ -46,6 +46,7 @@ struct CompaniesView: View {
                         }
                     }
                     .padding(Theme.Spacing.l)
+                    .fitsScreenWidth()
                 }
             }
         }

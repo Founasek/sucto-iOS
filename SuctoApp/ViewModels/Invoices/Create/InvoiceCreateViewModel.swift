@@ -13,7 +13,9 @@ final class InvoiceCreateViewModel: ObservableObject {
     let direction: InvoiceDirection
     /// Je-li zadané, formulář se předvyplní z naskenovaného dokladu.
     let scanId: String?
-    private let session: SessionManager
+    /// Je-li zadané, formulář se předvyplní jako kopie existující faktury.
+    let copyFromInvoiceId: Int?
+    let session: SessionManager
 
     // MARK: - Faktura
 
@@ -60,13 +62,22 @@ final class InvoiceCreateViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init(companyId: Int, direction: InvoiceDirection, scanId: String? = nil, session: SessionManager) {
+    init(
+        companyId: Int,
+        direction: InvoiceDirection,
+        scanId: String? = nil,
+        copyFromInvoiceId: Int? = nil,
+        session: SessionManager,
+    ) {
         self.companyId = companyId
         self.direction = direction
         self.scanId = scanId
+        self.copyFromInvoiceId = copyFromInvoiceId
         self.session = session
         if direction == .incoming { printNotice = "" }
     }
+
+    var isCopy: Bool { copyFromInvoiceId != nil }
 
     // MARK: - Načtení výchozích dat
 
@@ -117,6 +128,7 @@ final class InvoiceCreateViewModel: ObservableObject {
             }
 
             if scanId != nil { await applyScan(newInvoice) }
+            if let copyFromInvoiceId { await applyCopy(of: copyFromInvoiceId) }
             errorMessage = nil
         } catch is CancellationError {
             return

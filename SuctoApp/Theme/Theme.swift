@@ -64,6 +64,16 @@ extension View {
     }
 }
 
+// MARK: - Šířka obsahu
+
+extension View {
+    /// Obsah `ScrollView` je vždy přesně tak široký jako obrazovka. Dlouhý text bez mezer (název firmy, e-mail, IBAN)
+    /// nebo pevně široká tabulka ho tak nemůže roztáhnout za okraj, což by umožnilo posouvat stránku do stran.
+    func fitsScreenWidth() -> some View {
+        containerRelativeFrame(.horizontal)
+    }
+}
+
 // MARK: - Peníze
 
 extension Text {

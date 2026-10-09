@@ -43,16 +43,19 @@ struct DetailRow: View {
 
     var body: some View {
         if !(hideWhenEmpty && (value ?? "").isEmpty) {
-            HStack {
+            HStack(alignment: .firstTextBaseline) {
                 Text(label)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                Spacer()
+                    .fixedSize(horizontal: false, vertical: true)
+                // Hodnota zabere zbytek šířky a zalomí se (i dlouhý řetězec bez mezer), nikdy nepřeteče.
                 Text(value ?? "-")
                     .font(.subheadline)
                     .fontWeight(bold ? .bold : .regular)
                     .foregroundStyle(valueColor)
                     .multilineTextAlignment(.trailing)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

@@ -16,7 +16,8 @@ final class AppLock: ObservableObject {
     @Published private(set) var isEnabled: Bool
     @Published private(set) var errorMessage: String?
 
-    private var isAuthenticating = false
+    /// Probíhá systémové ověření (Face ID / Touch ID / kód) – zamčená obrazovka pak neukazuje tlačítko.
+    @Published private(set) var isAuthenticating = false
 
     init() {
         let defaults = UserDefaults.standard
@@ -45,9 +46,33 @@ final class AppLock: ObservableObject {
         }
     }
 
+    /// SF Symbol odpovídající dostupné metodě ověření.
+    var symbolName: String {
+        let context = LAContext()
+        _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+        switch context.biometryType {
+        case .faceID: return "faceid"
+        case .touchID: return "touchid"
+        case .opticID: return "opticid"
+        default: return "lock.open.fill"
+        }
+    }
+
+    /// Automatické ověření (po návratu z pozadí / při startu) už pro tohle zamčení proběhlo. Zabraňuje smyčce:
+    /// zavření systémového okna Face ID vyvolá další přechod scény do stavu „aktivní“, který by ověření spustil znovu.
+    private var autoPromptUsed = false
+
     func lock() {
         guard isEnabled, !isAuthenticating else { return }
+        autoPromptUsed = false
         isLocked = true
+    }
+
+    /// Spustí ověření automaticky, ale jen jednou na jedno zamčení. Po zrušení se čeká na klepnutí na tlačítko.
+    func unlockAutomatically() async {
+        guard isLocked, !isAuthenticating, !autoPromptUsed else { return }
+        autoPromptUsed = true
+        await unlock()
     }
 
     /// Po čerstvém přihlášení heslem se znovu ověřovat nemusí.
@@ -92,52 +117,5 @@ final class AppLock: ObservableObject {
             errorMessage = "Ověření se nezdařilo."
             return false
         }
-    }
-}
-
-/// Překryv, který skryje obsah aplikace (zámek i náhled v přepínači aplikací).
-struct AppLockOverlay: View {
-    @ObservedObject var lock: AppLock
-    let isCovered: Bool
-
-    var body: some View {
-        ZStack {
-            if lock.isEnabled, lock.isLocked || isCovered {
-                ZStack {
-                    Theme.background
-
-                    VStack(spacing: Theme.Spacing.l) {
-                        Image("logo-sucto")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 96, height: 96)
-                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                            .shadow(color: .black.opacity(0.2), radius: 14, y: 6)
-                            .accessibilityHidden(true)
-                        if lock.isLocked {
-                            Text("sÚčto je zamčené")
-                                .font(.title3.weight(.semibold))
-                            if let message = lock.errorMessage {
-                                Text(message)
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Button {
-                                Task { await lock.unlock() }
-                            } label: {
-                                Label("Odemknout (\(lock.methodName))", systemImage: "faceid")
-                            }
-                            .buttonStyle(PrimaryButtonStyle())
-                            .padding(.horizontal, Theme.Spacing.xxl)
-                        }
-                    }
-                }
-                .ignoresSafeArea()
-                .accessibilityAddTraits(.isModal)
-                .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: lock.isLocked)
-        .animation(.easeInOut(duration: 0.2), value: isCovered)
     }
 }
