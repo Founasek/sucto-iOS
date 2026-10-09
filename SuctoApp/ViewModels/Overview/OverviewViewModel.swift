@@ -33,6 +33,8 @@ final class OverviewViewModel: ObservableObject {
     @Published var progress = OverviewLoadProgress()
     /// Stáří prošlých pohledávek a závazků (nezávisí na zvoleném roce).
     @Published private(set) var aging = AgingSummary(items: [])
+    /// Prognóza splatností na 30 dní (ze stejných dat jako stáří po splatnosti).
+    @Published private(set) var forecast = ForecastSummary(items: [])
 
     let companyId: Int
     let session: SessionManager
@@ -67,12 +69,14 @@ final class OverviewViewModel: ObservableObject {
         isNoticeUnread = notice.map { !SystemNoticeStore.isDismissed($0.id) } ?? false
     }
 
-    /// Načte nezaplacené faktury a spočítá stáří po splatnosti. Jen doplněk – při chybě nebo výpadku zůstane předchozí stav.
-    func loadAging() async {
+    /// Načte nezaplacené faktury a spočítá z nich stáří po splatnosti a prognózu na 30 dní.
+    /// Jen doplněk – při chybě nebo výpadku zůstane předchozí stav.
+    func loadDueItems() async {
         guard let items = try? await DueSnapshotService(session: session).fetchItems(companyId: companyId),
               session.cachedDataDate == nil
         else { return }
         aging = AgingSummary(items: items)
+        forecast = ForecastSummary(items: items)
     }
 
     /// Zpráva se ukazuje jen na vyžádání; po otevření se označí jako přečtená (zmizí tečka u tlačítka).

@@ -71,9 +71,12 @@ struct AgingSummary: Equatable {
                 byCurrency[key]?.issued[index].amount += item.amount
             }
         }
-        // Měna s nejvyšším počtem prošlých faktur první.
-        rows = order.compactMap { byCurrency[$0] }.sorted {
-            ($0.issuedTotal.invoiceCount + $0.receivedTotal.invoiceCount) > ($1.issuedTotal.invoiceCount + $1.receivedTotal.invoiceCount)
+        // Česká koruna vždy první, ostatní měny podle počtu prošlých faktur.
+        rows = order.compactMap { byCurrency[$0] }.sorted { lhs, rhs in
+            if isCzechCrown(lhs.currency) != isCzechCrown(rhs.currency) { return isCzechCrown(lhs.currency) }
+            let lhsCount = lhs.issuedTotal.invoiceCount + lhs.receivedTotal.invoiceCount
+            let rhsCount = rhs.issuedTotal.invoiceCount + rhs.receivedTotal.invoiceCount
+            return lhsCount > rhsCount
         }
     }
 }

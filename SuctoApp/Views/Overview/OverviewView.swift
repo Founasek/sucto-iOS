@@ -17,10 +17,6 @@ struct OverviewView: View {
             VStack(spacing: Theme.Spacing.l) {
                 yearPicker
 
-                if viewModel.source == .invoices, !viewModel.isLoading || !viewModel.sections.isEmpty {
-                    fallbackNote
-                }
-
                 if let error = viewModel.errorMessage, viewModel.sections.isEmpty {
                     ErrorStateView(message: error) {
                         Task { await viewModel.load() }
@@ -39,7 +35,12 @@ struct OverviewView: View {
                             : "Za rok \(viewModel.year) nejsou vystavené ani přijaté faktury.",
                     )
                 } else {
-                    OverviewResultCard(sections: viewModel.sections, year: viewModel.year, labels: labels)
+                    OverviewResultCard(
+                        sections: viewModel.sections,
+                        year: viewModel.year,
+                        labels: labels,
+                        info: viewModel.source == .invoices ? AnyView(sourceInfo) : nil,
+                    )
                     if viewModel.sections.count == 1, let section = viewModel.sections.first {
                         HStack(spacing: Theme.Spacing.m) {
                             figureCard(title: labels.revenue, value: section.revenue, currency: section.currency, icon: "arrow.down.left", color: OverviewStyle.revenueColor)
@@ -47,12 +48,19 @@ struct OverviewView: View {
                         }
                     }
                     OverviewChartCarousel(sections: viewModel.sections, labels: labels)
-                    OverviewMonthsCard(sections: viewModel.sections, labels: labels)
-                    OverviewTopPartiesCard(sections: viewModel.sections, labels: labels)
+                }
+
+                if !viewModel.forecast.isEmpty {
+                    OverviewForecastCard(forecast: viewModel.forecast)
                 }
 
                 if !viewModel.aging.isEmpty {
                     OverviewAgingCard(aging: viewModel.aging)
+                }
+
+                // Největší odběratelé a dodavatelé jsou doplněk – patří úplně na konec stránky.
+                if !viewModel.sections.isEmpty, !viewModel.isEmpty {
+                    OverviewTopPartiesCard(sections: viewModel.sections, labels: labels)
                 }
             }
             .padding(Theme.Spacing.l)
@@ -62,7 +70,7 @@ struct OverviewView: View {
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         .background(Theme.background)
         .refreshable {
-            async let aging: Void = viewModel.loadAging()
+            async let aging: Void = viewModel.loadDueItems()
             await viewModel.load(retryAccounting: true)
             await aging
         }
@@ -70,7 +78,7 @@ struct OverviewView: View {
             if viewModel.sections.isEmpty { await viewModel.load() }
         }
         .task { await viewModel.loadNotice() }
-        .task { await viewModel.loadAging() }
+        .task { await viewModel.loadDueItems() }
         .sheet(isPresented: $showNotice) {
             if let notice = viewModel.notice {
                 NoticeSheet(notice: notice)
@@ -81,28 +89,24 @@ struct OverviewView: View {
 
     private var labels: OverviewLabels { OverviewLabels(isAccounting: viewModel.source == .accounting) }
 
-    /// Upozornění, že přehled nevychází z účetního deníku.
-    private var fallbackNote: some View {
-        HStack(alignment: .top, spacing: Theme.Spacing.m) {
-            Image(systemName: "info.circle.fill").foregroundStyle(Color.accentColor)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Přehled z faktur")
-                    .font(.subheadline.weight(.semibold))
-                Text("Server pro váš účet nepouští účetní deník (403), proto jsou součty z vystavených a přijatých faktur bez DPH – nejde o účetní výnosy a náklady.")
+    /// Vysvětlení v bublině u nadpisu: přehled nevychází z účetního deníku (a případně je ve více měnách).
+    private var sourceInfo: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Text("Přehled z faktur")
+                .font(.subheadline.weight(.semibold))
+            Text("Server pro váš účet nepouští účetní deník (403), proto jsou součty z vystavených a přijatých faktur bez DPH – nejde o účetní výnosy a náklady.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            if viewModel.sections.count > 1 {
+                Text("Faktury jsou ve více měnách (\(viewModel.sections.map(\.currency).joined(separator: ", "))). Měny se nepřepočítávají, proto má každá vlastní součty a graf.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                if viewModel.sections.count > 1 {
-                    Text("Faktury jsou ve více měnách (\(viewModel.sections.map(\.currency).joined(separator: ", "))). Měny se nepřepočítávají, proto má každá vlastní součty a graf.")
-                        .font(.footnote)
-                        .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                    .foregroundStyle(.orange)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(Theme.Spacing.m)
-        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(Theme.Spacing.l)
+        .frame(width: 300, alignment: .leading)
+        .presentationCompactAdaptation(.popover)
     }
 
     private var yearPicker: some View {

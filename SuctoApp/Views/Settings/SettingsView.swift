@@ -15,11 +15,13 @@ struct SettingsView: View {
     @State private var hasSavedLogin = CredentialStore.hasSavedLogin()
     @State private var showNotificationsDenied = false
     @State private var offlineDataCleared = false
+    @AppStorage("remindersEnabled") private var remindersEnabled = false
 
     var body: some View {
         Form {
             securitySection
             notificationsSection
+            remindersSection
             widgetSection
             dataSection
             aboutSection
@@ -100,6 +102,25 @@ struct SettingsView: View {
             Text("Upozornění")
         } footer: {
             Text("Denně v 9:00 vás upozorní na faktury splatné ten den a po splatnosti. V textu nejsou částky ani jména. Plánuje se při otevření aplikace.")
+        }
+    }
+
+    private var remindersSection: some View {
+        Section {
+            Toggle(isOn: $remindersEnabled) {
+                Label("Upomínky odběratelům", systemImage: "bell.badge")
+            }
+            if remindersEnabled {
+                NavigationLink {
+                    ReminderTemplateView()
+                } label: {
+                    Label("Text upomínky", systemImage: "text.alignleft")
+                }
+            }
+        } header: {
+            Text("Upomínky")
+        } footer: {
+            Text("Ve výchozím stavu vypnuto. Po zapnutí se u vydaných faktur po splatnosti objeví tlačítko „Odeslat upomínku“. Nic se neodesílá automaticky – každou upomínku potvrdíte a text můžete upravit.")
         }
     }
 
