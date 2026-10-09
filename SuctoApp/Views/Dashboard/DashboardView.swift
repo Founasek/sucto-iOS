@@ -113,7 +113,7 @@ struct DashboardView: View {
                         }
                     }
 
-                    if tab == .incoming {
+                    if FeatureFlags.scans, tab == .incoming {
                         Button {
                             navManager.showScans(companyId: companyId)
                         } label: {
@@ -203,7 +203,7 @@ struct DashboardView: View {
 
     private func newInvoiceButton(_ direction: InvoiceDirection) -> some View {
         HStack(spacing: Theme.Spacing.m) {
-            if direction == .incoming { scanMenu }
+            if FeatureFlags.scans, direction == .incoming { scanMenu }
             createButton(direction)
         }
         .padding(Theme.Spacing.l)
