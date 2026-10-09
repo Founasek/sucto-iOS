@@ -18,7 +18,6 @@ enum Theme {
     }
 
     enum Radius {
-        static let chip: CGFloat = 10
         static let card: CGFloat = 20
         static let control: CGFloat = 14
     }

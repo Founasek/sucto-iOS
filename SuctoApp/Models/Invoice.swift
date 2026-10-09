@@ -162,7 +162,4 @@ extension Invoice {
               let dueDate else { return false }
         return dueDate < Calendar.current.startOfDay(for: Date())
     }
-
-    /// Barva textu stavu v seznamech a detailu.
-    var statusColor: Color { tone.color }
 }

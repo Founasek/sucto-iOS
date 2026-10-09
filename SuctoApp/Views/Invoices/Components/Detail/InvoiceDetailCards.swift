@@ -142,3 +142,58 @@ struct InvoiceItemRow: View {
         .contentShape(Rectangle())
     }
 }
+
+struct InvoiceDatesCard: View {
+    let invoice: Invoice
+
+    var body: some View {
+        DetailCard(title: "Časové údaje", systemImage: "calendar") {
+            DetailRow(label: "Datum vystavení:", value: invoice.issueDateAt)
+            DetailRow(label: "Datum splatnosti:", value: invoice.dueDateAt)
+            DetailRow(label: "Datum UZP:", value: invoice.uzpDateAt)
+        }
+    }
+}
+
+/// Akce nad položkami faktury (jen když na ně má uživatel právo).
+struct InvoiceItemEditing {
+    let onAdd: () -> Void
+    let onEdit: (InvoiceItem) -> Void
+}
+
+struct InvoiceItemsCard: View {
+    let invoice: Invoice
+    var editing: InvoiceItemEditing?
+
+    var body: some View {
+        let items = invoice.items ?? []
+        if !invoice.notes.isEmpty || !items.isEmpty || editing != nil {
+            DetailCard(title: "Poznámka a položky", systemImage: "bubble.right") {
+                ForEach(invoice.notes, id: \.self) { note in
+                    Text(note)
+                        .font(.subheadline)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                ForEach(items) { item in
+                    if let editing {
+                        Button { editing.onEdit(item) } label: {
+                            InvoiceItemRow(item: item, currency: invoice.currency?.symbol, showsChevron: true)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Upraví položku")
+                    } else {
+                        InvoiceItemRow(item: item, currency: invoice.currency?.symbol)
+                    }
+                }
+                if let editing {
+                    Button { editing.onAdd() } label: {
+                        Label("Přidat položku", systemImage: "plus.circle.fill")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .padding(.top, 8)
+                }
+            }
+        }
+    }
+}

@@ -10,17 +10,17 @@ import SwiftUI
 struct OutgoingInvoiceDetailView: View {
     let invoiceId: Int
     @EnvironmentObject var viewModel: OutgoingInvoicesViewModel
-    @State private var showSendSheet = false
-    @State private var showReminderSheet = false
-    @AppStorage("remindersEnabled") private var remindersEnabled = false
-    @State private var showExportSheet = false
-    @EnvironmentObject private var permissions: PermissionsStore
-    @EnvironmentObject private var navManager: NavigationManager
-    @State private var lineSheet: LineSheet?
-    @State private var qrInput: PaymentQR.Input?
+    @State var showSendSheet = false
+    @State var showReminderSheet = false
+    @AppStorage(ReminderSettings.enabledKey) var remindersEnabled = false
+    @State var showExportSheet = false
+    @EnvironmentObject var permissions: PermissionsStore
+    @EnvironmentObject var navManager: NavigationManager
+    @State var lineSheet: LineSheet?
+    @State var qrInput: PaymentQR.Input?
 
     /// Co se právě edituje: nová položka, nebo existující.
-    private struct LineSheet: Identifiable {
+    struct LineSheet: Identifiable {
         let item: InvoiceItem?
         var id: Int { item?.id ?? -1 }
     }
@@ -189,61 +189,5 @@ struct OutgoingInvoiceDetailView: View {
         }
         .padding(Theme.Spacing.l)
         .fitsScreenWidth()
-    }
-
-    @ViewBuilder
-    private var payBar: some View {
-        if let invoice = viewModel.selectedInvoice, !invoice.isPaid, !viewModel.isLoadingDetail {
-            Button {
-                Task { await viewModel.markOutgoingInvoiceAsPaid(invoiceId: invoice.id) }
-            } label: {
-                Label("Uhradit fakturu", systemImage: "checkmark.circle")
-            }
-            .buttonStyle(.primary)
-            .padding(.horizontal, Theme.Spacing.l)
-            .padding(.vertical, Theme.Spacing.m)
-            .background(.bar)
-        }
-    }
-
-    /// Úprava položek je jen pro uživatele s právem `update` a u faktur, které nejsou stornované.
-    private func itemEditing(for invoice: Invoice) -> InvoiceItemEditing? {
-        guard permissions.can(.update, InvoiceDirection.outgoing.permissionResource, companyId: viewModel.companyId),
-              invoice.invoiceStatus != .storno
-        else { return nil }
-        return InvoiceItemEditing(
-            onAdd: { lineSheet = LineSheet(item: nil) },
-            onEdit: { item in lineSheet = LineSheet(item: item) },
-        )
-    }
-
-    private func reloadAfterLineChange() async {
-        await viewModel.fetchInvoiceDetail(invoiceId: invoiceId)
-        await viewModel.refresh()
-    }
-
-    /// Okno upomínky: příjemce a text jsou předvyplněné (z faktury a šablony) a lze je upravit.
-    private func reminderSheet(for invoice: Invoice) -> some View {
-        let last = ReminderLog.lastSent(invoiceId: invoice.id).map {
-            " Poslední upomínka byla odeslána \($0.formatted(.dateTime.day().month().year().locale(Locale(identifier: "cs_CZ"))))."
-        } ?? ""
-        return SendEmailSheet(
-            invoiceNumber: invoice.actuarialNumber,
-            title: "Odeslat upomínku",
-            sendTitle: "Odeslat",
-            commentHeader: "Text upomínky",
-            commentFooter: "Zpráva se odešle zákazníkovi spolu s fakturou. Výchozí text změníte v Nastavení." + last,
-            commentLines: 8 ... 16,
-            initialEmail: invoice.customer?.email ?? "",
-            initialComment: ReminderSettings.render(
-                ReminderSettings.template,
-                invoice: invoice,
-                companyName: viewModel.session.selectedCompany?.name,
-            ),
-        ) { email, comment in
-            let error = await viewModel.sendByEmail(invoiceId: invoiceId, email: email, comment: comment)
-            if error == nil { ReminderLog.record(invoiceId: invoice.id) }
-            return error
-        }
     }
 }

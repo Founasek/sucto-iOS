@@ -5,13 +5,6 @@
 
 import Foundation
 
-/// Částky řádku: základ, DPH, celkem.
-struct LineAmounts {
-    let base: Double
-    let tax: Double
-    let total: Double
-}
-
 /// Položka faktury upravovaná ve formuláři (přidání nebo úprava řádku existující faktury).
 struct InvoiceLineDraft: Equatable {
     var name = ""
@@ -40,9 +33,12 @@ struct InvoiceLineDraft: Equatable {
 
     /// Částky řádku stejně jako při vytváření faktury: základ, DPH a celkem (se započtenou slevou).
     func amounts(vatRate: Double) -> LineAmounts {
-        let base = (quantity ?? 0) * (unitPrice ?? 0) * (1 - (discountPercentage ?? 0) / 100)
-        let tax = base * vatRate / 100
-        return LineAmounts(base: base, tax: tax, total: base + tax)
+        InvoiceLineMath.amounts(
+            quantity: quantity ?? 0,
+            unitPrice: unitPrice ?? 0,
+            discountPercent: discountPercentage ?? 0,
+            vatRate: vatRate,
+        )
     }
 }
 

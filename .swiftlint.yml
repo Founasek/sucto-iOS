@@ -24,6 +24,8 @@ opt_in_rules:
 # ---------------------
 included:
   - SuctoApp                   # hlavní složka projektu
+  - SuctoWidget                # widget
+  - Shared                     # kód sdílený aplikací a widgetem
 excluded:
   - Pods                        # ignorujeme CocoaPods
   - Carthage

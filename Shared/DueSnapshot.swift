@@ -103,8 +103,6 @@ struct DueSummary: Equatable {
     private static func nearest(_ items: [DueItem], today _: Date, limit: Int = 3) -> [DueItem] {
         Array(items.sorted { $0.dueDate < $1.dueDate }.prefix(limit))
     }
-
-    var hasOverdue: Bool { issued.overdueCount + received.overdueCount > 0 }
 }
 
 enum DueFormat {

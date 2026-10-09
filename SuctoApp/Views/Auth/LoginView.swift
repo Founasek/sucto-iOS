@@ -8,31 +8,31 @@
 import SwiftUI
 
 struct LoginView: View {
-    @StateObject private var viewModel = LoginViewModel()
-    @State private var email = DevCredentials.email
-    @State private var password = DevCredentials.password
-    @FocusState private var focusedField: Field?
+    @StateObject var viewModel = LoginViewModel()
+    @State var email = DevCredentials.email
+    @State var password = DevCredentials.password
+    @FocusState var focusedField: Field?
     /// Jsou uložené údaje pro Face ID přihlášení? Zjišťuje se jednou při zobrazení, ne při každém překreslení.
-    @State private var hasSavedLogin = false
+    @State var hasSavedLogin = false
     /// Po úspěšném ručním přihlášení čeká na odpověď na „Uložit přihlášení?“.
-    @State private var pendingLogin: PendingLogin?
-    @State private var showSaveFailed = false
+    @State var pendingLogin: PendingLogin?
+    @State var showSaveFailed = false
     /// Ověření Face ID právě probíhá – další klepnutí se ignorují (jinak by se dotazy hromadily).
-    @State private var isBiometricInProgress = false
+    @State var isBiometricInProgress = false
 
-    @EnvironmentObject private var session: SessionManager
-    @EnvironmentObject private var appLock: AppLock
+    @EnvironmentObject var session: SessionManager
+    @EnvironmentObject var appLock: AppLock
 
     @ScaledMetric(relativeTo: .body) private var iconWidth: CGFloat = 22
 
-    private enum Field { case email, password }
+    enum Field { case email, password }
 
-    private struct PendingLogin {
+    struct PendingLogin {
         let token: String
         let credentials: CredentialStore.Credentials
     }
 
-    private var canSubmit: Bool {
+    var canSubmit: Bool {
         !viewModel.isLoading && !email.isEmpty && !password.isEmpty
     }
 
@@ -173,78 +173,6 @@ struct LoginView: View {
         .padding(.horizontal, Theme.Spacing.l)
         .frame(minHeight: 54)
         .background(.white.opacity(0.1), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
-    }
-
-    /// Tlačítko rychlého přihlášení a možnost uložené údaje zapomenout.
-    private var savedLoginControls: some View {
-        VStack(spacing: Theme.Spacing.xs) {
-            Button(action: loginWithSaved) {
-                Label("Přihlásit se přes \(appLock.methodName)", systemImage: "faceid")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
-            }
-            .disabled(viewModel.isLoading || isBiometricInProgress)
-            .accessibilityHint("Přihlásí uloženým účtem")
-
-            Button("Zapomenout uložené přihlášení") {
-                CredentialStore.delete()
-                hasSavedLogin = false
-            }
-            .font(.caption)
-            .foregroundStyle(.white.opacity(0.7))
-            .padding(.top, Theme.Spacing.xs)
-        }
-    }
-
-    private func submit() {
-        guard canSubmit else { return }
-        focusedField = nil
-        let credentials = CredentialStore.Credentials(email: email, password: password)
-        Task {
-            guard let token = await viewModel.login(email: credentials.email, password: credentials.password) else { return }
-            if !hasSavedLogin, !CredentialStore.offerDeclined {
-                pendingLogin = PendingLogin(token: token, credentials: credentials)
-                return
-            }
-            // Změněné heslo u už uloženého účtu se tiše aktualizuje, ať Face ID přihlášení dál funguje.
-            if hasSavedLogin { CredentialStore.save(credentials) }
-            finish(token: token)
-        }
-    }
-
-    /// Face ID se vyvolá jen klepnutím na tlačítko, nikdy samo.
-    private func loginWithSaved() {
-        guard !isBiometricInProgress else { return }
-        isBiometricInProgress = true
-        Task {
-            defer { isBiometricInProgress = false }
-            guard let credentials = await CredentialStore.load(reason: "Přihlášení do sÚčta") else { return }
-            if let token = await viewModel.login(email: credentials.email, password: credentials.password) {
-                finish(token: token)
-            }
-        }
-    }
-
-    private func finishPendingLogin(save: Bool) {
-        guard let pending = pendingLogin else { return }
-        pendingLogin = nil
-        if save {
-            if CredentialStore.save(pending.credentials) {
-                hasSavedLogin = true
-            } else {
-                showSaveFailed = true
-            }
-        }
-        finish(token: pending.token)
-    }
-
-    private func finish(token: String) {
-        // Odemknout dřív než se přepne obrazovka, aby zamčený překryv ani na okamžik neproblikl.
-        appLock.markUnlocked()
-        session.login(token: token)
     }
 }
 

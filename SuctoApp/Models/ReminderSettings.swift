@@ -8,7 +8,8 @@ import Foundation
 /// Nastavení upomínek po splatnosti. Funkce je ve výchozím stavu VYPNUTÁ – uživatel ji musí vědomě zapnout v Nastavení.
 /// Žádná upomínka se neodesílá sama, každou potvrzuje uživatel v okně s upravitelným textem.
 enum ReminderSettings {
-    private static let enabledKey = "remindersEnabled"
+    /// Klíč v UserDefaults; sdílí ho i `@AppStorage` v obrazovkách, aby se překlep nemohl rozejít.
+    static let enabledKey = "remindersEnabled"
     private static let templateKey = "reminderTemplate"
 
     static var isEnabled: Bool {

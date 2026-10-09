@@ -1,42 +1,23 @@
 import SwiftUI
 
-/// Záložky dolní lišty.
-private enum MainTab: Hashable {
-    case overview, invoices, cash
-}
-
-/// Strana v záložce Faktury (přepínač nahoře).
-private enum InvoiceSide: Int, CaseIterable {
-    case outgoing, incoming
-
-    var item: SegmentedTabs.Item {
-        switch self {
-        case .outgoing: .init(title: "Vydané", systemImage: "arrow.up.right.circle")
-        case .incoming: .init(title: "Přijaté", systemImage: "arrow.down.left.circle")
-        }
-    }
-
-    var direction: InvoiceDirection { self == .outgoing ? .outgoing : .incoming }
-}
-
 struct DashboardView: View {
     let companyId: Int
     @EnvironmentObject var navManager: NavigationManager
     @EnvironmentObject var session: SessionManager
     @EnvironmentObject var permissions: PermissionsStore
-    @Namespace private var invoiceNamespace
-    @State private var mainTab = MainTab.overview
-    @State private var invoiceSide = InvoiceSide.outgoing
-    @State private var pohodaExportDirection: InvoiceDirection?
-    @State private var scanSource: ScanSource?
-    @State private var slideEdge: Edge = .trailing
-    @State private var csvFile: ShareableFile?
-    @State private var isExportingCSV = false
-    @State private var csvError: String?
-    @Environment(\.scenePhase) private var scenePhase
+    @Namespace var invoiceNamespace
+    @State var mainTab = MainTab.overview
+    @State var invoiceSide = InvoiceSide.outgoing
+    @State var pohodaExportDirection: InvoiceDirection?
+    @State var scanSource: ScanSource?
+    @State var slideEdge: Edge = .trailing
+    @State var csvFile: ShareableFile?
+    @State var isExportingCSV = false
+    @State var csvError: String?
+    @Environment(\.scenePhase) var scenePhase
 
-    @StateObject private var overviewVM: OverviewViewModel
-    @StateObject private var scanUploader: ScanUploadViewModel
+    @StateObject var overviewVM: OverviewViewModel
+    @StateObject var scanUploader: ScanUploadViewModel
     @StateObject var outgoingInvoicesVM: OutgoingInvoicesViewModel
     @StateObject var incomingInvoicesVM: IncomingInvoicesViewModel
 
@@ -63,7 +44,7 @@ struct DashboardView: View {
             }
 
             Tab("Pokladna", systemImage: "banknote", value: MainTab.cash) {
-                CashVouchersView(companyId: companyId, session: session, embedded: true)
+                CashVouchersView(companyId: companyId, session: session)
                     .offlineBanner()
             }
         }
@@ -146,237 +127,5 @@ struct DashboardView: View {
                 async let incoming: Void = incomingInvoicesVM.refresh()
                 _ = await (outgoing, incoming)
             }
-    }
-
-    /// Záložka Faktury: přepínač Vydané/Přijaté nahoře, seznam pod ním a plovoucí tlačítko nové faktury.
-    private var invoicesTab: some View {
-        ZStack(alignment: .bottomTrailing) {
-            VStack(spacing: 0) {
-                SegmentedTabs(items: InvoiceSide.allCases.map(\.item), selection: Binding(
-                    get: { invoiceSide.rawValue },
-                    set: { index in
-                        guard let newSide = InvoiceSide(rawValue: index) else { return }
-                        // Směr přechodu se nastaví dřív než samotná změna strany.
-                        slideEdge = newSide.rawValue > invoiceSide.rawValue ? .trailing : .leading
-                        invoiceSide = newSide
-                    },
-                ))
-                .padding(.horizontal, Theme.Spacing.l)
-                .padding(.vertical, Theme.Spacing.s)
-
-                Group {
-                    switch invoiceSide {
-                    case .outgoing:
-                        OutgoingInvoicesView(namespace: invoiceNamespace)
-                            .environmentObject(outgoingInvoicesVM)
-                    case .incoming:
-                        IncomingInvoicesView(namespace: invoiceNamespace)
-                            .environmentObject(incomingInvoicesVM)
-                    }
-                }
-                .id(invoiceSide)
-                .transition(.asymmetric(
-                    insertion: .move(edge: slideEdge).combined(with: .opacity),
-                    removal: .move(edge: slideEdge == .trailing ? .leading : .trailing).combined(with: .opacity),
-                ))
-            }
-            .clipped()
-
-            if let direction = createDirection {
-                newInvoiceButton(direction)
-                    .id(direction)
-                    .transition(.scale(scale: 0.8).combined(with: .opacity))
-            }
-        }
-        .animation(Motion.standard, value: invoiceSide)
-    }
-
-    /// Tlačítko nové faktury se neukáže, když uživatel podle `api_permissions` faktury daného směru vytvářet nesmí.
-    private var createDirection: InvoiceDirection? {
-        let direction = invoiceSide.direction
-        guard permissions.can(.create, direction.permissionResource, companyId: companyId) else { return nil }
-        return direction
-    }
-
-    private func newInvoiceButton(_ direction: InvoiceDirection) -> some View {
-        HStack(spacing: Theme.Spacing.m) {
-            if FeatureFlags.scans, direction == .incoming { scanMenu }
-            createButton(direction)
-        }
-        .padding(Theme.Spacing.l)
-    }
-
-    private func createButton(_ direction: InvoiceDirection) -> some View {
-        let title = direction == .outgoing ? "Nová faktura" : "Nová přijatá"
-        return Button {
-            navManager.createInvoice(companyId: companyId, direction: direction)
-        } label: {
-            Label(title, systemImage: "plus")
-                .font(.headline)
-                .foregroundStyle(.white)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 14)
-                .background(Theme.brandGradient, in: Capsule())
-                .shadow(color: Theme.brand.opacity(0.45), radius: 14, y: 6)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(direction.createTitle)
-    }
-
-    /// Nahrání dokladu: skener, fotky nebo Soubory – ze skenu server předvyplní fakturu.
-    private var scanMenu: some View {
-        Menu {
-            if ScanSource.cameraAvailable {
-                Button { scanSource = .camera } label: { Label("Naskenovat doklad", systemImage: "camera.viewfinder") }
-            }
-            Button { scanSource = .photos } label: { Label("Vybrat z fotek", systemImage: "photo") }
-            Button { scanSource = .files } label: { Label("Vybrat ze Souborů", systemImage: "folder") }
-            Divider()
-            Button { navManager.showScans(companyId: companyId) } label: { Label("Zobrazit skeny", systemImage: "list.bullet.rectangle") }
-        } label: {
-            Image(systemName: "doc.viewfinder")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 52, height: 52)
-                .background(.regularMaterial, in: Circle())
-                .overlay(Circle().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5))
-                .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
-        }
-        .accessibilityLabel("Nahrát doklad ke zpracování")
-    }
-}
-
-private extension DashboardView {
-    /// Položky menu „…“ (podle záložky se liší exporty).
-    @ViewBuilder
-    private var menuItems: some View {
-        if mainTab == .invoices {
-            Button {
-                pohodaExportDirection = invoiceSide.direction
-            } label: {
-                Label(pohodaExportTitle, systemImage: "square.and.arrow.up")
-            }
-
-            Button {
-                Task { await exportCSV(direction: invoiceSide.direction) }
-            } label: {
-                Label("Exportovat seznam do CSV", systemImage: "tablecells")
-            }
-            .disabled(isExportingCSV)
-        }
-
-        if FeatureFlags.scans, mainTab == .invoices, invoiceSide == .incoming {
-            Button {
-                navManager.showScans(companyId: companyId)
-            } label: {
-                Label("Skeny faktur", systemImage: "doc.viewfinder")
-            }
-        }
-
-        Button {
-            navManager.showAccounts(companyId: companyId)
-        } label: {
-            Label("Účty", systemImage: "creditcard")
-        }
-
-        Button {
-            navManager.showPartners(companyId: companyId)
-        } label: {
-            Label("Partneři", systemImage: "person.2")
-        }
-
-        Button {
-            navManager.showSettings()
-        } label: {
-            Label("Nastavení", systemImage: "gearshape")
-        }
-
-        Button {
-            navManager.goToCompanies()
-        } label: {
-            Label("Změnit firmu", systemImage: "building.2")
-        }
-
-        Button(role: .destructive) {
-            session.logout()
-            navManager.reset()
-        } label: {
-            Label("Odhlásit se", systemImage: "rectangle.portrait.and.arrow.right")
-        }
-    }
-
-    private var pohodaExportTitle: String {
-        invoiceSide == .outgoing ? "Export vydaných do Pohody" : "Export přijatých do Pohody"
-    }
-
-    /// Detail faktury otevřený podle id a směru (z Přehledu); bez zoom přechodu, protože nemá zdrojovou kartu.
-    @ViewBuilder
-    func invoiceDetail(for route: InvoiceRoute) -> some View {
-        if route.isIncoming {
-            IncomingInvoiceDetailView(invoiceId: route.id)
-                .environmentObject(incomingInvoicesVM)
-        } else {
-            OutgoingInvoiceDetailView(invoiceId: route.id)
-                .environmentObject(outgoingInvoicesVM)
-        }
-    }
-
-    @ViewBuilder
-    func invoiceDetail(for invoice: Invoice) -> some View {
-        switch invoiceSide {
-        case .outgoing:
-            OutgoingInvoiceDetailView(invoiceId: invoice.id)
-                .environmentObject(outgoingInvoicesVM)
-                .navigationTransition(.zoom(sourceID: invoice.id, in: invoiceNamespace))
-        case .incoming:
-            IncomingInvoiceDetailView(invoiceId: invoice.id)
-                .environmentObject(incomingInvoicesVM)
-                .navigationTransition(.zoom(sourceID: invoice.id, in: invoiceNamespace))
-        }
-    }
-
-    /// Exportuje aktuální výběr faktur (hledání + filtry) do CSV a otevře sdílecí okno.
-    private func exportCSV(direction: InvoiceDirection) async {
-        isExportingCSV = true
-        defer { isExportingCSV = false }
-        do {
-            let viewModel: PagedInvoicesViewModel = direction == .outgoing ? outgoingInvoicesVM : incomingInvoicesVM
-            let invoices = try await viewModel.fetchAllMatching()
-            let data = InvoiceCSVExporter.csv(for: invoices, direction: direction)
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent(InvoiceCSVExporter.fileName(direction: direction))
-            try data.write(to: url, options: [.atomic, .completeFileProtection])
-            csvFile = ShareableFile(url: url)
-        } catch is CancellationError {
-            return
-        } catch {
-            csvError = error.localizedDescription
-        }
-    }
-
-    /// Odkaz z widgetu: přepne záložku vydaných/přijatých a zapne filtr „Po splatnosti“.
-    private func consumePendingTarget() {
-        guard let target = navManager.pendingTarget else { return }
-        navManager.pendingTarget = nil
-        mainTab = .invoices
-        invoiceSide = target.isIncoming ? .incoming : .outgoing
-        if target.isIncoming {
-            incomingInvoicesVM.filter = .overdue
-        } else {
-            outgoingInvoicesVM.filter = .overdue
-        }
-    }
-
-    /// Obnoví data pro widget a upozornění na splatnost (běží na pozadí, chyby se ignorují).
-    private func refreshDueSnapshot() async {
-        guard let company = session.selectedCompany, company.id == companyId else { return }
-        await DueSnapshotService(session: session).refresh(company: company)
-    }
-
-    private func uploadScan(_ file: MultipartFile) {
-        Task {
-            if await scanUploader.upload(file) {
-                navManager.showScans(companyId: companyId)
-            }
-        }
     }
 }
