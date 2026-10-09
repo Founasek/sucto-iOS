@@ -11,6 +11,8 @@ struct OutgoingInvoiceDetailView: View {
     let invoiceId: Int
     @EnvironmentObject var viewModel: OutgoingInvoicesViewModel
     @State private var showSendSheet = false
+    @State private var showReminderSheet = false
+    @AppStorage("remindersEnabled") private var remindersEnabled = false
     @State private var showExportSheet = false
     @EnvironmentObject private var permissions: PermissionsStore
     @EnvironmentObject private var navManager: NavigationManager
@@ -100,6 +102,11 @@ struct OutgoingInvoiceDetailView: View {
                 mode: .invoice(id: invoiceId, number: viewModel.selectedInvoice?.actuarialNumber ?? ""),
             )
         }
+        .sheet(isPresented: $showReminderSheet) {
+            if let invoice = viewModel.selectedInvoice {
+                reminderSheet(for: invoice)
+            }
+        }
         .sheet(isPresented: $showSendSheet) {
             SendEmailSheet(invoiceNumber: viewModel.selectedInvoice?.actuarialNumber ?? "") { email, comment in
                 await viewModel.sendByEmail(invoiceId: invoiceId, email: email, comment: comment)
@@ -162,6 +169,10 @@ struct OutgoingInvoiceDetailView: View {
                 DetailRow(label: "Číslo objednávky", value: invoice.orderNumber, hideWhenEmpty: true)
             }
 
+            if remindersEnabled, invoice.isOverdue {
+                OverdueReminderCard(invoice: invoice) { showReminderSheet = true }
+            }
+
             InvoicePaymentCard(invoice: invoice)
 
             DetailCard(title: "Zákazník", systemImage: "person.crop.circle") {
@@ -209,5 +220,30 @@ struct OutgoingInvoiceDetailView: View {
     private func reloadAfterLineChange() async {
         await viewModel.fetchInvoiceDetail(invoiceId: invoiceId)
         await viewModel.refresh()
+    }
+
+    /// Okno upomínky: příjemce a text jsou předvyplněné (z faktury a šablony) a lze je upravit.
+    private func reminderSheet(for invoice: Invoice) -> some View {
+        let last = ReminderLog.lastSent(invoiceId: invoice.id).map {
+            " Poslední upomínka byla odeslána \($0.formatted(.dateTime.day().month().year().locale(Locale(identifier: "cs_CZ"))))."
+        } ?? ""
+        return SendEmailSheet(
+            invoiceNumber: invoice.actuarialNumber,
+            title: "Odeslat upomínku",
+            sendTitle: "Odeslat",
+            commentHeader: "Text upomínky",
+            commentFooter: "Zpráva se odešle zákazníkovi spolu s fakturou. Výchozí text změníte v Nastavení." + last,
+            commentLines: 8 ... 16,
+            initialEmail: invoice.customer?.email ?? "",
+            initialComment: ReminderSettings.render(
+                ReminderSettings.template,
+                invoice: invoice,
+                companyName: viewModel.session.selectedCompany?.name,
+            ),
+        ) { email, comment in
+            let error = await viewModel.sendByEmail(invoiceId: invoiceId, email: email, comment: comment)
+            if error == nil { ReminderLog.record(invoiceId: invoice.id) }
+            return error
+        }
     }
 }

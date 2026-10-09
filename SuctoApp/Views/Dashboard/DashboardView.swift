@@ -48,7 +48,8 @@ struct DashboardView: View {
         _incomingInvoicesVM = StateObject(wrappedValue: IncomingInvoicesViewModel(companyId: companyId, session: session))
     }
 
-    var body: some View {
+    /// Záložky, záhlaví a menu; zbytek (okna, upozornění) je ve `body`, ať kompilátor nemá jeden obří výraz.
+    private var content: some View {
         TabView(selection: $mainTab) {
             Tab("Přehled", systemImage: "chart.bar.xaxis", value: MainTab.overview) {
                 OverviewView()
@@ -79,68 +80,16 @@ struct DashboardView: View {
         .navigationDestination(for: Invoice.self) { invoice in
             invoiceDetail(for: invoice)
         }
+        .navigationDestination(for: InvoiceRoute.self) { route in
+            invoiceDetail(for: route)
+        }
         .navigationTitle(session.selectedCompany?.name ?? "Přehled")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
-                    if mainTab == .invoices {
-                        Button {
-                            pohodaExportDirection = invoiceSide.direction
-                        } label: {
-                            Label(
-                                invoiceSide == .outgoing ? "Export vydaných do Pohody" : "Export přijatých do Pohody",
-                                systemImage: "square.and.arrow.up",
-                            )
-                        }
-
-                        Button {
-                            Task { await exportCSV(direction: invoiceSide.direction) }
-                        } label: {
-                            Label("Exportovat seznam do CSV", systemImage: "tablecells")
-                        }
-                        .disabled(isExportingCSV)
-                    }
-
-                    if FeatureFlags.scans, mainTab == .invoices, invoiceSide == .incoming {
-                        Button {
-                            navManager.showScans(companyId: companyId)
-                        } label: {
-                            Label("Skeny faktur", systemImage: "doc.viewfinder")
-                        }
-                    }
-
-                    Button {
-                        navManager.showAccounts(companyId: companyId)
-                    } label: {
-                        Label("Účty", systemImage: "creditcard")
-                    }
-
-                    Button {
-                        navManager.showPartners(companyId: companyId)
-                    } label: {
-                        Label("Partneři", systemImage: "person.2")
-                    }
-
-                    Button {
-                        navManager.showSettings()
-                    } label: {
-                        Label("Nastavení", systemImage: "gearshape")
-                    }
-
-                    Button {
-                        navManager.goToCompanies()
-                    } label: {
-                        Label("Změnit firmu", systemImage: "building.2")
-                    }
-
-                    Button(role: .destructive) {
-                        session.logout()
-                        navManager.reset()
-                    } label: {
-                        Label("Odhlásit se", systemImage: "rectangle.portrait.and.arrow.right")
-                    }
+                    menuItems
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .imageScale(.large)
@@ -148,46 +97,55 @@ struct DashboardView: View {
                 .accessibilityLabel("Menu")
             }
         }
-        .sheet(item: $csvFile) { file in
-            ShareSheet(file: file)
-        }
-        .alert("Export se nezdařil", isPresented: Binding(get: { csvError != nil }, set: { if !$0 { csvError = nil } })) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(csvError ?? "")
-        }
-        .scanSourcePresenter(source: $scanSource, onFile: uploadScan, onFailure: { scanUploader.errorMessage = $0 })
-        .alert(
-            "Nahrání se nezdařilo",
-            isPresented: Binding(get: { scanUploader.errorMessage != nil }, set: { if !$0 { scanUploader.errorMessage = nil } }),
-        ) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(scanUploader.errorMessage ?? "")
-        }
-        .overlay {
-            if scanUploader.isUploading {
-                ZStack {
-                    Color.black.opacity(0.25).ignoresSafeArea()
-                    VStack(spacing: Theme.Spacing.m) {
-                        ProgressView().controlSize(.large)
-                        Text("Nahrávám doklad…").font(.subheadline)
-                    }
-                    .padding(Theme.Spacing.xl)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                }
-                .transition(.opacity)
+    }
+
+    /// Okna a upozornění nad obsahem (export, nahrání dokladu).
+    private var dialogs: some View {
+        content
+            .sheet(item: $csvFile) { file in
+                ShareSheet(file: file)
             }
-        }
-        .animation(Motion.standard, value: scanUploader.isUploading)
-        .sheet(item: $pohodaExportDirection) { direction in
-            PohodaExportSheet(companyId: companyId, session: session, direction: direction, mode: .period)
-        }
-        .task {
-            async let outgoing: Void = outgoingInvoicesVM.refresh()
-            async let incoming: Void = incomingInvoicesVM.refresh()
-            _ = await (outgoing, incoming)
-        }
+            .alert("Export se nezdařil", isPresented: Binding(get: { csvError != nil }, set: { if !$0 { csvError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(csvError ?? "")
+            }
+            .scanSourcePresenter(source: $scanSource, onFile: uploadScan, onFailure: { scanUploader.errorMessage = $0 })
+            .alert(
+                "Nahrání se nezdařilo",
+                isPresented: Binding(get: { scanUploader.errorMessage != nil }, set: { if !$0 { scanUploader.errorMessage = nil } }),
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(scanUploader.errorMessage ?? "")
+            }
+    }
+
+    var body: some View {
+        dialogs
+            .overlay {
+                if scanUploader.isUploading {
+                    ZStack {
+                        Color.black.opacity(0.25).ignoresSafeArea()
+                        VStack(spacing: Theme.Spacing.m) {
+                            ProgressView().controlSize(.large)
+                            Text("Nahrávám doklad…").font(.subheadline)
+                        }
+                        .padding(Theme.Spacing.xl)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .animation(Motion.standard, value: scanUploader.isUploading)
+            .sheet(item: $pohodaExportDirection) { direction in
+                PohodaExportSheet(companyId: companyId, session: session, direction: direction, mode: .period)
+            }
+            .task {
+                async let outgoing: Void = outgoingInvoicesVM.refresh()
+                async let incoming: Void = incomingInvoicesVM.refresh()
+                _ = await (outgoing, incoming)
+            }
     }
 
     /// Záložka Faktury: přepínač Vydané/Přijaté nahoře, seznam pod ním a plovoucí tlačítko nové faktury.
@@ -289,8 +247,82 @@ struct DashboardView: View {
 }
 
 private extension DashboardView {
+    /// Položky menu „…“ (podle záložky se liší exporty).
     @ViewBuilder
-    private func invoiceDetail(for invoice: Invoice) -> some View {
+    private var menuItems: some View {
+        if mainTab == .invoices {
+            Button {
+                pohodaExportDirection = invoiceSide.direction
+            } label: {
+                Label(pohodaExportTitle, systemImage: "square.and.arrow.up")
+            }
+
+            Button {
+                Task { await exportCSV(direction: invoiceSide.direction) }
+            } label: {
+                Label("Exportovat seznam do CSV", systemImage: "tablecells")
+            }
+            .disabled(isExportingCSV)
+        }
+
+        if FeatureFlags.scans, mainTab == .invoices, invoiceSide == .incoming {
+            Button {
+                navManager.showScans(companyId: companyId)
+            } label: {
+                Label("Skeny faktur", systemImage: "doc.viewfinder")
+            }
+        }
+
+        Button {
+            navManager.showAccounts(companyId: companyId)
+        } label: {
+            Label("Účty", systemImage: "creditcard")
+        }
+
+        Button {
+            navManager.showPartners(companyId: companyId)
+        } label: {
+            Label("Partneři", systemImage: "person.2")
+        }
+
+        Button {
+            navManager.showSettings()
+        } label: {
+            Label("Nastavení", systemImage: "gearshape")
+        }
+
+        Button {
+            navManager.goToCompanies()
+        } label: {
+            Label("Změnit firmu", systemImage: "building.2")
+        }
+
+        Button(role: .destructive) {
+            session.logout()
+            navManager.reset()
+        } label: {
+            Label("Odhlásit se", systemImage: "rectangle.portrait.and.arrow.right")
+        }
+    }
+
+    private var pohodaExportTitle: String {
+        invoiceSide == .outgoing ? "Export vydaných do Pohody" : "Export přijatých do Pohody"
+    }
+
+    /// Detail faktury otevřený podle id a směru (z Přehledu); bez zoom přechodu, protože nemá zdrojovou kartu.
+    @ViewBuilder
+    func invoiceDetail(for route: InvoiceRoute) -> some View {
+        if route.isIncoming {
+            IncomingInvoiceDetailView(invoiceId: route.id)
+                .environmentObject(incomingInvoicesVM)
+        } else {
+            OutgoingInvoiceDetailView(invoiceId: route.id)
+                .environmentObject(outgoingInvoicesVM)
+        }
+    }
+
+    @ViewBuilder
+    func invoiceDetail(for invoice: Invoice) -> some View {
         switch invoiceSide {
         case .outgoing:
             OutgoingInvoiceDetailView(invoiceId: invoice.id)

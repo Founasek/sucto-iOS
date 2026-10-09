@@ -36,8 +36,10 @@ extension OverviewViewModel {
             return sums
         }
 
+        // Česká koruna vždy první, ostatní měny podle počtu faktur.
         let ordered: [(key: String, value: Int)] = counts.sorted { lhs, rhs in
-            lhs.value == rhs.value ? lhs.key < rhs.key : lhs.value > rhs.value
+            if isCzechCrown(lhs.key) != isCzechCrown(rhs.key) { return isCzechCrown(lhs.key) }
+            return lhs.value == rhs.value ? lhs.key < rhs.key : lhs.value > rhs.value
         }
         sections = ordered.compactMap { currency, count in
             let revenue = monthly(issuedList, currency: currency)

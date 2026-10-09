@@ -8,16 +8,44 @@ import SwiftUI
 /// Formulář pro odeslání faktury e-mailem. `onSend` vrací text chyby, nebo `nil` při úspěchu.
 struct SendEmailSheet: View {
     let invoiceNumber: String
+    var title = "Odeslat e-mailem"
+    var sendTitle = "Odeslat"
+    var commentHeader = "Zpráva (nepovinná)"
+    /// Poznámka pod zprávou (např. kdy byla naposledy odeslána upomínka).
+    var commentFooter: String?
+    var commentLines: ClosedRange<Int> = 2 ... 5
     let onSend: (_ email: String, _ comment: String) async -> String?
 
     @Environment(\.dismiss) private var dismiss
-    @State private var email = ""
-    @State private var comment = ""
+    @State private var email: String
+    @State private var comment: String
     @State private var isSending = false
     @State private var errorMessage: String?
     @FocusState private var focusedField: Field?
 
     private enum Field { case email, comment }
+
+    init(
+        invoiceNumber: String,
+        title: String = "Odeslat e-mailem",
+        sendTitle: String = "Odeslat",
+        commentHeader: String = "Zpráva (nepovinná)",
+        commentFooter: String? = nil,
+        commentLines: ClosedRange<Int> = 2 ... 5,
+        initialEmail: String = "",
+        initialComment: String = "",
+        onSend: @escaping (_ email: String, _ comment: String) async -> String?,
+    ) {
+        self.invoiceNumber = invoiceNumber
+        self.title = title
+        self.sendTitle = sendTitle
+        self.commentHeader = commentHeader
+        self.commentFooter = commentFooter
+        self.commentLines = commentLines
+        self.onSend = onSend
+        _email = State(initialValue: initialEmail)
+        _comment = State(initialValue: initialComment)
+    }
 
     private var isValidEmail: Bool {
         let trimmed = email.trimmingCharacters(in: .whitespaces)
@@ -44,10 +72,14 @@ struct SendEmailSheet: View {
                     Text("Faktura \(invoiceNumber) se odešle jako příloha.")
                 }
 
-                Section("Zpráva (nepovinná)") {
+                Section {
                     TextField("Doplňující text", text: $comment, axis: .vertical)
-                        .lineLimit(2 ... 5)
+                        .lineLimit(commentLines)
                         .focused($focusedField, equals: .comment)
+                } header: {
+                    Text(commentHeader)
+                } footer: {
+                    if let commentFooter { Text(commentFooter) }
                 }
 
                 if let errorMessage {
@@ -58,7 +90,7 @@ struct SendEmailSheet: View {
                     }
                 }
             }
-            .navigationTitle("Odeslat e-mailem")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -71,13 +103,13 @@ struct SendEmailSheet: View {
                         if isSending {
                             ProgressView()
                         } else {
-                            Text("Odeslat").fontWeight(.semibold)
+                            Text(sendTitle).fontWeight(.semibold)
                         }
                     }
                     .disabled(!isValidEmail || isSending)
                 }
             }
-            .onAppear { focusedField = .email }
+            .onAppear { focusedField = email.isEmpty ? .email : nil }
             .sensoryFeedback(.error, trigger: errorMessage) { _, new in new != nil }
         }
         .presentationDetents([.medium, .large])

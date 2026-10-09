@@ -77,6 +77,11 @@ struct MonthlyFigures: Identifiable, Equatable {
     var id: Int { month }
 }
 
+/// Česká koruna je ve výpisech po měnách vždy první, ostatní měny podle počtu faktur / objemu.
+func isCzechCrown(_ currency: String) -> Bool {
+    currency == "Kč" || currency.uppercased() == "CZK"
+}
+
 /// Součty za celý rok (pro srovnání s minulým rokem).
 struct YearTotals: Equatable {
     let revenue: Double

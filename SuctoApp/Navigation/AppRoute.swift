@@ -19,3 +19,10 @@ enum AppRoute: Hashable {
     case cashVouchers(companyId: Int)
     case cashVoucherDetail(companyId: Int, directionRaw: String, voucherId: Int)
 }
+
+/// Odkaz na detail faktury z míst, která mají jen její id (např. karta nejbližších splatností v Přehledu).
+/// Cíl navigace je v dashboardu, kde jsou view modely seznamů, takže se detail chová stejně jako po klepnutí v seznamu.
+struct InvoiceRoute: Hashable {
+    let id: Int
+    let isIncoming: Bool
+}

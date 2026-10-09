@@ -18,7 +18,8 @@ enum OverviewStyle {
         let sign = value < 0 ? "-" : ""
         switch magnitude {
         case 1_000_000...: return "\(sign)\(String(format: "%.1f", magnitude / 1_000_000).replacingOccurrences(of: ".", with: ",")) mil."
-        case 1000...: return "\(sign)\(Int(magnitude / 1000)) tis."
+        case 10000...: return "\(sign)\(Int(magnitude / 1000)) tis."
+        case 1000...: return "\(sign)\(String(format: "%.1f", magnitude / 1000).replacingOccurrences(of: ".", with: ",")) tis."
         default: return "\(Int(value))"
         }
     }
@@ -51,6 +52,10 @@ struct OverviewResultCard: View {
     let sections: [CurrencySection]
     let year: Int
     let labels: OverviewLabels
+    /// Vysvětlení zdroje dat v bublině; ikona „i“ se v rohu karty ukáže jen když je zadané.
+    var info: AnyView?
+
+    @State private var showInfo = false
 
     private var isSingle: Bool { sections.count == 1 }
     private var singlePositive: Bool { (sections.first?.result ?? 0) >= 0 }
@@ -87,8 +92,27 @@ struct OverviewResultCard: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous)),
         )
+        .overlay(alignment: .topTrailing) { infoButton }
         .shadow(color: (showsRed ? Color.red : Theme.brand).opacity(0.3), radius: 18, y: 10)
         .appear()
+    }
+
+    @ViewBuilder
+    private var infoButton: some View {
+        if let info {
+            Button {
+                showInfo = true
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .padding(14)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Informace o zdroji přehledu")
+            .popover(isPresented: $showInfo, arrowEdge: .top) { info }
+        }
     }
 
     /// „Oproti 2025: Vydané +12 %, Přijaté −5 %“ (část, kterou nejde spočítat, se vynechá).
@@ -199,11 +223,24 @@ struct OverviewChartCard: View {
             .animation(Motion.gentle, value: barsVisible)
             .sensoryFeedback(.selection, trigger: selectedMonth)
             .accessibilityLabel("Graf \(labels.revenue.lowercased()) a \(labels.cost.lowercased()) po měsících v \(section.currency)")
-            .accessibilityHint("Hodnoty jednotlivých měsíců jsou uvedeny pod grafem.")
+            .accessibilityValue(monthsSummary)
             .onAppear { reveal() }
             .onChange(of: section.months) { reveal() }
         }
         .appear(delay: 0.16)
+    }
+
+    /// Hodnoty po měsících jako text pro čtečku obrazovky (graf sám čísla nepředá).
+    private var monthsSummary: String {
+        section.months
+            .filter { $0.revenue != 0 || $0.cost != 0 }
+            .map { figures in
+                let revenue = FormatterHelper.formatWhole(figures.revenue, currency: section.currency)
+                let cost = FormatterHelper.formatWhole(figures.cost, currency: section.currency)
+                let result = FormatterHelper.formatWhole(figures.result, currency: section.currency)
+                return "\(OverviewStyle.longMonths[figures.month - 1]): \(labels.revenue) \(revenue), \(labels.cost) \(cost), výsledek \(result)"
+            }
+            .joined(separator: ". ")
     }
 
     /// Sloupce „vyrostou“ z nuly; voláno i při návratu na záložku, kdy se data nemění.
@@ -219,62 +256,14 @@ struct OverviewChartCard: View {
                 .foregroundStyle(OverviewStyle.revenueColor)
             Text("\(labels.cost) \(FormatterHelper.formatWhole(figures.cost, currency: section.currency))")
                 .foregroundStyle(OverviewStyle.costColor)
+            Text("Výsledek \(FormatterHelper.formatWhole(figures.result, currency: section.currency))")
+                .foregroundStyle(figures.result >= 0 ? Color.accentColor : Color.red)
         }
         .font(.caption2.weight(.semibold))
         .monospacedDigit()
         .padding(8)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
-    }
-}
-
-/// Výsledek po měsících; u více měn je v každém měsíci řádek pro každou měnu.
-struct OverviewMonthsCard: View {
-    let sections: [CurrencySection]
-    let labels: OverviewLabels
-
-    private var activeMonths: [Int] {
-        (1 ... 12).reversed().filter { month in
-            sections.contains { section in
-                section.months.first { $0.month == month }.map { $0.revenue != 0 || $0.cost != 0 } ?? false
-            }
-        }
-    }
-
-    var body: some View {
-        DetailCard(title: "Po měsících", systemImage: "list.bullet") {
-            ForEach(activeMonths, id: \.self) { month in
-                HStack(alignment: .top) {
-                    Text(OverviewStyle.longMonths[month - 1])
-                        .font(.subheadline)
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 2) {
-                        ForEach(sections) { section in
-                            if let figures = section.months.first(where: { $0.month == month }), figures.revenue != 0 || figures.cost != 0 {
-                                Text(FormatterHelper.formatWhole(figures.result, currency: section.currency))
-                                    .moneyStyle(.subheadline)
-                                    .foregroundStyle(figures.result >= 0 ? Color.accentColor : Color.red)
-                            }
-                        }
-                    }
-                }
-                .padding(.vertical, 2)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(summary(month: month))
-            }
-        }
-        .appear(delay: 0.24)
-    }
-
-    private func summary(month: Int) -> String {
-        let parts = sections.compactMap { section -> String? in
-            guard let figures = section.months.first(where: { $0.month == month }), figures.revenue != 0 || figures.cost != 0 else { return nil }
-            let revenue = FormatterHelper.formatWhole(figures.revenue, currency: section.currency)
-            let cost = FormatterHelper.formatWhole(figures.cost, currency: section.currency)
-            let result = FormatterHelper.formatWhole(figures.result, currency: section.currency)
-            return "\(labels.revenue) \(revenue), \(labels.cost) \(cost), výsledek \(result)"
-        }
-        return "\(OverviewStyle.longMonths[month - 1]): \(parts.joined(separator: "; "))"
     }
 }
 
