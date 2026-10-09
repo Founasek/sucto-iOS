@@ -76,3 +76,27 @@ struct MonthlyFigures: Identifiable, Equatable {
 
     var id: Int { month }
 }
+
+/// Součty roku v jedné měně: měsíce, výnosy/vydané, náklady/přijaté a výsledek.
+/// Měny se nepřepočítávají (API nemá kurzy), proto má každá měna vlastní sekci přehledu.
+struct CurrencySection: Identifiable, Equatable {
+    let currency: String
+    let months: [MonthlyFigures]
+    let revenue: Double
+    let cost: Double
+    let result: Double
+    /// Počet faktur v této měně (u přehledu z faktur).
+    let invoiceCount: Int
+
+    var id: String { currency }
+    var hasData: Bool { revenue != 0 || cost != 0 || months.contains { $0.revenue != 0 || $0.cost != 0 } }
+
+    /// Měsíce doplněné nulami na celých 12, ať má osa grafu vždy všechny měsíce.
+    static func padded(_ figures: [MonthlyFigures]) -> [MonthlyFigures] {
+        var all = figures
+        for month in 1 ... 12 where !all.contains(where: { $0.month == month }) {
+            all.append(MonthlyFigures(month: month, revenue: 0, cost: 0, result: 0))
+        }
+        return all.sorted { $0.month < $1.month }
+    }
+}

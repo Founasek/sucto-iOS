@@ -19,14 +19,9 @@ final class OverviewViewModel: ObservableObject {
         didSet { if year != oldValue { Task { await load() } } }
     }
 
-    @Published private(set) var months: [MonthlyFigures] = []
-    @Published private(set) var yearRevenue = 0.0
-    @Published private(set) var yearCost = 0.0
-    @Published private(set) var yearResult = 0.0
-    @Published private(set) var currency = "Kč"
+    /// Sekce po měnách (u účetního deníku jedna, u přehledu z faktur jedna na každou měnu, nejpoužívanější první).
+    @Published private(set) var sections: [CurrencySection] = []
     @Published private(set) var source = Source.accounting
-    /// Počet faktur v jiné měně, které se do součtů nezapočítaly (jen u zdroje `invoices`).
-    @Published private(set) var skippedForeignCount = 0
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
     /// `true`, pokud server za zvolený rok nevrátil žádné nenulové údaje.
@@ -114,14 +109,22 @@ final class OverviewViewModel: ObservableObject {
         let annualReport = try await annual
         guard myGeneration == generation else { return }
 
-        apply(months: monthly)
-        yearRevenue = annualReport.amount(.revenue)?.value ?? 0
-        yearCost = annualReport.amount(.cost)?.value ?? 0
-        yearResult = annualReport.amount(.result)?.value ?? (yearRevenue - yearCost)
-        currency = annualReport.amount(.revenue)?.currency ?? annualReport.amount(.cost)?.currency ?? currency
+        let revenue = annualReport.amount(.revenue)
+        let cost = annualReport.amount(.cost)
+        let revenueTotal = revenue?.value ?? 0
+        let costTotal = cost?.value ?? 0
+        let result = annualReport.amount(.result)?.value ?? (revenueTotal - costTotal)
+        let section = CurrencySection(
+            currency: revenue?.currency ?? cost?.currency ?? "Kč",
+            months: CurrencySection.padded(monthly),
+            revenue: revenueTotal,
+            cost: costTotal,
+            result: result,
+            invoiceCount: 0,
+        )
+        sections = section.hasData ? [section] : []
         source = .accounting
-        skippedForeignCount = 0
-        isEmpty = yearRevenue == 0 && yearCost == 0 && months.allSatisfy { $0.revenue == 0 && $0.cost == 0 }
+        isEmpty = sections.isEmpty
         errorMessage = nil
     }
 
@@ -167,34 +170,39 @@ final class OverviewViewModel: ObservableObject {
         let (issuedList, receivedList) = try await (issued, received)
         guard myGeneration == generation else { return }
 
-        // Do součtů jdou jen faktury ve hlavní měně (nejčastější); ostatní se spočítají a ohlásí.
+        // Měny se nepřepočítávají (API nemá kurzy) – každá měna dostane vlastní sekci, všechny se ukážou najednou.
         let all = issuedList + receivedList
-        let counts = Dictionary(grouping: all, by: { $0.currency?.symbol ?? "Kč" }).mapValues(\.count)
-        let main = counts.max { $0.value < $1.value }?.key ?? "Kč"
+        func code(_ invoice: Invoice) -> String { invoice.currency?.symbol ?? "Kč" }
+        let counts = Dictionary(grouping: all, by: code).mapValues(\.count)
 
-        func monthly(_ invoices: [Invoice]) -> [Int: Double] {
+        func monthly(_ invoices: [Invoice], currency: String) -> [Int: Double] {
             var sums: [Int: Double] = [:]
-            for invoice in invoices where (invoice.currency?.symbol ?? "Kč") == main {
+            for invoice in invoices where code(invoice) == currency {
                 guard let date = invoice.issueDateAt?.toDate(), let base = invoice.basePrice.flatMap(Double.init) else { continue }
                 sums[Calendar.current.component(.month, from: date), default: 0] += base
             }
             return sums
         }
-        let revenue = monthly(issuedList)
-        let cost = monthly(receivedList)
 
-        apply(months: (1 ... 12).map { month in
-            let r = revenue[month] ?? 0
-            let c = cost[month] ?? 0
-            return MonthlyFigures(month: month, revenue: r, cost: c, result: r - c)
-        })
-        yearRevenue = months.reduce(0) { $0 + $1.revenue }
-        yearCost = months.reduce(0) { $0 + $1.cost }
-        yearResult = yearRevenue - yearCost
-        currency = main
+        let ordered = counts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }
+        sections = ordered.compactMap { currency, count in
+            let revenue = monthly(issuedList, currency: currency)
+            let cost = monthly(receivedList, currency: currency)
+            let months = (1 ... 12).map { month in
+                let r = revenue[month] ?? 0
+                let c = cost[month] ?? 0
+                return MonthlyFigures(month: month, revenue: r, cost: c, result: r - c)
+            }
+            let revenueTotal = months.reduce(0) { $0 + $1.revenue }
+            let costTotal = months.reduce(0) { $0 + $1.cost }
+            let section = CurrencySection(
+                currency: currency, months: months, revenue: revenueTotal, cost: costTotal,
+                result: revenueTotal - costTotal, invoiceCount: count,
+            )
+            return section.hasData ? section : nil
+        }
         source = .invoices
-        skippedForeignCount = all.count(where: { ($0.currency?.symbol ?? "Kč") != main })
-        isEmpty = yearRevenue == 0 && yearCost == 0
+        isEmpty = sections.isEmpty
         errorMessage = nil
     }
 
@@ -219,15 +227,6 @@ final class OverviewViewModel: ObservableObject {
     }
 
     // MARK: - Společné
-
-    /// Doplní chybějící měsíce nulami, ať má osa x vždy 12 měsíců.
-    private func apply(months figures: [MonthlyFigures]) {
-        var all = figures
-        for month in 1 ... 12 where !all.contains(where: { $0.month == month }) {
-            all.append(MonthlyFigures(month: month, revenue: 0, cost: 0, result: 0))
-        }
-        months = all.sorted { $0.month < $1.month }
-    }
 
     /// Jen pro ladění: zjistí, co server pro tento účet povoluje (výsledek jde do konzole).
     private func probePermissions() async {

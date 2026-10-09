@@ -32,14 +32,6 @@ struct PartnersView: View {
                         }
                         .buttonStyle(PressableCardStyle())
                         .staggeredAppear(index: index)
-                        .onAppear {
-                            if partner.id == viewModel.partners.last?.id {
-                                Task { await viewModel.fetchNextPage() }
-                            }
-                        }
-                    }
-                    if viewModel.isLoading {
-                        ProgressView().padding(.vertical, Theme.Spacing.l)
                     }
                 }
                 .padding(.horizontal, Theme.Spacing.l)

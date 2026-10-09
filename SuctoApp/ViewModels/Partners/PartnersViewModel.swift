@@ -10,7 +10,6 @@ final class PartnersViewModel: ObservableObject {
     @Published private(set) var partners: [PartnerRecord] = []
     @Published var searchText = ""
     @Published private(set) var isLoading = false
-    @Published private(set) var hasMorePages = true
     @Published private(set) var errorMessage: String?
     /// Chyba akce (např. vytvoření z ARES) zobrazená v alertu.
     @Published var alertMessage: String?
@@ -18,8 +17,8 @@ final class PartnersViewModel: ObservableObject {
 
     let companyId: Int
     private let session: SessionManager
-    private let pageSize = 30
-    private var currentPage = 1
+    private let pageSize = 100
+    private let maximumPages = 30
     /// Zvyšuje se při každém novém načtení; odpovědi starší generace se zahodí.
     private var generation = 0
     private var searchTask: Task<Void, Never>?
@@ -40,35 +39,28 @@ final class PartnersViewModel: ObservableObject {
         }
     }
 
+    /// Načte všechny partnery (server nemá zdokumentované řazení) a seřadí je podle názvu A–Z.
+    /// Stránkování by při řazení na klientovi řadilo jen to, co je zrovna načtené, a později načtení by skákali do středu seznamu.
     func refresh() async {
         generation += 1
-        currentPage = 1
-        hasMorePages = true
-        isLoading = false
-        await fetchNextPage()
-    }
-
-    func fetchNextPage() async {
-        guard !isLoading, hasMorePages else { return }
-        isLoading = true
         let myGeneration = generation
+        isLoading = true
         defer { if myGeneration == generation { isLoading = false } }
 
-        let page = currentPage
         let term = searchText.trimmingCharacters(in: .whitespaces)
+        var collected: [PartnerRecord] = []
+        var seen = Set<Int>()
         do {
-            let result: [PartnerRecord] = try await session.send(
-                APIConstants.partners(companyId: companyId, query: term, page: page, limit: pageSize),
-            )
-            guard myGeneration == generation else { return }
-            currentPage = page + 1
-            hasMorePages = !result.isEmpty
-            if page == 1 {
-                partners = result
-            } else {
-                let known = Set(partners.map(\.id))
-                partners += result.filter { !known.contains($0.id) }
+            for page in 1 ... maximumPages {
+                let result: [PartnerRecord] = try await session.send(
+                    APIConstants.partners(companyId: companyId, query: term, page: page, limit: pageSize),
+                )
+                guard myGeneration == generation else { return }
+                let fresh = result.filter { seen.insert($0.id).inserted }
+                if fresh.isEmpty { break }
+                collected += fresh
             }
+            partners = Self.sorted(collected)
             errorMessage = nil
         } catch is CancellationError {
             return
@@ -78,14 +70,25 @@ final class PartnersViewModel: ObservableObject {
         }
     }
 
+    /// Abecedně podle názvu, bez ohledu na velikost písmen a s českým řazením (např. „Č“ za „C“).
+    static func sorted(_ partners: [PartnerRecord]) -> [PartnerRecord] {
+        let locale = Locale(identifier: "cs_CZ")
+        return partners.sorted { lhs, rhs in
+            let order = lhs.name.compare(rhs.name, options: [.caseInsensitive, .diacriticInsensitive], range: nil, locale: locale)
+            if order == .orderedSame { return lhs.id < rhs.id }
+            return order == .orderedAscending
+        }
+    }
+
     /// Přidá nového nebo nahradí upraveného partnera v už načteném seznamu.
     func apply(_ event: PartnerEvent) {
         switch event {
         case let .saved(partner):
             if let index = partners.firstIndex(where: { $0.id == partner.id }) {
                 partners[index] = partner
+                partners = Self.sorted(partners)
             } else if !isSearching {
-                partners.insert(partner, at: 0)
+                partners = Self.sorted(partners + [partner])
             }
         case let .deleted(id):
             partners.removeAll { $0.id == id }

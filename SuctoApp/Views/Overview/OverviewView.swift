@@ -9,30 +9,22 @@ import SwiftUI
 /// Přehled hospodaření: výnosy, náklady a výsledek za rok, graf po měsících.
 struct OverviewView: View {
     @EnvironmentObject var viewModel: OverviewViewModel
-    @State private var selectedMonth: String?
-    @State private var barsVisible = false
     @State private var showNotice = false
-
-    private static let shortMonths = ["led", "úno", "bře", "dub", "kvě", "čvn", "čvc", "srp", "zář", "říj", "lis", "pro"]
-    private static let longMonths = ["Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"]
-
-    private let revenueColor = Color(hex: "#2FAE5D")
-    private let costColor = Color(hex: "#F28C28")
 
     var body: some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.l) {
                 yearPicker
 
-                if viewModel.source == .invoices, !viewModel.isLoading || !viewModel.months.isEmpty {
+                if viewModel.source == .invoices, !viewModel.isLoading || !viewModel.sections.isEmpty {
                     fallbackNote
                 }
 
-                if let error = viewModel.errorMessage, viewModel.months.isEmpty {
+                if let error = viewModel.errorMessage, viewModel.sections.isEmpty {
                     ErrorStateView(message: error) {
                         Task { await viewModel.load() }
                     }
-                } else if viewModel.isLoading, viewModel.months.isEmpty {
+                } else if viewModel.isLoading, viewModel.sections.isEmpty {
                     skeleton
                 } else if viewModel.isEmpty {
                     EmptyStateView(
@@ -42,13 +34,15 @@ struct OverviewView: View {
                             : "Za rok \(viewModel.year) nejsou vystavené ani přijaté faktury.",
                     )
                 } else {
-                    resultCard
-                    HStack(spacing: Theme.Spacing.m) {
-                        figureCard(title: revenueName, value: viewModel.yearRevenue, icon: "arrow.down.left", color: revenueColor)
-                        figureCard(title: costName, value: viewModel.yearCost, icon: "arrow.up.right", color: costColor)
+                    OverviewResultCard(sections: viewModel.sections, year: viewModel.year, labels: labels)
+                    if viewModel.sections.count == 1, let section = viewModel.sections.first {
+                        HStack(spacing: Theme.Spacing.m) {
+                            figureCard(title: labels.revenue, value: section.revenue, currency: section.currency, icon: "arrow.down.left", color: OverviewStyle.revenueColor)
+                            figureCard(title: labels.cost, value: section.cost, currency: section.currency, icon: "arrow.up.right", color: OverviewStyle.costColor)
+                        }
                     }
-                    chartCard
-                    monthsCard
+                    OverviewChartCarousel(sections: viewModel.sections, labels: labels)
+                    OverviewMonthsCard(sections: viewModel.sections, labels: labels)
                 }
             }
             .padding(Theme.Spacing.l)
@@ -56,7 +50,7 @@ struct OverviewView: View {
         .background(Theme.background)
         .refreshable { await viewModel.load(retryAccounting: true) }
         .task {
-            if viewModel.months.isEmpty { await viewModel.load() }
+            if viewModel.sections.isEmpty { await viewModel.load() }
         }
         .task { await viewModel.loadNotice() }
         .sheet(isPresented: $showNotice) {
@@ -65,26 +59,9 @@ struct OverviewView: View {
                     .onAppear { viewModel.markNoticeRead() }
             }
         }
-        .onChange(of: viewModel.months) { revealBars() }
     }
 
-    /// Sloupce graf „vyroste“ z nuly. Voláno i při návratu na záložku – data se tehdy nemění,
-    /// takže by `onChange` nezafungoval a sloupce by zůstaly nulové (graf by vypadal prázdný).
-    private func revealBars() {
-        barsVisible = false
-        withAnimation(Motion.gentle.delay(0.1)) { barsVisible = true }
-    }
-
-    // MARK: - Části
-
-    // MARK: - Popisky podle zdroje dat
-
-    private var isAccounting: Bool { viewModel.source == .accounting }
-    private var revenueName: String { isAccounting ? "Výnosy" : "Vydané" }
-    private var costName: String { isAccounting ? "Náklady" : "Přijaté" }
-    private var resultName: String { isAccounting ? "Hospodářský výsledek" : "Vydané minus přijaté faktury" }
-    private var positiveLabel: String { isAccounting ? "Zisk" : "Převaha vydaných" }
-    private var negativeLabel: String { isAccounting ? "Ztráta" : "Převaha přijatých" }
+    private var labels: OverviewLabels { OverviewLabels(isAccounting: viewModel.source == .accounting) }
 
     /// Upozornění, že přehled nevychází z účetního deníku.
     private var fallbackNote: some View {
@@ -96,8 +73,8 @@ struct OverviewView: View {
                 Text("Server pro váš účet nepouští účetní deník (403), proto jsou součty z vystavených a přijatých faktur bez DPH – nejde o účetní výnosy a náklady.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                if viewModel.skippedForeignCount > 0 {
-                    Text("Faktury v jiné měně než \(viewModel.currency) (\(viewModel.skippedForeignCount)) nejsou započtené.")
+                if viewModel.sections.count > 1 {
+                    Text("Faktury jsou ve více měnách (\(viewModel.sections.map(\.currency).joined(separator: ", "))). Měny se nepřepočítávají, proto má každá vlastní součty a graf.")
                         .font(.footnote)
                         .foregroundStyle(.orange)
                 }
@@ -110,7 +87,7 @@ struct OverviewView: View {
 
     private var yearPicker: some View {
         HStack {
-            Text(isAccounting ? "Hospodaření" : "Fakturace")
+            Text(labels.isAccounting ? "Hospodaření" : "Fakturace")
                 .font(.title2.weight(.bold))
             Spacer()
             if viewModel.notice != nil {
@@ -134,40 +111,7 @@ struct OverviewView: View {
         }
     }
 
-    private var resultCard: some View {
-        let positive = viewModel.yearResult >= 0
-        return VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            Text("\(resultName) \(String(viewModel.year))")
-                .font(.footnote.weight(.medium))
-                .foregroundStyle(.white.opacity(0.75))
-            Text(FormatterHelper.formatWhole(viewModel.yearResult, currency: viewModel.currency))
-                .font(.largeTitle.weight(.bold))
-                .fontDesign(.rounded)
-                .monospacedDigit()
-                .foregroundStyle(.white)
-                .minimumScaleFactor(0.6)
-                .lineLimit(1)
-                .contentTransition(.numericText(value: viewModel.yearResult))
-                .animation(Motion.gentle, value: viewModel.yearResult)
-            Label(positive ? positiveLabel : negativeLabel, systemImage: positive ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.9))
-        }
-        .padding(Theme.Spacing.xl)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            ZStack {
-                positive ? Theme.brandGradient : LinearGradient(colors: [Color(hex: "#C0392B"), Color(hex: "#8E2A20")], startPoint: .topLeading, endPoint: .bottomTrailing)
-                Circle().fill(.white.opacity(0.08)).frame(width: 200).offset(x: 130, y: -80)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous)),
-        )
-        .shadow(color: (positive ? Theme.brand : .red).opacity(0.3), radius: 18, y: 10)
-        .appear()
-        .accessibilityElement(children: .combine)
-    }
-
-    private func figureCard(title: String, value: Double, icon: String, color: Color) -> some View {
+    private func figureCard(title: String, value: Double, currency: String, icon: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             Image(systemName: icon)
                 .font(.footnote.weight(.bold))
@@ -177,7 +121,7 @@ struct OverviewView: View {
             Text(title)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            Text(FormatterHelper.formatWhole(value, currency: viewModel.currency))
+            Text(FormatterHelper.formatWhole(value, currency: currency))
                 .moneyStyle(.headline)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
@@ -188,99 +132,9 @@ struct OverviewView: View {
         .appear(delay: 0.08)
         .accessibilityElement(children: .combine)
     }
-
-    private var chartCard: some View {
-        DetailCard(title: "\(revenueName) a \(costName.lowercased()) po měsících", systemImage: "chart.bar.xaxis") {
-            Chart {
-                ForEach(viewModel.months) { figures in
-                    let label = Self.shortMonths[figures.month - 1]
-                    BarMark(x: .value("Měsíc", label), y: .value("Částka", barsVisible ? figures.revenue : 0))
-                        .foregroundStyle(by: .value("Typ", revenueName))
-                        .position(by: .value("Typ", revenueName))
-                        .cornerRadius(4)
-                    BarMark(x: .value("Měsíc", label), y: .value("Částka", barsVisible ? figures.cost : 0))
-                        .foregroundStyle(by: .value("Typ", costName))
-                        .position(by: .value("Typ", costName))
-                        .cornerRadius(4)
-                }
-
-                if let selected = selectedFigures {
-                    RuleMark(x: .value("Měsíc", Self.shortMonths[selected.month - 1]))
-                        .foregroundStyle(Color.secondary.opacity(0.3))
-                        .annotation(position: .top, spacing: 4, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                            tooltip(for: selected)
-                        }
-                }
-            }
-            .chartForegroundStyleScale([revenueName: revenueColor, costName: costColor])
-            .chartXSelection(value: $selectedMonth)
-            .chartLegend(position: .bottom, alignment: .leading)
-            .chartYAxis {
-                AxisMarks { value in
-                    AxisGridLine()
-                    AxisValueLabel {
-                        if let number = value.as(Double.self) {
-                            Text(Self.compact(number)).font(.caption2)
-                        }
-                    }
-                }
-            }
-            .frame(height: 240)
-            .animation(Motion.gentle, value: barsVisible)
-            .sensoryFeedback(.selection, trigger: selectedMonth)
-            .accessibilityLabel("Graf výnosů a nákladů po měsících")
-            .accessibilityHint("Hodnoty jednotlivých měsíců jsou uvedeny pod grafem.")
-            .onAppear { revealBars() }
-        }
-        .appear(delay: 0.16)
-    }
-
-    private var selectedFigures: MonthlyFigures? {
-        guard let selectedMonth, let index = Self.shortMonths.firstIndex(of: selectedMonth) else { return nil }
-        return viewModel.months.first { $0.month == index + 1 }
-    }
-
-    private func tooltip(for figures: MonthlyFigures) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(Self.longMonths[figures.month - 1]).font(.caption.weight(.bold))
-            Text("\(revenueName) \(FormatterHelper.formatWhole(figures.revenue, currency: viewModel.currency))")
-                .foregroundStyle(revenueColor)
-            Text("\(costName) \(FormatterHelper.formatWhole(figures.cost, currency: viewModel.currency))")
-                .foregroundStyle(costColor)
-        }
-        .font(.caption2.weight(.semibold))
-        .monospacedDigit()
-        .padding(8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
-    }
 }
 
 private extension OverviewView {
-    private var monthsCard: some View {
-        let active = viewModel.months.filter { $0.revenue != 0 || $0.cost != 0 }
-        return DetailCard(title: "Po měsících", systemImage: "list.bullet") {
-            ForEach(active.reversed()) { figures in
-                HStack {
-                    Text(Self.longMonths[figures.month - 1])
-                        .font(.subheadline)
-                    Spacer()
-                    Text(FormatterHelper.formatWhole(figures.result, currency: viewModel.currency))
-                        .moneyStyle(.subheadline)
-                        .foregroundStyle(figures.result >= 0 ? Color.accentColor : Color.red)
-                }
-                .padding(.vertical, 2)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(
-                    "\(Self.longMonths[figures.month - 1]): \(revenueName) \(FormatterHelper.formatWhole(figures.revenue, currency: viewModel.currency)), "
-                        + "\(costName) \(FormatterHelper.formatWhole(figures.cost, currency: viewModel.currency)), "
-                        + "výsledek \(FormatterHelper.formatWhole(figures.result, currency: viewModel.currency))",
-                )
-            }
-        }
-        .appear(delay: 0.24)
-    }
-
     private var skeleton: some View {
         VStack(spacing: Theme.Spacing.l) {
             RoundedRectangle(cornerRadius: 28).frame(height: 130)
@@ -293,16 +147,6 @@ private extension OverviewView {
         .foregroundStyle(Color.primary.opacity(0.08))
         .shimmer()
         .accessibilityLabel("Načítám přehled")
-    }
-
-    private static func compact(_ value: Double) -> String {
-        let magnitude = abs(value)
-        let sign = value < 0 ? "-" : ""
-        switch magnitude {
-        case 1_000_000...: return "\(sign)\(String(format: "%.1f", magnitude / 1_000_000).replacingOccurrences(of: ".", with: ",")) mil."
-        case 1000...: return "\(sign)\(Int(magnitude / 1000)) tis."
-        default: return "\(Int(value))"
-        }
     }
 }
 
