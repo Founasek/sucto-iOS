@@ -18,6 +18,8 @@ struct SuctoApp: App {
     init() {
         // Obsluha klepnutí na upozornění musí být zaregistrovaná hned při startu.
         DueNotifier.shared.activate()
+        // Úlohu na pozadí tady NEplánovat: obsluhu registruje až scéna (`.backgroundTask` níže) a plánování před
+        // registrací aplikaci shodí výjimkou. Plánuje se z `.task` a při odchodu do pozadí.
     }
 
     var body: some Scene {
@@ -62,6 +64,7 @@ struct SuctoApp: App {
             .onChange(of: scenePhase) { _, phase in
                 switch phase {
                 case .background:
+                    BackgroundRefresh.schedule()
                     appLock.appDidEnterBackground()
                 case .active:
                     appLock.appBecameActive()
@@ -73,6 +76,7 @@ struct SuctoApp: App {
                 }
             }
             .task {
+                BackgroundRefresh.schedule()
                 // Aplikace se spustila klepnutím na upozornění: otevřít odkaz, jakmile je scéna připravená.
                 if let url = DueNotifier.shared.takePendingURL() {
                     await openOverdue(from: url)
@@ -81,6 +85,10 @@ struct SuctoApp: App {
                     await appLock.unlockAutomatically()
                 }
             }
+        }
+        // Obnova dat widgetu a upozornění na pozadí (spouští iOS opportunisticky).
+        .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {
+            await BackgroundRefresh.perform()
         }
     }
 

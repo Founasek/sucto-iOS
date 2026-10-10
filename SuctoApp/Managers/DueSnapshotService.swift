@@ -32,12 +32,18 @@ final class DueSnapshotService {
     /// Obnoví snapshot firmy; vrací `true`, pokud se podařilo uložit čerstvá data.
     @discardableResult
     func refresh(company: Company) async -> Bool {
+        await refresh(companyId: company.id, companyName: company.name)
+    }
+
+    /// Totéž podle id a názvu (obnova na pozadí nemá k dispozici celý objekt firmy).
+    @discardableResult
+    func refresh(companyId: Int, companyName: String) async -> Bool {
         do {
-            let items = try await fetchItems(companyId: company.id)
+            let items = try await fetchItems(companyId: companyId)
             // Při výpadku připojení by `SessionManager` vrátil starou cache – ta se nesmí vydávat za čerstvá data.
             guard session.cachedDataDate == nil else { return false }
 
-            let snapshot = DueSnapshot(companyId: company.id, companyName: company.name, items: items, updatedAt: Date())
+            let snapshot = DueSnapshot(companyId: companyId, companyName: companyName, items: items, updatedAt: Date())
             DueSnapshotStore.save(snapshot)
             WidgetCenter.shared.reloadAllTimelines()
             await DueNotifier.shared.reschedule(from: snapshot)
