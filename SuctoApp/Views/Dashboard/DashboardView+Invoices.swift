@@ -47,6 +47,8 @@ extension DashboardView {
                     .transition(.scale(scale: 0.8).combined(with: .opacity))
             }
         }
+        // Stejné pozadí jako ostatní záložky, i pod přepínačem Vydané/Přijaté (ten není součástí rolovací plochy).
+        .background(Theme.background)
         .animation(Motion.standard, value: invoiceSide)
     }
 

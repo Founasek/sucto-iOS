@@ -128,10 +128,17 @@ struct SettingsView: View {
         Section {
             Label("Podržte prst na ploše, klepněte na + a vyberte „sÚčto – splatnosti“.", systemImage: "square.grid.2x2")
                 .font(.subheadline)
+            LabeledContent("Data naposledy aktualizována") {
+                if let updated = DueSnapshotStore.load()?.updatedAt {
+                    Text(updated.formatted(.dateTime.day().month().hour().minute().locale(Locale(identifier: "cs_CZ"))))
+                } else {
+                    Text("zatím nikdy").foregroundStyle(.secondary)
+                }
+            }
         } header: {
             Text("Widget")
         } footer: {
-            Text("Widget se obnoví vždy, když v aplikaci otevřete firmu. Částky se na zamčené obrazovce skryjí.")
+            Text("Widget a upozornění se obnoví při otevření firmy v aplikaci a také na pozadí, když to iOS dovolí (nárazově, ne na minutu přesně). Částky se na zamčené obrazovce skryjí.")
         }
     }
 

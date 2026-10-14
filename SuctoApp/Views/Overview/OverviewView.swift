@@ -153,7 +153,6 @@ struct OverviewView: View {
                 .animation(Motion.gentle, value: value)
         }
         .card()
-        .appear(delay: 0.08)
         .accessibilityElement(children: .combine)
     }
 }

@@ -27,7 +27,6 @@ struct EmptyStateView: View {
                     .symbolRenderingMode(.hierarchical)
                     .symbolEffect(.bounce, options: .nonRepeating, value: bounce)
             }
-            .appear(scale: 0.7)
             Text(message)
                 .font(.body)
                 .foregroundStyle(.secondary)

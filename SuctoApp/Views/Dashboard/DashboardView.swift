@@ -11,6 +11,7 @@ struct DashboardView: View {
     @State var pohodaExportDirection: InvoiceDirection?
     @State var scanSource: ScanSource?
     @State var slideEdge: Edge = .trailing
+    @State var showCompanySwitcher = false
     @State var csvFile: ShareableFile?
     @State var isExportingCSV = false
     @State var csvError: String?
@@ -31,7 +32,7 @@ struct DashboardView: View {
 
     /// Záložky, záhlaví a menu; zbytek (okna, upozornění) je ve `body`, ať kompilátor nemá jeden obří výraz.
     private var content: some View {
-        TabView(selection: $mainTab) {
+        TabView(selection: tabSelection) {
             Tab("Přehled", systemImage: "chart.bar.xaxis", value: MainTab.overview) {
                 OverviewView()
                     .environmentObject(overviewVM)
@@ -45,6 +46,11 @@ struct DashboardView: View {
 
             Tab("Pokladna", systemImage: "banknote", value: MainTab.cash) {
                 CashVouchersView(companyId: companyId, session: session)
+                    .offlineBanner()
+            }
+
+            Tab("Firma", systemImage: "building.2", value: MainTab.company) {
+                CompanyProfileView(companyId: companyId, session: session) { showCompanySwitcher = true }
                     .offlineBanner()
             }
         }
@@ -83,6 +89,9 @@ struct DashboardView: View {
     /// Okna a upozornění nad obsahem (export, nahrání dokladu).
     private var dialogs: some View {
         content
+            .sheet(isPresented: $showCompanySwitcher) {
+                CompanySwitcherSheet(session: session)
+            }
             .sheet(item: $csvFile) { file in
                 ShareSheet(file: file)
             }

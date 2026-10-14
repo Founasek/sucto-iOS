@@ -17,12 +17,15 @@ final class NavigationManager: ObservableObject {
         let isIncoming: Bool
     }
 
-    func goToCompanies() {
-        path = NavigationPath()
-    }
-
     func goToDashboard(companyId: Int) {
         path.append(AppRoute.dashboard(companyId: companyId))
+    }
+
+    /// Nahradí otevřený dashboard dashboardem jiné firmy (bez návratu přes seznam firem).
+    func switchCompany(to companyId: Int) {
+        var newPath = NavigationPath()
+        newPath.append(AppRoute.dashboard(companyId: companyId))
+        path = newPath
     }
 
     func createInvoice(companyId: Int, direction: InvoiceDirection, scanId: String? = nil) {

@@ -26,13 +26,12 @@ struct BankAccountsView: View {
                 }
             } else {
                 LazyVStack(spacing: Theme.Spacing.m) {
-                    ForEach(Array(viewModel.accounts.enumerated()), id: \.element.id) { index, account in
+                    ForEach(Array(viewModel.accounts.enumerated()), id: \.element.id) { _, account in
                         NavigationLink(value: account) {
                             AccountRow(account: account)
                         }
                         .buttonStyle(PressableCardStyle())
                         .matchedTransitionSource(id: account, in: transitionNamespace)
-                        .staggeredAppear(index: index)
                     }
                 }
                 .padding(.horizontal, Theme.Spacing.l)
