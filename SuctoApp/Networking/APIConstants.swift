@@ -123,6 +123,10 @@ enum APIConstants {
     static let currencies = "currencies"
     static let companies = "companies"
 
+    static func company(companyId: Int) -> String {
+        "companies/\(companyId)"
+    }
+
     static func bankAccounts(companyId: Int) -> String {
         "companies/\(companyId)/accounts"
     }

@@ -10,6 +10,8 @@ struct RootView: View {
                 switch route {
                 case let .dashboard(companyId):
                     DashboardView(companyId: companyId, session: session)
+                        // Nová identita při změně firmy: jinak by zásobník znovu použil view modely původní firmy.
+                        .id(companyId)
 
                 case let .createInvoice(companyId, direction, scanId):
                     InvoiceCreateView(companyId: companyId, direction: direction, scanId: scanId, session: session)

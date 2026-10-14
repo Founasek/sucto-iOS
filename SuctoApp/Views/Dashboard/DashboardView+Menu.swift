@@ -51,18 +51,23 @@ extension DashboardView {
             Label("Nastavení", systemImage: "gearshape")
         }
 
-        Button {
-            navManager.goToCompanies()
-        } label: {
-            Label("Změnit firmu", systemImage: "building.2")
-        }
-
         Button(role: .destructive) {
             session.logout()
             navManager.reset()
         } label: {
             Label("Odhlásit se", systemImage: "rectangle.portrait.and.arrow.right")
         }
+    }
+
+    /// Výběr záložky; opakované klepnutí na už otevřenou záložku Firma otevře přepínač firem.
+    var tabSelection: Binding<MainTab> {
+        Binding(
+            get: { mainTab },
+            set: { newValue in
+                if newValue == .company, mainTab == .company { showCompanySwitcher = true }
+                mainTab = newValue
+            },
+        )
     }
 
     var pohodaExportTitle: String {

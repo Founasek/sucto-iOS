@@ -7,7 +7,7 @@ import SwiftUI
 
 /// Záložky dolní lišty.
 enum MainTab: Hashable {
-    case overview, invoices, cash
+    case overview, invoices, cash, company
 }
 
 /// Strana v záložce Faktury (přepínač nahoře).
