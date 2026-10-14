@@ -57,7 +57,6 @@ struct OverviewTopPartiesCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .appear(delay: 0.3)
         }
     }
 

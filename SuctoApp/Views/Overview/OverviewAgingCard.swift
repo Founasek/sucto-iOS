@@ -29,7 +29,6 @@ struct OverviewAgingCard: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .appear(delay: 0.28)
     }
 
     private var header: some View {

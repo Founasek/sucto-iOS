@@ -24,14 +24,13 @@ struct ScansView: View {
                 emptyOrLoading
             } else {
                 LazyVStack(spacing: Theme.Spacing.m) {
-                    ForEach(Array(viewModel.scans.enumerated()), id: \.element.id) { index, scan in
+                    ForEach(Array(viewModel.scans.enumerated()), id: \.element.id) { _, scan in
                         Button {
                             open(scan)
                         } label: {
                             ScanRow(scan: scan, isUsed: viewModel.usedScanIds.contains(scan.id), viewModel: viewModel)
                         }
                         .buttonStyle(PressableCardStyle())
-                        .staggeredAppear(index: index)
                         .onAppear {
                             if scan.id == viewModel.scans.last?.id {
                                 Task { await viewModel.loadNextPage() }

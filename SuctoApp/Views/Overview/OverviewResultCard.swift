@@ -52,7 +52,6 @@ struct OverviewResultCard: View {
         )
         .overlay(alignment: .topTrailing) { infoButton }
         .shadow(color: (showsRed ? Color.red : Theme.brand).opacity(0.3), radius: 18, y: 10)
-        .appear()
     }
 
     @ViewBuilder

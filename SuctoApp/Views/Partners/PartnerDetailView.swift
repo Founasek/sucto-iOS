@@ -83,7 +83,7 @@ struct PartnerDetailView: View {
     private func content(_ partner: PartnerRecord) -> some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.l) {
-                hero(partner).appear(delay: 0.02)
+                hero(partner)
 
                 DetailCard(title: "Údaje", systemImage: "building.2") {
                     DetailRow(label: "IČ", value: partner.ic, hideWhenEmpty: true)
@@ -94,7 +94,6 @@ struct PartnerDetailView: View {
                     }
                     DetailRow(label: "Země", value: partner.address?.countryName, hideWhenEmpty: true)
                 }
-                .appear(delay: 0.08)
 
                 if partner.email != nil || partner.phone != nil || partner.web != nil {
                     DetailCard(title: "Kontakt", systemImage: "person.crop.circle") {
@@ -102,7 +101,6 @@ struct PartnerDetailView: View {
                         ContactRow(label: "Telefon", value: partner.phone, scheme: "tel:", systemImage: "phone")
                         ContactRow(label: "Web", value: partner.web, scheme: nil, systemImage: "safari")
                     }
-                    .appear(delay: 0.12)
                 }
 
                 DetailCard(title: "Fakturace", systemImage: "doc.text") {
@@ -110,11 +108,9 @@ struct PartnerDetailView: View {
                     DetailRow(label: "Jazyk faktur", value: language(partner.invoicingLanguage), hideWhenEmpty: true)
                     DetailRow(label: "Splatnost", value: partner.invoiceDueDays.map { "\($0) dní" }, hideWhenEmpty: true)
                 }
-                .appear(delay: 0.16)
 
                 if !viewModel.years.isEmpty {
                     PartnerTurnoverCard(viewModel: viewModel)
-                        .appear(delay: 0.2)
                 }
             }
             .padding(Theme.Spacing.l)

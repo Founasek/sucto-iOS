@@ -77,7 +77,6 @@ struct OverviewChartCard: View {
             .onAppear { reveal() }
             .onChange(of: section.months) { reveal() }
         }
-        .appear(delay: 0.16)
     }
 
     /// Hodnoty po měsících jako text pro čtečku obrazovky (graf sám čísla nepředá).

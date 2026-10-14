@@ -34,7 +34,6 @@ struct OverviewForecastCard: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .appear(delay: 0.26)
     }
 
     // MARK: - Měny jako slider

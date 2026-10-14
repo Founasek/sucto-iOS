@@ -30,7 +30,7 @@ struct CompaniesView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: Theme.Spacing.m) {
-                        ForEach(Array(viewModel.companies.enumerated()), id: \.element.id) { index, company in
+                        ForEach(Array(viewModel.companies.enumerated()), id: \.element.id) { _, company in
                             Button {
                                 viewModel.selectCompany(company)
                                 navManager.goToDashboard(companyId: company.id)
@@ -38,7 +38,6 @@ struct CompaniesView: View {
                                 CompanyCard(company: company)
                             }
                             .buttonStyle(PressableCardStyle())
-                            .staggeredAppear(index: index)
                         }
                     }
                     .padding(Theme.Spacing.l)

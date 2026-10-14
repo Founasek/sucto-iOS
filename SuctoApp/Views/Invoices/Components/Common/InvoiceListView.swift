@@ -42,13 +42,12 @@ struct InvoiceListView: View {
                 LazyVStack(spacing: Theme.Spacing.m) {
                     summary
 
-                    ForEach(Array(invoices.enumerated()), id: \.element.id) { index, invoice in
+                    ForEach(Array(invoices.enumerated()), id: \.element.id) { _, invoice in
                         NavigationLink(value: invoice) {
                             InvoiceRow(invoice: invoice, counterparty: counterparty(invoice))
                         }
                         .buttonStyle(PressableCardStyle())
                         .matchedTransitionSource(id: invoice.id, in: namespace)
-                        .staggeredAppear(index: index)
                         .onAppear {
                             if invoice.id == invoices.last?.id {
                                 Task { await loadMore() }

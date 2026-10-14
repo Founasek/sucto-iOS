@@ -35,14 +35,13 @@ struct CashVouchersView: View {
                     emptyOrLoading
                 } else {
                     LazyVStack(spacing: Theme.Spacing.m) {
-                        ForEach(Array(viewModel.vouchers.enumerated()), id: \.element.id) { index, voucher in
+                        ForEach(Array(viewModel.vouchers.enumerated()), id: \.element.id) { _, voucher in
                             NavigationLink(value: AppRoute.cashVoucherDetail(
                                 companyId: companyId, directionRaw: viewModel.direction.rawValue, voucherId: voucher.id,
                             )) {
                                 CashVoucherRow(voucher: voucher)
                             }
                             .buttonStyle(PressableCardStyle())
-                            .staggeredAppear(index: index)
                             .onAppear {
                                 if voucher.id == viewModel.vouchers.last?.id {
                                     Task { await viewModel.fetchNextPage() }

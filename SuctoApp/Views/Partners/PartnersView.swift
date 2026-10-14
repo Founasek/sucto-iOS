@@ -26,12 +26,11 @@ struct PartnersView: View {
                 emptyOrLoading
             } else {
                 LazyVStack(spacing: Theme.Spacing.m) {
-                    ForEach(Array(viewModel.partners.enumerated()), id: \.element.id) { index, partner in
+                    ForEach(Array(viewModel.partners.enumerated()), id: \.element.id) { _, partner in
                         NavigationLink(value: AppRoute.partnerDetail(companyId: companyId, partnerId: partner.id)) {
                             PartnerRow(partner: partner)
                         }
                         .buttonStyle(PressableCardStyle())
-                        .staggeredAppear(index: index)
                     }
                 }
                 .padding(.horizontal, Theme.Spacing.l)
