@@ -19,9 +19,6 @@ struct RootView: View {
                 case let .duplicateInvoice(companyId, direction, invoiceId):
                     InvoiceCreateView(companyId: companyId, direction: direction, copyFromInvoiceId: invoiceId, session: session)
 
-                case let .accounts(companyId):
-                    AccountsScreen(companyId: companyId, session: session)
-
                 case .settings:
                     SettingsView()
 

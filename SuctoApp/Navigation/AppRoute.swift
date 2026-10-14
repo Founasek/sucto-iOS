@@ -12,7 +12,6 @@ enum AppRoute: Hashable {
     case createInvoice(companyId: Int, direction: InvoiceDirection, scanId: String?)
     case duplicateInvoice(companyId: Int, direction: InvoiceDirection, invoiceId: Int)
     case settings
-    case accounts(companyId: Int)
     case scans(companyId: Int)
     case partners(companyId: Int)
     case partnerDetail(companyId: Int, partnerId: Int)

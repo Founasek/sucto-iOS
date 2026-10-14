@@ -18,6 +18,7 @@ struct DashboardView: View {
     @Environment(\.scenePhase) var scenePhase
 
     @StateObject var overviewVM: OverviewViewModel
+    @StateObject var accountsVM: AccountsViewModel
     @StateObject var scanUploader: ScanUploadViewModel
     @StateObject var outgoingInvoicesVM: OutgoingInvoicesViewModel
     @StateObject var incomingInvoicesVM: IncomingInvoicesViewModel
@@ -25,6 +26,7 @@ struct DashboardView: View {
     init(companyId: Int, session: SessionManager) {
         self.companyId = companyId
         _overviewVM = StateObject(wrappedValue: OverviewViewModel(companyId: companyId, session: session))
+        _accountsVM = StateObject(wrappedValue: AccountsViewModel(companyId: companyId, session: session))
         _scanUploader = StateObject(wrappedValue: ScanUploadViewModel(companyId: companyId, session: session))
         _outgoingInvoicesVM = StateObject(wrappedValue: OutgoingInvoicesViewModel(companyId: companyId, session: session))
         _incomingInvoicesVM = StateObject(wrappedValue: IncomingInvoicesViewModel(companyId: companyId, session: session))
@@ -51,6 +53,7 @@ struct DashboardView: View {
 
             Tab("Firma", systemImage: "building.2", value: MainTab.company) {
                 CompanyProfileView(companyId: companyId, session: session) { showCompanySwitcher = true }
+                    .environmentObject(accountsVM)
                     .offlineBanner()
             }
         }
@@ -66,6 +69,9 @@ struct DashboardView: View {
         // Obě strany sdílejí typ `Invoice`, otevře se detail té, která je zrovna vybraná.
         .navigationDestination(for: Invoice.self) { invoice in
             invoiceDetail(for: invoice)
+        }
+        .navigationDestination(for: Account.self) { account in
+            BankAccountDetailView(account: account, currencySymbol: accountsVM.currencySymbol(for: account))
         }
         .navigationDestination(for: InvoiceRoute.self) { route in
             invoiceDetail(for: route)

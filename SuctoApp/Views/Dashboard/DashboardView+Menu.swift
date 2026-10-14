@@ -34,18 +34,6 @@ extension DashboardView {
         }
 
         Button {
-            navManager.showAccounts(companyId: companyId)
-        } label: {
-            Label("Účty", systemImage: "creditcard")
-        }
-
-        Button {
-            navManager.showPartners(companyId: companyId)
-        } label: {
-            Label("Partneři", systemImage: "person.2")
-        }
-
-        Button {
             navManager.showSettings()
         } label: {
             Label("Nastavení", systemImage: "gearshape")

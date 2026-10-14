@@ -9,6 +9,7 @@ import SwiftUI
 struct CompanyProfileView: View {
     @StateObject private var viewModel: CompanyProfileViewModel
     @EnvironmentObject private var session: SessionManager
+    @EnvironmentObject private var accountsVM: AccountsViewModel
     let onSwitchCompany: () -> Void
 
     init(companyId: Int, session: SessionManager, onSwitchCompany: @escaping () -> Void) {
@@ -26,7 +27,8 @@ struct CompanyProfileView: View {
                     ErrorStateView(message: error) { Task { await viewModel.load() } }
                 } else {
                     detailsCard
-                    if !viewModel.bankAccounts.isEmpty { bankAccountsCard }
+                    accountsSection
+                    partnersLink
                 }
                 Button(action: onSwitchCompany) {
                     Label("Přepnout firmu", systemImage: "arrow.left.arrow.right")
@@ -43,8 +45,13 @@ struct CompanyProfileView: View {
             .fitsScreenWidth()
         }
         .background(Theme.background)
-        .refreshable { await viewModel.load() }
+        .refreshable {
+            async let accounts: Void = accountsVM.fetchAccounts()
+            await viewModel.load()
+            await accounts
+        }
         .task { await viewModel.load() }
+        .task { await accountsVM.fetchAccounts() }
     }
 
     // MARK: - Hlavička
@@ -82,19 +89,48 @@ struct CompanyProfileView: View {
         }
     }
 
-    private var bankAccountsCard: some View {
-        DetailCard(title: "Bankovní účty", systemImage: "building.columns") {
-            ForEach(Array(viewModel.bankAccounts.enumerated()), id: \.offset) { index, account in
-                if index > 0 { Divider() }
+    /// Odkaz na seznam partnerů (odběratelé a dodavatelé).
+    private var partnersLink: some View {
+        NavigationLink(value: AppRoute.partners(companyId: viewModel.companyId)) {
+            HStack(spacing: Theme.Spacing.l) {
+                Image(systemName: "person.2")
+                    .font(.title3)
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 48, height: 48)
+                    .background(Theme.brand.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                    Text(account.name).font(.subheadline.weight(.semibold))
-                    if let bank = account.bankAccount {
-                        if let number = bank.account {
-                            CopyableRow(label: "Číslo účtu", value: "\(number)\(bank.bankCode.map { "/\($0)" } ?? "")")
-                        }
-                        CopyableRow(label: "IBAN", value: bank.iban)
-                        CopyableRow(label: "SWIFT", value: bank.swift)
+                    Text("Partneři").font(.headline)
+                    Text("Odběratelé a dodavatelé")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .card()
+            .accessibilityElement(children: .combine)
+        }
+        .buttonStyle(PressableCardStyle())
+    }
+
+    /// Bankovní a pokladní účty firmy; klepnutí otevře detail účtu.
+    @ViewBuilder
+    private var accountsSection: some View {
+        if !accountsVM.accounts.isEmpty {
+            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                Text("ÚČTY")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .tracking(0.6)
+                    .padding(.horizontal, Theme.Spacing.xs)
+                    .accessibilityAddTraits(.isHeader)
+                ForEach(Array(accountsVM.accounts.enumerated()), id: \.offset) { _, account in
+                    NavigationLink(value: account) {
+                        AccountRow(account: account)
                     }
+                    .buttonStyle(PressableCardStyle())
                 }
             }
         }
