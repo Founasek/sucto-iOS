@@ -36,20 +36,12 @@ final class NavigationManager: ObservableObject {
         path.append(AppRoute.duplicateInvoice(companyId: companyId, direction: direction, invoiceId: invoiceId))
     }
 
-    func showAccounts(companyId: Int) {
-        path.append(AppRoute.accounts(companyId: companyId))
-    }
-
     func showSettings() {
         path.append(AppRoute.settings)
     }
 
     func showScans(companyId: Int) {
         path.append(AppRoute.scans(companyId: companyId))
-    }
-
-    func showPartners(companyId: Int) {
-        path.append(AppRoute.partners(companyId: companyId))
     }
 
     func reset() {

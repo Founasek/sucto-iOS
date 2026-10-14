@@ -5,11 +5,10 @@
 
 import SwiftUI
 
-/// Profil vybrané firmy: detail firmy a její bankovní účty.
+/// Profil vybrané firmy: detail firmy (účty drží `AccountsViewModel`).
 @MainActor
 final class CompanyProfileViewModel: ObservableObject {
     @Published private(set) var detail: CompanyDetail?
-    @Published private(set) var bankAccounts: [Account] = []
     @Published private(set) var errorMessage: String?
 
     let companyId: Int
@@ -22,8 +21,6 @@ final class CompanyProfileViewModel: ObservableObject {
 
     func load() async {
         async let loadedDetail: CompanyDetail = session.send(APIConstants.company(companyId: companyId))
-        // Účty jsou jen doplněk – jejich selhání (třeba 403) nesmí shodit profil.
-        async let loadedAccounts: [Account]? = try? session.send(APIConstants.bankAccounts(companyId: companyId))
         do {
             detail = try await loadedDetail
             errorMessage = nil
@@ -32,6 +29,5 @@ final class CompanyProfileViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
-        bankAccounts = await (loadedAccounts ?? bankAccounts).filter { !$0.isCashAccount && !$0.isDeactivated }
     }
 }
