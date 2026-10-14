@@ -26,7 +26,7 @@ struct CompanyProfileView: View {
                 if let error = viewModel.errorMessage, viewModel.detail == nil {
                     ErrorStateView(message: error) { Task { await viewModel.load() } }
                 } else {
-                    detailsCard
+                    detailsSection
                     accountsSection
                     partnersLink
                 }
@@ -77,8 +77,26 @@ struct CompanyProfileView: View {
 
     // MARK: - Karty
 
+    /// Nadpis sekce nad kartou – stejný pro všechny sekce stránky.
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title.uppercased())
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .tracking(0.6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Theme.Spacing.xs)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var detailsSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            sectionHeader("Údaje o firmě")
+            detailsCard
+        }
+    }
+
     private var detailsCard: some View {
-        DetailCard(title: "Údaje o firmě", systemImage: "building.2") {
+        DetailCard(title: nil) {
             CopyableRow(label: "IČO", value: viewModel.detail?.ic ?? company?.ic)
             CopyableRow(label: "E-mail", value: viewModel.detail?.email ?? company?.email)
             let lines = viewModel.detail?.addressLines ?? []
@@ -91,6 +109,13 @@ struct CompanyProfileView: View {
 
     /// Odkaz na seznam partnerů (odběratelé a dodavatelé).
     private var partnersLink: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            sectionHeader("Partneři")
+            partnersCard
+        }
+    }
+
+    private var partnersCard: some View {
         NavigationLink(value: AppRoute.partners(companyId: viewModel.companyId)) {
             HStack(spacing: Theme.Spacing.l) {
                 Image(systemName: "person.2")
@@ -99,8 +124,8 @@ struct CompanyProfileView: View {
                     .frame(width: 48, height: 48)
                     .background(Theme.brand.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                    Text("Partneři").font(.headline)
-                    Text("Odběratelé a dodavatelé")
+                    Text("Odběratelé a dodavatelé").font(.headline)
+                    Text("Seznam, vyhledávání a přidání partnera")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -120,12 +145,7 @@ struct CompanyProfileView: View {
     private var accountsSection: some View {
         if !accountsVM.accounts.isEmpty {
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                Text("ÚČTY")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .tracking(0.6)
-                    .padding(.horizontal, Theme.Spacing.xs)
-                    .accessibilityAddTraits(.isHeader)
+                sectionHeader("Účty")
                 ForEach(Array(accountsVM.accounts.enumerated()), id: \.offset) { _, account in
                     NavigationLink(value: account) {
                         AccountRow(account: account)
