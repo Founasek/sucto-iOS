@@ -43,10 +43,10 @@ enum Theme {
 
     static var brandGradient: LinearGradient { accent.gradient }
 
-    /// Významové barvy – na zvolené barvě aplikace nezávisí (zaplaceno, výnosy a úspěch zůstávají zelené).
-    static let positive = Color(hex: "#2FAE5D")
+    /// Barvy částek: výnosy, vydané a kladný výsledek mají barvu aplikace, náklady a přijaté její protiváhu.
+    static var positive: Color { accent.tint }
     static let negative = Color.red
-    static let warning = Color(hex: "#F28C28")
+    static var warning: Color { accent.contrast }
 }
 
 // MARK: - Karta

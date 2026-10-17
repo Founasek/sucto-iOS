@@ -66,7 +66,7 @@ struct SettingsView: View {
         } header: {
             Text("Vzhled")
         } footer: {
-            Text("Barva aplikace platí pro ovládací prvky, tlačítka a hlavní karty. Zaplacené faktury, výnosy a upozornění zůstávají ve svých barvách.")
+            Text("Barva aplikace platí pro ovládací prvky, tlačítka a hlavní karty. Stavy faktur (např. zaplaceno) a upozornění zůstávají ve svých barvách.")
         }
     }
 

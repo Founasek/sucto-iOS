@@ -9,8 +9,8 @@ import SwiftUI
 enum OverviewStyle {
     static let shortMonths = ["led", "úno", "bře", "dub", "kvě", "čvn", "čvc", "srp", "zář", "říj", "lis", "pro"]
     static let longMonths = ["Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"]
-    static let revenueColor = Theme.positive
-    static let costColor = Theme.warning
+    static var revenueColor: Color { Theme.positive }
+    static var costColor: Color { Theme.warning }
 
     static func compact(_ value: Double) -> String {
         let magnitude = abs(value)

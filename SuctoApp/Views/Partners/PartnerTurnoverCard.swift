@@ -12,8 +12,8 @@ struct PartnerTurnoverCard: View {
     @ObservedObject var viewModel: PartnerDetailViewModel
 
     private static let months = ["led", "úno", "bře", "dub", "kvě", "čvn", "čvc", "srp", "zář", "říj", "lis", "pro"]
-    private let issuedColor = Theme.positive
-    private let receivedColor = Theme.warning
+    private var issuedColor: Color { Theme.positive }
+    private var receivedColor: Color { Theme.warning }
 
     private var visibleSeries: [PartnerSeries] { viewModel.series.filter { $0.total != 0 } }
 

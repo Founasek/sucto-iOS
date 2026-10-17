@@ -6,8 +6,6 @@
 import SwiftUI
 import WidgetKit
 
-/// Vydané faktury jsou významově zelené bez ohledu na zvolenou barvu aplikace.
-private let brandGreen = Color(red: 0.17, green: 0.50, blue: 0.27)
 
 struct DueWidgetView: View {
     @Environment(\.widgetFamily) private var family
@@ -69,8 +67,8 @@ private struct SmallView: View {
                 .lineLimit(1)
                 .privacySensitive()
 
-            SideRow(title: "Vydané", side: summary.issued, currency: summary.currency, tint: brandGreen)
-            SideRow(title: "Přijaté", side: summary.received, currency: summary.currency, tint: .orange)
+            SideRow(title: "Vydané", side: summary.issued, currency: summary.currency, tint: AppAccent.current.tint)
+            SideRow(title: "Přijaté", side: summary.received, currency: summary.currency, tint: AppAccent.current.contrast)
 
             Spacer(minLength: 0)
             if summary.otherCurrencyCount > 0 {
@@ -136,9 +134,9 @@ private struct MediumView: View {
                     .foregroundStyle(.secondary)
             }
             HStack(alignment: .top, spacing: 12) {
-                linked(Column(title: "Vydané", side: summary.issued, currency: summary.currency, tint: brandGreen), isIncoming: false)
+                linked(Column(title: "Vydané", side: summary.issued, currency: summary.currency, tint: AppAccent.current.tint), isIncoming: false)
                 Divider()
-                linked(Column(title: "Přijaté", side: summary.received, currency: summary.currency, tint: .orange), isIncoming: true)
+                linked(Column(title: "Přijaté", side: summary.received, currency: summary.currency, tint: AppAccent.current.contrast), isIncoming: true)
             }
         }
     }

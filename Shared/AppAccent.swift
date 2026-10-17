@@ -117,6 +117,10 @@ enum AppAccent: String, CaseIterable, Identifiable {
         })
     }
 
+    /// Protiváha k barvě aplikace pro náklady / přijaté (výnosy a vydané mají barvu aplikace). Oranžová, kdyby
+    /// splývala s barvou aplikace, se nahradí modrou.
+    var contrast: Color { self == .orange ? Color(hexString: "3B82F6") : Color(hexString: "F28C28") }
+
     var brand: Color { Color(hexString: palette.brand) }
     var gradient: LinearGradient {
         LinearGradient(
