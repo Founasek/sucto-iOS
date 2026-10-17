@@ -106,7 +106,7 @@ struct OverviewChartCard: View {
             Text("\(labels.cost) \(FormatterHelper.formatWhole(figures.cost, currency: section.currency))")
                 .foregroundStyle(OverviewStyle.costColor)
             Text("Výsledek \(FormatterHelper.formatWhole(figures.result, currency: section.currency))")
-                .foregroundStyle(figures.result >= 0 ? Color.accentColor : Color.red)
+                .foregroundStyle(figures.result >= 0 ? Theme.positive : Theme.negative)
         }
         .font(.caption2.weight(.semibold))
         .monospacedDigit()

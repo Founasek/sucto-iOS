@@ -145,7 +145,7 @@ struct OverviewLoadingView: View {
                 Text("\(count)")
                     .font(.subheadline.weight(.semibold))
                     .monospacedDigit()
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Theme.tint)
                     .contentTransition(.numericText(value: Double(count)))
                     .animation(.snappy, value: count)
             }
@@ -159,13 +159,13 @@ struct OverviewLoadingView: View {
         case .done:
             Image(systemName: "checkmark.circle.fill")
                 .font(.title3)
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(Theme.tint)
                 .symbolEffect(.bounce, value: state)
                 .transition(.scale.combined(with: .opacity))
         case .active:
             ProgressView()
                 .controlSize(.small)
-                .tint(Color.accentColor)
+                .tint(Theme.tint)
         case .pending:
             Image(systemName: "circle")
                 .font(.title3)

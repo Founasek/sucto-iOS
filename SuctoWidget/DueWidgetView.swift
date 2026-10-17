@@ -6,6 +6,7 @@
 import SwiftUI
 import WidgetKit
 
+/// Vydané faktury jsou významově zelené bez ohledu na zvolenou barvu aplikace.
 private let brandGreen = Color(red: 0.17, green: 0.50, blue: 0.27)
 
 struct DueWidgetView: View {
@@ -44,7 +45,7 @@ private struct NoDataView: View {
             VStack(spacing: 6) {
                 Image(systemName: "doc.text.magnifyingglass")
                     .font(.title2)
-                    .foregroundStyle(brandGreen)
+                    .foregroundStyle(AppAccent.current.tint)
                 Text("Otevřete sÚčto a vyberte firmu")
                     .font(.footnote)
                     .multilineTextAlignment(.center)
@@ -66,6 +67,7 @@ private struct SmallView: View {
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .privacySensitive()
 
             SideRow(title: "Vydané", side: summary.issued, currency: summary.currency, tint: brandGreen)
             SideRow(title: "Přijaté", side: summary.received, currency: summary.currency, tint: .orange)
@@ -127,6 +129,7 @@ private struct MediumView: View {
                 Text(snapshot.companyName)
                     .font(.caption.weight(.semibold))
                     .lineLimit(1)
+                    .privacySensitive()
                 Spacer()
                 Text(snapshot.updatedAt, style: .time)
                     .font(.caption2)
@@ -168,6 +171,7 @@ private struct Column: View {
                         .foregroundStyle(item.dueDate < Calendar.current.startOfDay(for: Date()) ? .red : .secondary)
                     Text(item.counterparty ?? item.number)
                         .lineLimit(1)
+                        .privacySensitive()
                 }
                 .font(.caption2)
             }

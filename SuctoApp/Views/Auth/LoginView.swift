@@ -19,6 +19,8 @@ struct LoginView: View {
     @State var showSaveFailed = false
     /// Ověření Face ID právě probíhá – další klepnutí se ignorují (jinak by se dotazy hromadily).
     @State var isBiometricInProgress = false
+    /// Heslo se ukazuje čitelně jen na vyžádání (oko v poli).
+    @State private var isPasswordVisible = false
 
     @EnvironmentObject var session: SessionManager
     @EnvironmentObject var appLock: AppLock
@@ -101,11 +103,19 @@ struct LoginView: View {
             }
 
             field(icon: "lock") {
-                SecureField("Heslo", text: $password)
-                    .textContentType(.password)
-                    .focused($focusedField, equals: .password)
-                    .submitLabel(.go)
-                    .onSubmit(submit)
+                HStack(spacing: Theme.Spacing.s) {
+                    passwordInput
+                    Button {
+                        isPasswordVisible.toggle()
+                    } label: {
+                        Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
+                            .foregroundStyle(.white.opacity(0.6))
+                            .frame(width: 32, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(isPasswordVisible ? "Skrýt heslo" : "Zobrazit heslo")
+                }
             }
 
             if let error = viewModel.errorMessage {
@@ -135,6 +145,24 @@ struct LoginView: View {
         .padding(Theme.Spacing.xl)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(.white.opacity(0.18), lineWidth: 0.5))
+    }
+
+    /// Skryté nebo čitelné heslo; přepnutí zachová zaměření pole, ať se klávesnice nezavře.
+    @ViewBuilder
+    private var passwordInput: some View {
+        Group {
+            if isPasswordVisible {
+                TextField("Heslo", text: $password)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            } else {
+                SecureField("Heslo", text: $password)
+            }
+        }
+        .textContentType(.password)
+        .focused($focusedField, equals: .password)
+        .submitLabel(.go)
+        .onSubmit(submit)
     }
 
     private var header: some View {

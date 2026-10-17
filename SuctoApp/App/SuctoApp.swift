@@ -13,6 +13,7 @@ struct SuctoApp: App {
     @StateObject private var navManager = NavigationManager()
     @StateObject private var appLock = AppLock()
     @StateObject private var permissions = PermissionsStore()
+    @StateObject private var theme = ThemeManager()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -41,12 +42,16 @@ struct SuctoApp: App {
                     }
                 }
             }
+            // Změna barvy aplikace přestaví celé rozhraní (`Theme` čte barvy při vykreslení); cesta v `navManager` se zachová.
+            .id(theme.accent)
             // Na úrovni NavigationStack, aby je dostaly i obrazovky otevřené přes navigationDestination
             // (ty prostředí z kořenového view nedědí).
             .environmentObject(session)
             .environmentObject(navManager)
             .environmentObject(appLock)
             .environmentObject(permissions)
+            .environmentObject(theme)
+            .tint(theme.accent.tint)
             .accessibilityHidden(isCovered)
             .overlay {
                 if session.isLoggedIn {

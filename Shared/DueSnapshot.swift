@@ -32,9 +32,11 @@ enum DueSnapshotStore {
     private static let key = "dueSnapshot"
 
     /// Sdílené úložiště aplikace a widgetu; bez App Group (např. nepodepsaný build) se použije běžné.
-    private static var defaults: UserDefaults {
+    static var sharedDefaults: UserDefaults {
         UserDefaults(suiteName: appGroup) ?? .standard
     }
+
+    private static var defaults: UserDefaults { sharedDefaults }
 
     static func save(_ snapshot: DueSnapshot) {
         guard let data = try? JSONEncoder().encode(snapshot) else { return }

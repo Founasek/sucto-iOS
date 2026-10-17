@@ -22,20 +22,31 @@ enum Theme {
         static let control: CGFloat = 14
     }
 
-    /// Značková zelená (světlá) – dekorace, přechody, ikony.
-    static let brand = Color(hex: "#55B560")
-    /// Tmavá „inkoustová“ zelená pro hero plochy a tmavé přechody.
-    static let ink = Color(hex: "#0E2A1C")
-    static let inkSoft = Color(hex: "#17402B")
+    /// Barvy podle zvolené předvolby (`AppAccent`). Čtou se při vykreslení; po změně v Nastavení se celé
+    /// rozhraní přestaví (`.id` na kořeni v `SuctoApp`).
+    private static var accent: AppAccent { AppAccent.current }
+
+    /// Značková barva (světlá) – dekorace, stíny, podklady ikon.
+    static var brand: Color { accent.brand }
+    /// Barva ovládacích prvků a ikon; v tmavém režimu světlejší. Nahrazuje `Theme.tint`.
+    static var tint: Color { accent.tint }
+    /// Tmavá „inkoustová“ barva pro hero plochy a tmavé přechody.
+    static var ink: Color { accent.ink }
+    static var inkSoft: Color { accent.inkSoft }
+    static var meshHighlight: Color { accent.meshHighlight }
+    static var meshDeep: Color { accent.meshDeep }
+    static var glow: Color { accent.glow }
+    static var glowSoft: Color { accent.glowSoft }
 
     static let background = Color(.systemGroupedBackground)
     static let surface = Color(.secondarySystemGroupedBackground)
 
-    static let brandGradient = LinearGradient(
-        colors: [Color(hex: "#2F9E55"), Color(hex: "#1B6B3D")],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing,
-    )
+    static var brandGradient: LinearGradient { accent.gradient }
+
+    /// Významové barvy – na zvolené barvě aplikace nezávisí (zaplaceno, výnosy a úspěch zůstávají zelené).
+    static let positive = Color(hex: "#2FAE5D")
+    static let negative = Color.red
+    static let warning = Color(hex: "#F28C28")
 }
 
 // MARK: - Karta

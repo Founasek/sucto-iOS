@@ -56,7 +56,7 @@ struct CompanySwitcherSheet: View {
             }
             Spacer(minLength: 0)
             if company.id == session.selectedCompany?.id {
-                Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.accentColor)
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.tint)
             }
         }
         .contentShape(Rectangle())

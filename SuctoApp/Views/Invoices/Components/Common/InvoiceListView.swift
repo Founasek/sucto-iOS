@@ -11,6 +11,8 @@ struct InvoiceListView: View {
     let isLoading: Bool
     let errorMessage: String?
     let emptyMessage: String
+    @Binding var searchText: String
+    let searchPrompt: String
     @Binding var filter: InvoiceFilter
     @Binding var advanced: InvoiceAdvancedFilter
     let isFiltering: Bool
@@ -25,6 +27,9 @@ struct InvoiceListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            SearchField(text: $searchText, prompt: searchPrompt)
+                .padding(.horizontal, Theme.Spacing.l)
+                .padding(.top, Theme.Spacing.xs)
             filterBar
             list
         }

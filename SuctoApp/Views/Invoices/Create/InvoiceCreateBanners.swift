@@ -26,7 +26,7 @@ struct ScanBanner: View {
                         .foregroundStyle(notMatched ? Color.orange : Color.secondary)
                 }
             } icon: {
-                Image(systemName: "doc.viewfinder").foregroundStyle(Color.accentColor)
+                Image(systemName: "doc.viewfinder").foregroundStyle(Theme.tint)
             }
         }
     }

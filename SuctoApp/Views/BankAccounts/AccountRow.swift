@@ -13,7 +13,7 @@ struct AccountRow: View {
         HStack(spacing: Theme.Spacing.l) {
             Image(systemName: account.isCashAccount ? "banknote" : "building.columns")
                 .font(.title3)
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(Theme.tint)
                 .frame(width: 48, height: 48)
                 .background(Theme.brand.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 

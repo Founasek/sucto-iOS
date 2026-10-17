@@ -18,6 +18,8 @@ struct IncomingInvoicesView: View {
             isLoading: viewModel.isLoadingPage,
             errorMessage: viewModel.errorMessage,
             emptyMessage: "Zatím tu nejsou žádné přijaté faktury.",
+            searchText: $viewModel.searchText,
+            searchPrompt: "Číslo faktury nebo dodavatel",
             filter: $viewModel.filter,
             advanced: $viewModel.advanced,
             isFiltering: viewModel.isFiltering,
@@ -27,7 +29,6 @@ struct IncomingInvoicesView: View {
             loadMore: { await viewModel.fetchNextPage() },
             namespace: namespace,
         )
-        .searchable(text: $viewModel.searchText, prompt: "Číslo faktury nebo dodavatel")
         .onChange(of: viewModel.searchText) { viewModel.searchTextChanged() }
     }
 }

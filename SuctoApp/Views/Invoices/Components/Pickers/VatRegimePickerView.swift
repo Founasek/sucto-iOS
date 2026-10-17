@@ -36,7 +36,7 @@ struct VatRegimePickerView: View {
                     if let selected = selectedVatRegime {
                         Text(selected.name)
                             .font(.body)
-                            .foregroundStyle(.accent)
+                            .foregroundStyle(Theme.tint)
                     } else {
                         Text("Vyberte režim DPH")
                             .foregroundColor(.secondary)

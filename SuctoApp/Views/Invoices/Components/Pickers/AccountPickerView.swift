@@ -36,7 +36,7 @@ struct AccountPickerView: View {
                     if let selected = selectedAccount {
                         Text(selected.name)
                             .font(.body)
-                            .foregroundStyle(.accent)
+                            .foregroundStyle(Theme.tint)
                     } else {
                         Text("Vyberte účet")
                             .foregroundColor(.secondary)

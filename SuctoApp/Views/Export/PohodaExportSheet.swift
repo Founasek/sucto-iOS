@@ -109,7 +109,7 @@ struct PohodaExportSheet: View {
             VStack(spacing: Theme.Spacing.m) {
                 Image(systemName: summary.exportedCount > 0 ? "checkmark.circle.fill" : "tray")
                     .font(.system(size: 44))
-                    .foregroundStyle(summary.exportedCount > 0 ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(summary.exportedCount > 0 ? Theme.tint : Color.secondary)
                     .symbolEffect(.bounce, value: summary.exportedCount)
                 Text(resultTitle(summary))
                     .font(.headline)

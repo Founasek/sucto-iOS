@@ -91,7 +91,7 @@ extension InvoiceCreateView {
         LabeledContent("Celkem bez DPH") {
             Text(item.wrappedValue.quantity * item.wrappedValue.unitPrice, format: .currency(code: currencyCode))
                 .moneyStyle(.subheadline)
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(Theme.tint)
                 .contentTransition(.numericText())
         }
     }
@@ -110,7 +110,7 @@ extension InvoiceCreateView {
             LabeledContent {
                 Text(viewModel.isCompanyTaxable ? totals.total : totals.base, format: .currency(code: currencyCode))
                     .moneyStyle(.title3)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Theme.tint)
                     .contentTransition(.numericText())
             } label: {
                 Text("Celkem").font(.headline)

@@ -23,7 +23,7 @@ struct ContactRow: View {
                     Spacer()
                     Text(value)
                         .font(.subheadline)
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(Theme.tint)
                         .multilineTextAlignment(.trailing)
                 }
                 .contentShape(Rectangle())

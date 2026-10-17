@@ -29,11 +29,11 @@ struct CopyableRow: View {
                     Text(copied ? "Zkopírováno" : value)
                         .font(.subheadline)
                         .monospacedDigit()
-                        .foregroundStyle(copied ? Color.accentColor : Color.primary)
+                        .foregroundStyle(copied ? Theme.tint : Color.primary)
                         .multilineTextAlignment(.trailing)
                     Image(systemName: copied ? "checkmark" : "doc.on.doc")
                         .font(.caption)
-                        .foregroundStyle(copied ? Color.accentColor : Color.secondary)
+                        .foregroundStyle(copied ? Theme.tint : Color.secondary)
                         .contentTransition(.symbolEffect(.replace))
                 }
                 .contentShape(Rectangle())

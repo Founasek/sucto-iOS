@@ -31,7 +31,7 @@ struct PartnerPickerView: View {
                     if let selected = selectedPartner {
                         Text(selected.name)
                             .font(.body)
-                            .foregroundStyle(.accent)
+                            .foregroundStyle(Theme.tint)
                     } else {
                         Text(placeholder)
                             .foregroundColor(.secondary)

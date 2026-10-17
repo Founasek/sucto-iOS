@@ -151,7 +151,7 @@ struct OverviewForecastCard: View {
             totalLine("Očekávané příjmy", value: row.incomingTotal, currency: row.currency, color: OverviewStyle.revenueColor)
             totalLine("Platby dodavatelům", value: row.outgoingTotal, currency: row.currency, color: OverviewStyle.costColor)
             Divider()
-            totalLine("Saldo", value: row.net, currency: row.currency, color: row.net >= 0 ? .accentColor : .red, bold: true)
+            totalLine("Saldo", value: row.net, currency: row.currency, color: row.net >= 0 ? Theme.positive : Theme.negative, bold: true)
         }
     }
 

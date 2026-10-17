@@ -160,7 +160,7 @@ extension LockScreen {
                 )
                 .frame(width: 128, height: 128)
                 .rotationEffect(.degrees(angle))
-                .shadow(color: Color(hex: "#7DFFB0").opacity(0.7), radius: 6)
+                .shadow(color: Theme.glow.opacity(0.7), radius: 6)
         }
         .opacity(lock.isAuthenticating ? 1 : 0)
         .animation(.easeInOut(duration: 0.25), value: lock.isAuthenticating)
@@ -177,7 +177,7 @@ struct UnlockButtonStyle: ButtonStyle {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
             .background(.white, in: Capsule())
-            .shadow(color: Color(hex: "#4CD48A").opacity(0.45), radius: 18, y: 6)
+            .shadow(color: Theme.glowSoft.opacity(0.45), radius: 18, y: 6)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
     }
