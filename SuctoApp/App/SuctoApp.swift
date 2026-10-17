@@ -11,12 +11,16 @@ import SwiftUI
 struct SuctoApp: App {
     @StateObject private var session = SessionManager()
     @StateObject private var navManager = NavigationManager()
-    @StateObject private var appLock = AppLock()
+    @StateObject private var appLock: AppLock
+    @StateObject private var lockWindow: LockWindowController
     @StateObject private var permissions = PermissionsStore()
     private let theme = ThemeManager.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        let lock = AppLock()
+        _appLock = StateObject(wrappedValue: lock)
+        _lockWindow = StateObject(wrappedValue: LockWindowController(lock: lock))
         // Obsluha klepnutí na upozornění musí být zaregistrovaná hned při startu.
         DueNotifier.shared.activate()
         // Úlohu na pozadí tady NEplánovat: obsluhu registruje až scéna (`.backgroundTask` níže) a plánování před
@@ -50,11 +54,9 @@ struct SuctoApp: App {
             .environmentObject(permissions)
             .tint(theme.accent.tint)
             .accessibilityHidden(isCovered)
-            .overlay {
-                if session.isLoggedIn {
-                    AppLockOverlay(lock: appLock, isCovered: scenePhase != .active)
-                }
-            }
+            // Zamčená obrazovka a krytí v přepínači aplikací je samostatné okno (`LockWindowController`), aby překrylo i sheety.
+            .onChange(of: session.isLoggedIn, initial: true) { _, loggedIn in lockWindow.setLoggedIn(loggedIn) }
+            .onChange(of: scenePhase, initial: true) { _, phase in lockWindow.setInactive(phase != .active) }
             .onOpenURL { url in
                 Task { await openOverdue(from: url) }
             }
