@@ -83,7 +83,7 @@ enum APIConstants {
                 URLQueryItem(name: "q[name_or_ic_or_dic_or_address_street_or_address_city_cont]", value: query),
             )
         }
-        return "companies/\(companyId)/partners?\(components.percentEncodedQuery ?? "")"
+        return "companies/\(companyId)/partners?\(components.encodedQuery)"
     }
 
     static func partner(companyId: Int, partnerId: Int) -> String {
@@ -133,5 +133,13 @@ enum APIConstants {
 
     static func paymentTypes(companyId: Int) -> String {
         "companies/\(companyId)/payment_types"
+    }
+}
+
+extension URLComponents {
+    /// Zakódovaný dotaz pro URL. `URLComponents` nechává `+` beze změny, server ho ale čte jako mezeru
+    /// (hledání „A+B“ by pak hledalo „A B“), proto se zakóduje na `%2B`.
+    var encodedQuery: String {
+        (percentEncodedQuery ?? "").replacingOccurrences(of: "+", with: "%2B")
     }
 }

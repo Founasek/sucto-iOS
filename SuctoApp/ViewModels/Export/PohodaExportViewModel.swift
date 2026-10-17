@@ -121,7 +121,7 @@ final class PohodaExportViewModel: ObservableObject {
                 URLQueryItem(name: "q[issue_date_at_gteq]", value: Self.apiDate(from)),
                 URLQueryItem(name: "q[issue_date_at_lteq]", value: Self.apiDate(to)),
             ]
-            let path = "\(listBase)?\(components.percentEncodedQuery ?? "")"
+            let path = "\(listBase)?\(components.encodedQuery)"
             let result: [Invoice] = try await session.send(path)
 
             let fresh = result.filter { seen.insert($0.id).inserted }
@@ -181,7 +181,7 @@ final class PohodaExportViewModel: ObservableObject {
         var file: URL?
         if result.exportedCount > 0 {
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(fileName).xml")
-            try result.data.write(to: url, options: .atomic)
+            try result.data.write(to: url, options: [.atomic, .completeFileProtection])
             file = url
         }
         phase = .finished(Summary(file: file, exportedCount: result.exportedCount, skippedCount: skipped, failures: failures))

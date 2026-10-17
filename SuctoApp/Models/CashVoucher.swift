@@ -36,7 +36,7 @@ enum CashDirection: String, CaseIterable, Identifiable {
             let key = term.contains(where: \.isNumber) ? "q[number_cont]" : "q[partner_name_cont]"
             components.queryItems?.append(URLQueryItem(name: key, value: term))
         }
-        return "companies/\(companyId)/\(rawValue)?\(components.percentEncodedQuery ?? "")"
+        return "companies/\(companyId)/\(rawValue)?\(components.encodedQuery)"
     }
 
     func detail(companyId: Int, voucherId: Int) -> String {

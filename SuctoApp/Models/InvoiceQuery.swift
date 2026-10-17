@@ -129,6 +129,6 @@ struct InvoiceQuery {
     func path(_ base: String, page: Int) -> String {
         var components = URLComponents()
         components.queryItems = queryItems(page: page)
-        return "\(base)?\(components.percentEncodedQuery ?? "")"
+        return "\(base)?\(components.encodedQuery)"
     }
 }

@@ -26,7 +26,19 @@ struct MultipartFile {
 /// který zároveň odhlásí uživatele při 401.
 final class APIService: Sendable {
     static let shared = APIService()
-    private init() {}
+
+    /// Bez diskové cache `URLCache`: odpovědi jsou finanční data a cache by je nechránila ani nemazala při odhlášení.
+    /// Pro výpadek připojení slouží vlastní šifrovaná `ResponseCache`.
+    private let session: URLSession
+
+    private init() {
+        let configuration = URLSessionConfiguration.default
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        session = URLSession(configuration: configuration)
+        // Zbytky po dřívějších verzích, které používaly sdílenou cache.
+        URLCache.shared.removeAllCachedResponses()
+    }
 
     // MARK: - JSON
 
@@ -66,7 +78,7 @@ final class APIService: Sendable {
 
         var body = Data()
         body.append(Data("--\(boundary)\r\n".utf8))
-        body.append(Data("Content-Disposition: form-data; name=\"\(file.fieldName)\"; filename=\"\(file.fileName)\"\r\n".utf8))
+        body.append(Data("Content-Disposition: form-data; name=\"\(file.fieldName)\"; filename=\"\(Self.safeFileName(file.fileName))\"\r\n".utf8))
         body.append(Data("Content-Type: \(file.mimeType)\r\n\r\n".utf8))
         body.append(file.data)
         body.append(Data("\r\n--\(boundary)--\r\n".utf8))
@@ -76,6 +88,14 @@ final class APIService: Sendable {
 
         let data = try await execute(request, label: endpoint)
         return try decode(T.self, from: data, label: endpoint)
+    }
+
+    /// Název souboru do hlavičky multipartu: bez uvozovek, lomítek a zalomení řádku (nešlo by pak vložit vlastní hlavičku).
+    static func safeFileName(_ name: String) -> String {
+        let cleaned = name.unicodeScalars
+            .filter { !CharacterSet.controlCharacters.contains($0) && !"\"\\/".unicodeScalars.contains($0) }
+        let result = String(String.UnicodeScalarView(cleaned)).trimmingCharacters(in: .whitespaces)
+        return result.isEmpty ? "soubor" : String(result.prefix(120))
     }
 
     // MARK: - Binární data (např. náhled skenu)
@@ -106,7 +126,7 @@ final class APIService: Sendable {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
+            (data, response) = try await session.data(for: request)
         } catch is CancellationError {
             throw CancellationError()
         } catch let error as URLError where error.code == .cancelled {

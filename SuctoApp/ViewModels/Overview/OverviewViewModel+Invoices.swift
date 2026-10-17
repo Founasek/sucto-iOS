@@ -155,7 +155,7 @@ extension OverviewViewModel {
                         URLQueryItem(name: "q[issue_date_at_gteq]", value: "\(year)-01-01"),
                         URLQueryItem(name: "q[issue_date_at_lteq]", value: "\(year)-12-31"),
                     ]
-                    let path = "companies/\(self.companyId)/\(base)?\(components.percentEncodedQuery ?? "")"
+                    let path = "companies/\(self.companyId)/\(base)?\(components.encodedQuery)"
                     let result: [Invoice] = try await self.session.send(path)
                     return (page, result)
                 }

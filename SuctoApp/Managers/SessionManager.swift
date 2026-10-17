@@ -31,6 +31,7 @@ final class SessionManager: ObservableObject {
     func logout() {
         KeychainStore.delete(Self.tokenKey)
         ResponseCache.shared.clear()
+        URLCache.shared.removeAllCachedResponses()
         DueSnapshotStore.clear()
         DueNotifier.shared.cancelAll()
         WidgetCenter.shared.reloadAllTimelines()

@@ -14,7 +14,11 @@ struct CopyableRow: View {
     var body: some View {
         if let value, !value.isEmpty {
             Button {
-                UIPasteboard.general.string = value
+                // Jen na tomto zařízení (ne přes Universal Clipboard) a na krátkou dobu.
+                UIPasteboard.general.setItems(
+                    [[UIPasteboard.typeAutomatic: value]],
+                    options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(120)],
+                )
                 copied = true
                 Task {
                     try? await Task.sleep(for: .seconds(1.5))
