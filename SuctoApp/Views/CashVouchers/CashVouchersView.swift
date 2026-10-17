@@ -32,7 +32,7 @@ struct CashVouchersView: View {
 
             SearchField(text: $viewModel.searchText, prompt: "Číslo dokladu nebo příjemce")
                 .padding(.horizontal, Theme.Spacing.l)
-                .padding(.bottom, Theme.Spacing.xs)
+                .padding(.vertical, Theme.Spacing.xs)
 
             ScrollView {
                 if viewModel.vouchers.isEmpty {

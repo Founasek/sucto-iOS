@@ -41,9 +41,12 @@ struct ScansView: View {
                         ProgressView().padding(.vertical, Theme.Spacing.l)
                     }
                 }
-                .padding(Theme.Spacing.l)
+                .padding(.horizontal, Theme.Spacing.l)
+                .fitsScreenWidth()
+                .padding(.top, Theme.Spacing.s)
             }
         }
+        .contentMargins(.bottom, 24, for: .scrollContent)
         .background(Theme.background)
         .navigationTitle("Skeny faktur")
         .navigationBarTitleDisplayMode(.inline)
