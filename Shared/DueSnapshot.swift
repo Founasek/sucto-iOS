@@ -29,28 +29,49 @@ struct DueSnapshot: Codable {
 
 enum DueSnapshotStore {
     static let appGroup = "group.com.UFOSOFT.SuctoApp"
-    private static let key = "dueSnapshot"
+    /// Klíč, pod kterým dřívější verze ukládaly snapshot do `UserDefaults`; hodnota se při prvním přístupu smaže.
+    private static let legacyKey = "dueSnapshot"
+    private static let fileName = "dueSnapshot.json"
 
     /// Sdílené úložiště aplikace a widgetu; bez App Group (např. nepodepsaný build) se použije běžné.
     static var sharedDefaults: UserDefaults {
         UserDefaults(suiteName: appGroup) ?? .standard
     }
 
-    private static var defaults: UserDefaults { sharedDefaults }
+    /// Soubor v kontejneru skupiny (bez něj v Application Support). Snapshot obsahuje protistrany a částky, proto leží
+    /// v souboru mimo zálohy, ne v plistu `UserDefaults`, který se zálohuje. Widget ho musí číst i na zamčeném telefonu,
+    /// proto je ochrana „do prvního odemknutí“ (přísnější by widget zablokovala).
+    private static var fileURL: URL? {
+        let manager = FileManager.default
+        let directory = manager.containerURL(forSecurityApplicationGroupIdentifier: appGroup)
+            ?? manager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        guard let directory else { return nil }
+        try? manager.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory.appendingPathComponent(fileName)
+    }
 
     static func save(_ snapshot: DueSnapshot) {
-        guard let data = try? JSONEncoder().encode(snapshot) else { return }
-        defaults.set(data, forKey: key)
+        guard let data = try? JSONEncoder().encode(snapshot), var url = fileURL else { return }
+        guard (try? data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])) != nil else { return }
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? url.setResourceValues(values)
+        sharedDefaults.removeObject(forKey: legacyKey)
     }
 
     static func load() -> DueSnapshot? {
-        guard let data = defaults.data(forKey: key) else { return nil }
+        if let url = fileURL, let data = try? Data(contentsOf: url) {
+            return try? JSONDecoder().decode(DueSnapshot.self, from: data)
+        }
+        // Snapshot z dřívější verze, dokud ho aplikace nepřepíše novým.
+        guard let data = sharedDefaults.data(forKey: legacyKey) else { return nil }
         return try? JSONDecoder().decode(DueSnapshot.self, from: data)
     }
 
     /// Při odhlášení – widget nesmí dál ukazovat data předchozího uživatele.
     static func clear() {
-        defaults.removeObject(forKey: key)
+        if let url = fileURL { try? FileManager.default.removeItem(at: url) }
+        sharedDefaults.removeObject(forKey: legacyKey)
     }
 }
 

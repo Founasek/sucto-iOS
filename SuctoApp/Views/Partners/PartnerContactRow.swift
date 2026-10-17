@@ -32,11 +32,28 @@ struct ContactRow: View {
         }
     }
 
+    /// Odkaz jen pro očekávaná schémata. Hodnotu může zadat kdokoli s přístupem k partnerovi (nebo přijde z ARES),
+    /// takže z ní nesmí vzniknout `sms://`, `facetime://`, vlastní schéma jiné aplikace ani hlavičky `mailto:` (`?cc=`, `&body=`).
     private func url(for value: String) -> URL? {
-        let trimmed = value.trimmingCharacters(in: .whitespaces)
-        if let scheme {
-            return URL(string: scheme + trimmed.replacingOccurrences(of: " ", with: ""))
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch scheme {
+        case "mailto:":
+            guard !trimmed.isEmpty, trimmed.rangeOfCharacter(from: Self.unsafeInAddress) == nil else { return nil }
+            return URL(string: "mailto:" + trimmed)
+        case "tel:":
+            let number = trimmed.filter { !" -()./".contains($0) }
+            guard !number.isEmpty, number.allSatisfy({ "+0123456789".contains($0) }) else { return nil }
+            return URL(string: "tel:" + number)
+        default:
+            let text = trimmed.contains("://") ? trimmed : "https://\(trimmed)"
+            guard let components = URLComponents(string: text),
+                  let urlScheme = components.scheme?.lowercased(), ["http", "https"].contains(urlScheme),
+                  let host = components.host, !host.isEmpty
+            else { return nil }
+            return components.url
         }
-        return URL(string: trimmed.contains("://") ? trimmed : "https://\(trimmed)")
     }
+
+    /// Znaky, kterými by se do `mailto:` dostaly další příjemci, hlavičky nebo tělo zprávy.
+    private static let unsafeInAddress = CharacterSet(charactersIn: "?&#%,;<>\"\\").union(.whitespacesAndNewlines).union(.controlCharacters)
 }

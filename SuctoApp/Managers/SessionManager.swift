@@ -24,7 +24,9 @@ final class SessionManager: ObservableObject {
     }
 
     func login(token: String) {
-        KeychainStore.write(token, for: Self.tokenKey)
+        if !KeychainStore.write(token, for: Self.tokenKey) {
+            Log.debug("⚠️ Token se nepodařilo uložit do Keychainu; po restartu bude potřeba nové přihlášení.")
+        }
         authToken = token
     }
 
@@ -32,6 +34,7 @@ final class SessionManager: ObservableObject {
         KeychainStore.delete(Self.tokenKey)
         ResponseCache.shared.clear()
         URLCache.shared.removeAllCachedResponses()
+        Self.clearPerAccountPreferences()
         DueSnapshotStore.clear()
         DueNotifier.shared.cancelAll()
         WidgetCenter.shared.reloadAllTimelines()
@@ -96,6 +99,16 @@ final class SessionManager: ObservableObject {
         } catch APIError.unauthorized {
             logout()
             throw APIError.unauthorized
+        }
+    }
+
+    /// Příznaky uložené podle firmy (např. zákaz účetního deníku) patří ke konkrétnímu účtu – po odhlášení se nesmí přenést na dalšího.
+    private static let perAccountPrefixes = ["overview.accountingForbidden."]
+
+    private static func clearPerAccountPreferences() {
+        let defaults = UserDefaults.standard
+        for key in defaults.dictionaryRepresentation().keys where perAccountPrefixes.contains(where: key.hasPrefix) {
+            defaults.removeObject(forKey: key)
         }
     }
 
