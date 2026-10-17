@@ -21,16 +21,18 @@ enum KeychainStore {
         return String(data: data, encoding: .utf8)
     }
 
-    static func write(_ value: String, for key: String) {
+    /// Vrací `false`, pokud se hodnotu nepodařilo uložit (volající tak ví, že po restartu nebude k dispozici).
+    @discardableResult
+    static func write(_ value: String, for key: String) -> Bool {
         let data = Data(value.utf8)
-        let update = [kSecValueData as String: data]
-        let status = SecItemUpdate(baseQuery(key) as CFDictionary, update as CFDictionary)
-        if status == errSecItemNotFound {
-            var add = baseQuery(key)
-            add[kSecValueData as String] = data
-            add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-            SecItemAdd(add as CFDictionary, nil)
-        }
+        let status = SecItemUpdate(baseQuery(key) as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        if status == errSecSuccess { return true }
+        // Chybějící nebo poškozená položka: smazat a založit znovu.
+        SecItemDelete(baseQuery(key) as CFDictionary)
+        var add = baseQuery(key)
+        add[kSecValueData as String] = data
+        add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        return SecItemAdd(add as CFDictionary, nil) == errSecSuccess
     }
 
     static func delete(_ key: String) {

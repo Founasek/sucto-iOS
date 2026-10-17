@@ -46,7 +46,9 @@ final class LockWindowController: ObservableObject {
         refresh()
     }
 
-    private var shouldCover: Bool { isLoggedIn && isEnabled && (isLocked || isInactive) }
+    /// Zamčená obrazovka (jen když zámek jde; ukáže tlačítko odemknutí) a krytí obsahu při odchodu z popředí. Krytí platí
+    /// i na zařízení bez kódu, kde se zamknout nedá, aby se finanční údaje neukázaly v přepínači aplikací.
+    private var shouldCover: Bool { isLoggedIn && ((isEnabled && isLocked) || isInactive) }
 
     private func refresh() {
         if shouldCover { show() } else { hide() }

@@ -187,6 +187,12 @@ final class PohodaExportViewModel: ObservableObject {
         phase = .finished(Summary(file: file, exportedCount: result.exportedCount, skippedCount: skipped, failures: failures))
     }
 
+    /// Smaže dočasný soubor exportu (obsahuje faktury); volá se při zavření okna.
+    func discardFile() {
+        guard case let .finished(summary) = phase, let file = summary.file else { return }
+        try? FileManager.default.removeItem(at: file)
+    }
+
     // MARK: - Formátování
 
     private static let formatter: DateFormatter = {

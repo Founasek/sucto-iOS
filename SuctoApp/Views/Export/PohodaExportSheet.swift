@@ -54,6 +54,7 @@ struct PohodaExportSheet: View {
                 }
             }
         }
+        .onDisappear { viewModel.discardFile() }
         .presentationDetents([.medium, .large])
         .interactiveDismissDisabled(viewModel.isRunning)
     }
