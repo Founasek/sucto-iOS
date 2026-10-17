@@ -22,9 +22,9 @@ enum Theme {
         static let control: CGFloat = 14
     }
 
-    /// Barvy podle zvolené předvolby (`AppAccent`). Čtou se při vykreslení; po změně v Nastavení se celé
-    /// rozhraní přestaví (`.id` na kořeni v `SuctoApp`).
-    private static var accent: AppAccent { AppAccent.current }
+    /// Barvy podle zvolené předvolby (`AppAccent`). Čtou se při vykreslení přes `@Observable` `ThemeManager`,
+    /// takže se po změně v Nastavení překreslí jen to, co je používá.
+    private static var accent: AppAccent { ThemeManager.shared.accent }
 
     /// Značková barva (světlá) – dekorace, stíny, podklady ikon.
     static var brand: Color { accent.brand }

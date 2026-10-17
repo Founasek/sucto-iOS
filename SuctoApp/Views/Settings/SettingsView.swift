@@ -10,7 +10,7 @@ struct SettingsView: View {
     @EnvironmentObject private var session: SessionManager
     @EnvironmentObject private var navManager: NavigationManager
     @EnvironmentObject private var appLock: AppLock
-    @EnvironmentObject private var theme: ThemeManager
+    private let theme = ThemeManager.shared
     @ObservedObject private var dueNotifier = DueNotifier.shared
 
     @State private var hasSavedLogin = CredentialStore.hasSavedLogin()

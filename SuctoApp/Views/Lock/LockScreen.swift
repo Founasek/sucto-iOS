@@ -24,7 +24,9 @@ struct LockScreen: View {
                 logo.frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .preferredColorScheme(.dark)
+        // Jen pro tuto obrazovku. `preferredColorScheme` by přepnulo celé okno: při změně vzhledu v iOS aplikace krátce
+        // přejde do neaktivního stavu, zámek se překryje, okno přepne do tmavého a po zmizení zpět – a dokola.
+        .environment(\.colorScheme, .dark)
         .ignoresSafeArea()
         .accessibilityAddTraits(.isModal)
         .onAppear {
