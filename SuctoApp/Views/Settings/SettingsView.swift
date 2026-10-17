@@ -10,15 +10,18 @@ struct SettingsView: View {
     @EnvironmentObject private var session: SessionManager
     @EnvironmentObject private var navManager: NavigationManager
     @EnvironmentObject private var appLock: AppLock
+    private let theme = ThemeManager.shared
     @ObservedObject private var dueNotifier = DueNotifier.shared
 
     @State private var hasSavedLogin = CredentialStore.hasSavedLogin()
     @State private var showNotificationsDenied = false
     @State private var offlineDataCleared = false
     @AppStorage(ReminderSettings.enabledKey) private var remindersEnabled = false
+    @AppStorage(DueNotifier.detailsKey) private var notificationDetails = false
 
     var body: some View {
         Form {
+            appearanceSection
             securitySection
             notificationsSection
             remindersSection
@@ -50,12 +53,52 @@ struct SettingsView: View {
 
     // MARK: - Sekce
 
+    private var appearanceSection: some View {
+        Section {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Theme.Spacing.m) {
+                    ForEach(AppAccent.allCases) { accent in
+                        accentSwatch(accent)
+                    }
+                }
+                .padding(.vertical, Theme.Spacing.xs)
+            }
+        } header: {
+            Text("Vzhled")
+        } footer: {
+            Text("Barva aplikace platí pro ovládací prvky, tlačítka a hlavní karty. Stavy faktur (např. zaplaceno) a upozornění zůstávají ve svých barvách.")
+        }
+    }
+
+    private func accentSwatch(_ accent: AppAccent) -> some View {
+        let selected = theme.accent == accent
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) { theme.accent = accent }
+        } label: {
+            VStack(spacing: Theme.Spacing.xs) {
+                Circle()
+                    .fill(accent.gradient)
+                    .frame(width: 44, height: 44)
+                    .overlay {
+                        if selected {
+                            Image(systemName: "checkmark").font(.headline.weight(.bold)).foregroundStyle(.white)
+                        }
+                    }
+                    .overlay(Circle().strokeBorder(Color.primary.opacity(selected ? 0.5 : 0.1), lineWidth: selected ? 2 : 0.5).padding(-3))
+                Text(accent.title).font(.caption2).foregroundStyle(selected ? Color.primary : Color.secondary)
+            }
+            .padding(.horizontal, 2)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accent.title)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
     private var securitySection: some View {
         Section {
-            Toggle(isOn: Binding(
-                get: { appLock.isEnabled },
-                set: { newValue in Task { await appLock.setEnabled(newValue) } },
-            )) {
+            LabeledContent {
+                Text(appLock.isEnabled ? "Vždy zapnutý" : "Nedostupný").foregroundStyle(.secondary)
+            } label: {
                 Label("Zámek aplikace (\(appLock.methodName))", systemImage: "lock")
             }
 
@@ -84,7 +127,9 @@ struct SettingsView: View {
         } header: {
             Text("Zabezpečení")
         } footer: {
-            Text("Zámek se zapne po odchodu z aplikace na zvolenou dobu. Po studeném startu je aplikace zamčená vždy. Rychlé přihlášení ukládá údaje jen do zabezpečeného úložiště tohoto zařízení.")
+            Text(appLock.isEnabled
+                ? "Zámek nejde vypnout, aplikace ukazuje finanční údaje. Zamkne se po odchodu z aplikace na zvolenou dobu a po studeném startu vždy. Rychlé přihlášení ukládá údaje jen do zabezpečeného úložiště tohoto zařízení."
+                : "Na zařízení není nastavený kód ani Face ID / Touch ID, aplikaci proto nelze zamknout. Nastavte kód zařízení v Nastavení iOS.")
         }
     }
 
@@ -98,10 +143,18 @@ struct SettingsView: View {
             )) {
                 Label("Upozornění na splatnost", systemImage: "bell")
             }
+            if dueNotifier.isEnabled {
+                Toggle(isOn: $notificationDetails) {
+                    Label("Podrobnosti v upozornění", systemImage: "eye")
+                }
+                .onChange(of: notificationDetails) {
+                    Task { await dueNotifier.rescheduleFromStoredSnapshot() }
+                }
+            }
         } header: {
             Text("Upozornění")
         } footer: {
-            Text("Denně v 9:00 vás upozorní na faktury splatné ten den a po splatnosti. V textu nejsou částky ani jména. Plánuje se při otevření aplikace.")
+            Text("Denně v 9:00 vás upozorní na faktury splatné ten den a po splatnosti. Upozornění se zobrazí i na zamčeném telefonu, proto je ve výchozím stavu bez názvu firmy a počtů. Podrobnosti si zapněte jen tehdy, když vám to nevadí. Plánuje se při otevření aplikace.")
         }
     }
 
@@ -138,7 +191,7 @@ struct SettingsView: View {
         } header: {
             Text("Widget")
         } footer: {
-            Text("Widget a upozornění se obnoví při otevření firmy v aplikaci a také na pozadí, když to iOS dovolí (nárazově, ne na minutu přesně). Částky se na zamčené obrazovce skryjí.")
+            Text("Widget a upozornění se obnoví při otevření firmy v aplikaci a také na pozadí, když to iOS dovolí (nárazově, ne na minutu přesně). Částky a jména protistran se na zamčené obrazovce skryjí.")
         }
     }
 

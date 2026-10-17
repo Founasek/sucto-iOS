@@ -7,7 +7,8 @@ import LocalAuthentication
 import SwiftUI
 
 /// Zámek aplikace přes Face ID / Touch ID (s kódem zařízení jako zálohou).
-/// Zamyká se při studeném startu a po návratu z pozadí, pokud v pozadí byla déle než zvolená prodleva.
+/// Vypnout ho nejde: je zapnutý vždy, když zařízení umí ověření (biometrie nebo kód). Aplikace ukazuje finanční data,
+/// proto zámek není volba. Zamyká se při studeném startu a po návratu z pozadí, pokud v pozadí byla déle než zvolená prodleva.
 @MainActor
 final class AppLock: ObservableObject {
     /// Za jak dlouho v pozadí se aplikace zamkne.
@@ -27,7 +28,6 @@ final class AppLock: ObservableObject {
         }
     }
 
-    private static let enabledKey = "appLockEnabled"
     private static let delayKey = "appLockDelay"
 
     /// Prodleva zamčení; výchozí je 1 minuta.
@@ -39,6 +39,7 @@ final class AppLock: ObservableObject {
     private var backgroundedAt: UInt64?
 
     @Published private(set) var isLocked: Bool
+    /// `true`, pokud zařízení umí ověření. Bez kódu zařízení se zamknout nedá (a nastavení na to upozorní).
     @Published private(set) var isEnabled: Bool
     @Published private(set) var errorMessage: String?
 
@@ -47,11 +48,9 @@ final class AppLock: ObservableObject {
 
     init() {
         let defaults = UserDefaults.standard
-        // Výchozí stav: zapnuto, pokud zařízení umí ověření (kód / biometrie).
-        if defaults.object(forKey: Self.enabledKey) == nil {
-            defaults.set(Self.canAuthenticate, forKey: Self.enabledKey)
-        }
-        let enabled = defaults.bool(forKey: Self.enabledKey) && Self.canAuthenticate
+        // Dřívější verze měly zámek jako přepínač; hodnota už se nepoužívá.
+        defaults.removeObject(forKey: "appLockEnabled")
+        let enabled = Self.canAuthenticate
         isEnabled = enabled
         isLocked = enabled
         delay = (defaults.object(forKey: Self.delayKey) as? Int).flatMap(Delay.init(rawValue:)) ?? .oneMinute
@@ -106,6 +105,12 @@ final class AppLock: ObservableObject {
     /// Aplikace je zase aktivní. Zamkne se, pokud byla v pozadí aspoň tak dlouho, jak je nastaveno.
     func appBecameActive() {
         defer { backgroundedAt = nil }
+        // Kód zařízení se mohl mezitím nastavit nebo zrušit.
+        let available = Self.canAuthenticate
+        if available != isEnabled {
+            isEnabled = available
+            if !available { isLocked = false }
+        }
         guard isEnabled, !isLocked, let started = backgroundedAt else { return }
         let elapsed = Double(Self.monotonicNow() - started) / 1_000_000_000
         if elapsed >= Double(delay.rawValue) { lock() }
@@ -138,22 +143,6 @@ final class AppLock: ObservableObject {
             isLocked = false
             errorMessage = nil
         }
-    }
-
-    /// Zapnutí vyžaduje úspěšné ověření, aby si zámek nešlo omylem (nebo cizí rukou) vypnout/zapnout bez něj.
-    func setEnabled(_ enabled: Bool) async {
-        guard enabled != isEnabled else { return }
-        guard Self.canAuthenticate else {
-            errorMessage = "Na zařízení není nastavený kód ani Face ID / Touch ID."
-            return
-        }
-        isAuthenticating = true
-        defer { isAuthenticating = false }
-        let reason = enabled ? "Zapnutí zámku aplikace." : "Vypnutí zámku aplikace."
-        guard await authenticate(reason: reason) else { return }
-        isEnabled = enabled
-        UserDefaults.standard.set(enabled, forKey: Self.enabledKey)
-        errorMessage = nil
     }
 
     private func authenticate(reason: String) async -> Bool {

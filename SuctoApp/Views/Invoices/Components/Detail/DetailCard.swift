@@ -17,7 +17,7 @@ struct DetailCard<Content: View>: View {
                 HStack(spacing: Theme.Spacing.s) {
                     if let systemImage {
                         Image(systemName: systemImage)
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(Theme.tint)
                     }
                     Text(title.uppercased())
                         .font(.caption.weight(.semibold))

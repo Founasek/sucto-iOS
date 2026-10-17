@@ -40,7 +40,7 @@ struct PaymentSuccessOverlay: View {
 
                 Checkmark()
                     .trim(from: 0, to: check)
-                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
+                    .stroke(Theme.tint, style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
             }
             .frame(width: 96, height: 96)
 

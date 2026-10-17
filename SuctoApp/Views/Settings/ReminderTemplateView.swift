@@ -26,7 +26,7 @@ struct ReminderTemplateView: View {
                     HStack {
                         Text(placeholder.token)
                             .font(.subheadline.monospaced())
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(Theme.tint)
                         Spacer()
                         Text(placeholder.meaning)
                             .font(.footnote)

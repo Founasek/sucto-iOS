@@ -14,7 +14,7 @@ struct LoadingStateView: View {
         VStack(spacing: Theme.Spacing.l) {
             ProgressView()
                 .controlSize(.large)
-                .tint(.accentColor)
+                .tint(Theme.tint)
             Text(message)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

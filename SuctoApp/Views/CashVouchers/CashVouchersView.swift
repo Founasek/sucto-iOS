@@ -30,6 +30,10 @@ struct CashVouchersView: View {
             .padding(.horizontal, Theme.Spacing.l)
             .padding(.vertical, Theme.Spacing.s)
 
+            SearchField(text: $viewModel.searchText, prompt: "Číslo dokladu nebo příjemce")
+                .padding(.horizontal, Theme.Spacing.l)
+                .padding(.vertical, Theme.Spacing.xs)
+
             ScrollView {
                 if viewModel.vouchers.isEmpty {
                     emptyOrLoading
@@ -61,7 +65,6 @@ struct CashVouchersView: View {
         }
         .background(Theme.background)
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $viewModel.searchText, prompt: "Číslo dokladu nebo příjemce")
         .onChange(of: viewModel.searchText) { viewModel.searchTextChanged() }
         .refreshable { await viewModel.refresh() }
         .task { if viewModel.vouchers.isEmpty { await viewModel.refresh() } }

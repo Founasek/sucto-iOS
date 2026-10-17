@@ -88,8 +88,8 @@ struct AnimatedMeshBackground: View {
             ],
             colors: [
                 Theme.ink, Theme.inkSoft, Theme.ink,
-                Theme.inkSoft, Color(hex: "#1F7A45"), Theme.inkSoft,
-                Theme.ink, Theme.inkSoft, Color(hex: "#0A1F14"),
+                Theme.inkSoft, Theme.meshHighlight, Theme.inkSoft,
+                Theme.ink, Theme.inkSoft, Theme.meshDeep,
             ],
         )
         .ignoresSafeArea()

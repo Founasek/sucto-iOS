@@ -9,13 +9,13 @@ Backend nevlastníme – chování se opírá výhradně o API dokumentaci (`htt
 | --- | --- |
 | `SuctoApp/App` | vstupní bod, kořenová navigace, prostředí (`SessionManager`, `AppLock`, `PermissionsStore`…) |
 | `SuctoApp/Networking` | `APIService` (bezstavový HTTP klient), `APIConstants` (endpointy), `APIError` |
-| `SuctoApp/Managers` | stav a služby mimo obrazovky: session/Keychain, zámek aplikace, cache odpovědí, oprávnění, upozornění |
+| `SuctoApp/Managers` | stav a služby mimo obrazovky: session/Keychain, zámek aplikace, cache odpovědí, oprávnění, upozornění, barva aplikace (`ThemeManager`) |
 | `SuctoApp/Models` | datové typy API + čistá logika (souhrny, výpočty, dotazy) – bez závislosti na SwiftUI, snadno testovatelné |
 | `SuctoApp/ViewModels` | stav obrazovek (`@MainActor ObservableObject`), volání API přes `SessionManager` |
 | `SuctoApp/Views` | SwiftUI obrazovky a komponenty, po funkcích (Dashboard, Overview, Invoices, Partners, …) |
 | `SuctoApp/Export` | Pohoda XML a CSV (čisté funkce nad modely) |
 | `SuctoApp/Theme`, `Helpers` | design systém, formátování, pomocné nástroje |
-| `Shared` | kód sdílený aplikací a widgetem (snapshot splatností, odkazy) – jen Foundation |
+| `Shared` | kód sdílený aplikací a widgetem (snapshot splatností, odkazy, paleta `AppAccent` – barva aplikace volitelná v Nastavení) |
 | `SuctoWidget` | widget „Splatnosti“ (čte snapshot z App Group, nemá síť ani token) |
 | `Config` | entitlements a Info.plist doplňky |
 

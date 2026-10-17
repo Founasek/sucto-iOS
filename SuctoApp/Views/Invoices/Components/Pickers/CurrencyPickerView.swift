@@ -25,7 +25,7 @@ struct CurrencyPickerView: View {
                     if let selected = selectedCurrency {
                         Text(selected.isoCode ?? "???")
                             .font(.body)
-                            .foregroundStyle(.accent)
+                            .foregroundStyle(Theme.tint)
                     } else {
                         Text("Vyberte měnu")
                             .foregroundColor(.secondary)

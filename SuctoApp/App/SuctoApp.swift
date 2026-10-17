@@ -13,6 +13,7 @@ struct SuctoApp: App {
     @StateObject private var navManager = NavigationManager()
     @StateObject private var appLock = AppLock()
     @StateObject private var permissions = PermissionsStore()
+    private let theme = ThemeManager.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -47,6 +48,7 @@ struct SuctoApp: App {
             .environmentObject(navManager)
             .environmentObject(appLock)
             .environmentObject(permissions)
+            .tint(theme.accent.tint)
             .accessibilityHidden(isCovered)
             .overlay {
                 if session.isLoggedIn {

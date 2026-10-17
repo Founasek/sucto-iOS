@@ -7,7 +7,8 @@ import Foundation
 import UserNotifications
 
 /// Denní upozornění na splatnosti (v 9:00). Plánuje se z posledního snapshotu při každém obnovení dat v aplikaci,
-/// takže se bez otevření aplikace nové faktury neprojeví. V textu nejsou částky ani jména (zobrazí se na zamčené obrazovce).
+/// takže se bez otevření aplikace nové faktury neprojeví. Upozornění se zobrazí i na zamčeném telefonu, proto je ve výchozím
+/// stavu neutrální (bez firmy a počtů); podrobnosti si uživatel zapíná vědomě. Částky ani jména v něm nejsou nikdy.
 @MainActor
 final class DueNotifier: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     static let shared = DueNotifier()
@@ -17,6 +18,9 @@ final class DueNotifier: NSObject, ObservableObject, UNUserNotificationCenterDel
     static let openLinkNotification = Notification.Name("DueNotifierOpenLink")
 
     private static let enabledKey = "dueNotificationsEnabled"
+    /// Klíč v UserDefaults; sdílí ho i `@AppStorage` v nastavení.
+    static let detailsKey = "dueNotificationDetails"
+    private static let categoryIdentifier = "due-category"
     private static let identifierPrefix = "due-"
     private static let daysAhead = 14
     private static let hour = 9
@@ -30,7 +34,22 @@ final class DueNotifier: NSObject, ObservableObject, UNUserNotificationCenterDel
 
     /// Zaregistruje obsluhu klepnutí na upozornění. Musí proběhnout při startu aplikace.
     func activate() {
-        UNUserNotificationCenter.current().delegate = self
+        let center = UNUserNotificationCenter.current()
+        center.delegate = self
+        // Když uživatel v iOS skrývá náhledy na zamčené obrazovce, ukáže se tento neutrální text.
+        let category = UNNotificationCategory(
+            identifier: Self.categoryIdentifier,
+            actions: [],
+            intentIdentifiers: [],
+            hiddenPreviewsBodyPlaceholder: "Faktury ke splatnosti",
+            options: [],
+        )
+        center.setNotificationCategories([category])
+    }
+
+    /// Přeplánuje upozornění z posledního snapshotu (po změně nastavení podrobností).
+    func rescheduleFromStoredSnapshot() async {
+        if let snapshot = DueSnapshotStore.load() { await reschedule(from: snapshot) }
     }
 
     /// Vydá a zapomene čekající odkaz (cold start z upozornění).
@@ -120,6 +139,7 @@ final class DueNotifier: NSObject, ObservableObject, UNUserNotificationCenterDel
 
             let toPay = dueThatDay.filter(\.isIncoming).count
             let toReceive = dueThatDay.count - toPay
+            let showDetails = UserDefaults.standard.bool(forKey: Self.detailsKey)
             var lines: [String] = []
             if toPay > 0 { lines.append("K úhradě (přijaté): \(toPay)") }
             if toReceive > 0 { lines.append("Čekáme platbu (vydané): \(toReceive)") }
@@ -131,8 +151,14 @@ final class DueNotifier: NSObject, ObservableObject, UNUserNotificationCenterDel
             let linkIsIncoming = incomingCount > relevant.count - incomingCount
 
             let content = UNMutableNotificationContent()
-            content.title = "Splatnosti dnes · \(snapshot.companyName)"
-            content.body = lines.joined(separator: "\n")
+            content.categoryIdentifier = Self.categoryIdentifier
+            if showDetails {
+                content.title = "Splatnosti dnes · \(snapshot.companyName)"
+                content.body = lines.joined(separator: "\n")
+            } else {
+                content.title = "Splatnosti dnes"
+                content.body = "Máte faktury ke splatnosti. Klepnutím je zobrazíte."
+            }
             content.sound = .default
             if let url = DueLink.url(companyId: snapshot.companyId, isIncoming: linkIsIncoming) {
                 content.userInfo = ["url": url.absoluteString]

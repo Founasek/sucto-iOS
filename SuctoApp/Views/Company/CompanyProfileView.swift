@@ -68,7 +68,7 @@ struct CompanyProfileView: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(Theme.brand.opacity(0.18), in: Capsule())
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Theme.tint)
             }
         }
         .frame(maxWidth: .infinity)
@@ -120,7 +120,7 @@ struct CompanyProfileView: View {
             HStack(spacing: Theme.Spacing.l) {
                 Image(systemName: "person.2")
                     .font(.title3)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Theme.tint)
                     .frame(width: 48, height: 48)
                     .background(Theme.brand.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 VStack(alignment: .leading, spacing: Theme.Spacing.xs) {

@@ -97,7 +97,7 @@ extension DashboardView {
         } label: {
             Image(systemName: "doc.viewfinder")
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(Theme.tint)
                 .frame(width: 52, height: 52)
                 .background(.regularMaterial, in: Circle())
                 .overlay(Circle().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5))

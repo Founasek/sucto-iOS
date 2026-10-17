@@ -23,7 +23,7 @@ struct EmptyStateView: View {
                     .frame(width: 96, height: 96)
                 Image(systemName: systemImage)
                     .font(.system(size: 40, weight: .regular))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Theme.tint)
                     .symbolRenderingMode(.hierarchical)
                     .symbolEffect(.bounce, options: .nonRepeating, value: bounce)
             }

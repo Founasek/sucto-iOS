@@ -36,7 +36,7 @@ struct PaymentTypePickerView: View {
                     if let selected = selectedPaymentType {
                         Text(selected.name)
                             .font(.body)
-                            .foregroundStyle(.accent)
+                            .foregroundStyle(Theme.tint)
                     } else {
                         Text("Vyberte kategorii")
                             .foregroundColor(.secondary)

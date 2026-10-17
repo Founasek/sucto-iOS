@@ -63,6 +63,6 @@ struct RoleTag: View {
             .padding(.horizontal, 7)
             .padding(.vertical, 2)
             .background(Theme.brand.opacity(0.18), in: Capsule())
-            .foregroundStyle(Color.accentColor)
+            .foregroundStyle(Theme.tint)
     }
 }
